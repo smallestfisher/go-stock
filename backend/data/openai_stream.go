@@ -373,16 +373,15 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 
 		go func() {
 			defer wg.Done()
-			datas := NewMarketNewsApi().InteractiveAnswer(1, 100, stock)
+			datas := NewMarketNewsApi().InteractiveAnswer(1, 10, stock) // Changed from 100 to 10
 			content := util.MarkdownTableWithTitle("当前最新投资者互动数据", datas.Results)
 			msg = append(msg, map[string]interface{}{
 				"role":    "user",
 				"content": "投资者互动数据",
 			})
 			msg = append(msg, map[string]interface{}{
-				"role":              "assistant",
-				"reasoning_content": "使用工具查询",
-				"content":           content,
+				"role":    "assistant",
+				"content": content,
 			})
 		}()
 
@@ -407,9 +406,8 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 				"content": "国内宏观经济数据",
 			})
 			msg = append(msg, map[string]interface{}{
-				"role":              "assistant",
-				"reasoning_content": "使用工具查询",
-				"content":           "\n# 国内宏观经济数据：\n" + market.String(),
+				"role":    "assistant",
+				"content": "\n# 国内宏观经济数据：\n" + market.String(),
 			})
 		}()
 
@@ -436,9 +434,8 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 				"content": "近期重大事件/会议",
 			})
 			msg = append(msg, map[string]interface{}{
-				"role":              "assistant",
-				"reasoning_content": "使用工具查询",
-				"content":           "近期重大事件/会议如下：\n" + md.String(),
+				"role":    "assistant",
+				"content": "近期重大事件/会议如下：\n" + md.String(),
 			})
 		}()
 
@@ -542,7 +539,7 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 
 		go func() {
 			defer wg.Done()
-			messages := NewMarketNewsApi().GetNews24HoursList("", random.RandInt(200, 1000))
+			messages := NewMarketNewsApi().GetNews24HoursList("", 10) // Changed from 200-1000 to 10
 			if messages == nil || len(*messages) == 0 {
 				logger.SugaredLogger.Error("获取市场资讯失败")
 				return
@@ -570,8 +567,13 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 				return
 			}
 			var newsText strings.Builder
+			count := 0
 			for _, message := range *messages {
+				if count > 10 {
+					break
+				}
 				newsText.WriteString(message + "\n")
+				count++
 			}
 			msg = append(msg, map[string]interface{}{
 				"role":    "user",

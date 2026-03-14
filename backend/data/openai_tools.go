@@ -168,10 +168,6 @@ func AskAi(o *OpenAi, err error, messages []map[string]interface{}, ch chan map[
 	if o.TimeOut <= 0 {
 		o.TimeOut = 300
 	}
-	thinking := "disabled"
-	if think {
-		thinking = "enabled"
-	}
 	client.SetTimeout(time.Duration(o.TimeOut) * time.Second)
 	if o.HttpProxyEnabled && o.HttpProxy != "" {
 		client.SetProxy(o.HttpProxy)
@@ -182,11 +178,6 @@ func AskAi(o *OpenAi, err error, messages []map[string]interface{}, ch chan map[
 		"temperature": o.Temperature,
 		"stream":      true,
 		"messages":    messages,
-	}
-	if think {
-		bodyMap["thinking"] = map[string]any{
-			"type": thinking,
-		}
 	}
 
 	req := client.R().
@@ -210,9 +201,13 @@ func AskAi(o *OpenAi, err error, messages []map[string]interface{}, ch chan map[
 	}
 
 	scanner := bufio.NewScanner(body)
+	// Increase buffer size to 1MB (default is 64KB)
+	const maxCapacity = 1024 * 1024
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, maxCapacity)
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		logger.SugaredLogger.Infof("Received data: %s", line)
 		if strings.HasPrefix(line, "data:") {
 			data := strutil.Trim(strings.TrimPrefix(line, "data:"))
 			if data == "[DONE]" {
@@ -299,8 +294,23 @@ func AskAi(o *OpenAi, err error, messages []map[string]interface{}, ch chan map[
 						"question": question,
 						"content":  msg,
 					}
+				} else {
+					// Fallback: send raw line if not JSON
+					ch <- map[string]any{
+						"code":     0,
+						"question": question,
+						"content":  line,
+					}
 				}
 			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		logger.SugaredLogger.Errorf("Scanner error: %v", err)
+		ch <- map[string]any{
+			"code":     0,
+			"question": question,
+			"content":  "读取数据流失败: " + err.Error(),
 		}
 	}
 }
@@ -316,26 +326,41 @@ func AskAiWithTools(o *OpenAi, err error, messages []map[string]interface{}, ch 
 	if o.TimeOut <= 0 {
 		o.TimeOut = 300
 	}
-	thinking := "disabled"
-	if thinkingMode {
-		thinking = "enabled"
-	}
 	client.SetTimeout(time.Duration(o.TimeOut) * time.Second)
 	if o.HttpProxyEnabled && o.HttpProxy != "" {
 		client.SetProxy(o.HttpProxy)
 	}
+	// Radical cleanup of tools for maximum compatibility
+	var cleanedTools []interface{}
+	for _, t := range tools {
+		tBytes, _ := json.Marshal(t)
+		var tMap map[string]any
+		json.Unmarshal(tBytes, &tMap)
+		
+		if f, ok := tMap["function"].(map[string]any); ok {
+			// Remove fields that often cause 400 on strict proxies
+			delete(f, "strict")
+			
+			if params, ok := f["parameters"].(map[string]any); ok {
+				delete(params, "additionalProperties")
+			} else if f["parameters"] == nil {
+				// Gemini often rejects null parameters, use empty object
+				f["parameters"] = map[string]any{
+					"type":       "object",
+					"properties": map[string]any{},
+				}
+			}
+		}
+		cleanedTools = append(cleanedTools, tMap)
+	}
+
 	bodyMap := map[string]interface{}{
 		"model":       o.Model,
 		"max_tokens":  o.MaxTokens,
 		"temperature": o.Temperature,
 		"stream":      true,
 		"messages":    messages,
-		"tools":       tools,
-	}
-	if thinkingMode {
-		bodyMap["thinking"] = map[string]any{
-			"type": thinking,
-		}
+		"tools":       cleanedTools,
 	}
 
 	req := client.R().
@@ -359,6 +384,11 @@ func AskAiWithTools(o *OpenAi, err error, messages []map[string]interface{}, ch 
 	}
 
 	scanner := bufio.NewScanner(body)
+	// Increase buffer size to 1MB (default is 64KB)
+	const maxCapacity = 1024 * 1024
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, maxCapacity)
+
 	functions := map[string]string{}
 	currentFuncName := ""
 	currentCallId := ""
@@ -368,7 +398,6 @@ func AskAiWithTools(o *OpenAi, err error, messages []map[string]interface{}, ch 
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		logger.SugaredLogger.Infof("Received data: %s", line)
 		if strings.HasPrefix(line, "data:") {
 			data := strutil.Trim(strings.TrimPrefix(line, "data:"))
 			if data == "[DONE]" {
@@ -433,6 +462,7 @@ func AskAiWithTools(o *OpenAi, err error, messages []map[string]interface{}, ch 
 							"model":    streamResponse.Model,
 							"content":  reasoningContent,
 							"time":     time.Now().Format(time.DateTime),
+							"type":     "reasoning",
 						}
 					}
 					if choice.Delta.ToolCalls != nil && len(choice.Delta.ToolCalls) > 0 {
@@ -534,8 +564,23 @@ func AskAiWithTools(o *OpenAi, err error, messages []map[string]interface{}, ch 
 							"content":  msg,
 						}
 					}
+				} else {
+					// Fallback: send raw line if not JSON
+					ch <- map[string]any{
+						"code":     0,
+						"question": question,
+						"content":  line,
+					}
 				}
 			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		logger.SugaredLogger.Errorf("Scanner error: %v", err)
+		ch <- map[string]any{
+			"code":     0,
+			"question": question,
+			"content":  "读取数据流失败: " + err.Error(),
 		}
 	}
 }

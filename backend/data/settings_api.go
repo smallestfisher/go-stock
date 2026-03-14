@@ -87,10 +87,16 @@ func (s *SettingsApi) Export() string {
 }
 
 func UpdateConfig(s *SettingConfig) string {
-	count := int64(0)
-	db.Dao.Model(&Settings{}).Count(&count)
-	if count > 0 {
-		db.Dao.Model(&Settings{}).Where("id=?", s.ID).Updates(map[string]any{
+	var settings Settings
+	err := db.Dao.First(&settings).Error
+	if err == nil {
+		// Found existing settings, update them
+		targetID := s.ID
+		if targetID == 0 {
+			targetID = settings.ID
+		}
+
+		db.Dao.Model(&Settings{}).Where("id=?", targetID).Updates(map[string]any{
 			"local_push_enable":          s.LocalPushEnable,
 			"ding_push_enable":           s.DingPushEnable,
 			"ding_robot":                 s.DingRobot,
@@ -118,22 +124,23 @@ func UpdateConfig(s *SettingConfig) string {
 			"window_width":               s.WindowWidth,
 			"window_height":              s.WindowHeight,
 		})
-
-		//更新AiConfig
-		err := updateAiConfigs(s.AiConfigs)
-		if err != nil {
-			logger.SugaredLogger.Errorf("更新AI模型服务配置失败: %v", err)
-			return "更新AI模型服务配置失败: " + err.Error()
-		}
 	} else {
-		logger.SugaredLogger.Infof("未找到配置，创建默认配置")
-		// 创建主配置
-		result := db.Dao.Model(&Settings{}).Create(&Settings{})
+		// No settings found, create new one with provided values
+		logger.SugaredLogger.Infof("未找到配置，创建新配置")
+		result := db.Dao.Model(&Settings{}).Create(s.Settings)
 		if result.Error != nil {
 			logger.SugaredLogger.Error("创建配置失败:", result.Error)
 			return "创建配置失败: " + result.Error.Error()
 		}
 	}
+
+	// Always update AI configs
+	err = updateAiConfigs(s.AiConfigs)
+	if err != nil {
+		logger.SugaredLogger.Errorf("更新AI模型服务配置失败: %v", err)
+		return "更新AI模型服务配置失败: " + err.Error()
+	}
+
 	return "保存成功！"
 }
 
