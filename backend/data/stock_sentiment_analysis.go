@@ -84,13 +84,21 @@ func InitAnalyzeSentiment() {
 	//	logger.SugaredLogger.Error(err.Error())
 	//}
 
-	err := seg.LoadDictEmbed(baseDict)
-	if err != nil {
-		logger.SugaredLogger.Error(err.Error())
-	} else {
-		logger.SugaredLogger.Info("加载默认词典成功")
-	}
-	seg.CalcToken()
+	// 尝试安全加载默认词典
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.SugaredLogger.Errorf("加载默认词典发生Panic: %v", r)
+			}
+		}()
+		err := seg.LoadDictEmbed(baseDict)
+		if err != nil {
+			logger.SugaredLogger.Error(err.Error())
+		} else {
+			logger.SugaredLogger.Info("加载默认词典成功")
+		}
+		seg.CalcToken()
+	}()
 
 	stocks := &[]StockBasic{}
 	db.Dao.Model(&StockBasic{}).Find(stocks)

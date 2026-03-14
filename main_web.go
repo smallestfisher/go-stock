@@ -83,9 +83,17 @@ func main() {
 		}
 	}()
 
-	// Initialize backend in a way that doesn't block server startup
+	// Initialize backend
 	checkDir("data")
 	db.Init("")
+	
+	// MUST set IsWebMode before any util.Emit calls to avoid Wails context errors
+	util.IsWebMode = true
+
+	log.SugaredLogger.Info("Initializing database schema...")
+	AutoMigrate()
+	
+	// Sentiment analysis can be slow and may panic, run it in background
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -93,12 +101,9 @@ func main() {
 			}
 			util.Emit(context.Background(), "loadingMsg", "done")
 		}()
+		log.SugaredLogger.Info("Initializing sentiment analysis data in background...")
 		data.InitAnalyzeSentiment()
 	}()
-	go AutoMigrate()
-
-	// Enable Web Mode for Events
-	util.IsWebMode = true
 
 	log.SugaredLogger.Info("Starting Web Server...")
 
@@ -222,9 +227,24 @@ func main() {
 
 		log.SugaredLogger.Infof("Web API Method %s returned %d values", methodName, len(results))
 
+		// Check for error in return values (standard Go pattern is last return value)
+		if len(results) > 0 {
+			lastResult := results[len(results)-1]
+			if lastResult.Type().Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+				if !lastResult.IsNil() {
+					err := lastResult.Interface().(error)
+					return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+				}
+			}
+		}
+
 		// Convert results
 		var out []interface{}
 		for _, r := range results {
+			// Don't include the error in the regular result list if we already checked it
+			if r.Type().Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+				continue
+			}
 			out = append(out, r.Interface())
 		}
 

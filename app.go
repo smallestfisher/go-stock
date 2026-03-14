@@ -987,7 +987,7 @@ func addStockFollowData(follow data.FollowedStock, stockData *data.StockInfo) {
 func (a *App) shutdown(ctx context.Context) {
 	defer PanicHandler()
 	// 记录当前窗口大小，供下次启动时还原
-	if a.ctx != nil {
+	if a.ctx != nil && !util.IsWebMode {
 		if w, h := runtime.WindowGetSize(a.ctx); w > 0 && h > 0 {
 			cfg := data.GetSettingConfig()
 			cfg.WindowWidth = w
@@ -1224,6 +1224,9 @@ func (a *App) GetConfig() *data.SettingConfig {
 }
 
 func (a *App) ExportConfig() string {
+	if util.IsWebMode {
+		return "Web模式暂不支持导出配置"
+	}
 	config := data.NewSettingsApi().Export()
 	file, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:                "导出配置文件",
@@ -1512,6 +1515,10 @@ func (a *App) GetStockMoneyTrendByDay(stockCode string, days int) []map[string]a
 //	@receiver a
 //	@param url
 func (a *App) OpenURL(url string) {
+	if util.IsWebMode {
+		util.Emit(a.ctx, "open_url", url)
+		return
+	}
 	runtime.BrowserOpenURL(a.ctx, url)
 }
 
@@ -1523,6 +1530,9 @@ func (a *App) OpenURL(url string) {
 //	@param base64Data
 //	@return error
 func (a *App) SaveImage(name, base64Data string) string {
+	if util.IsWebMode {
+		return "Web模式暂不支持保存图片到本地"
+	}
 	// 打开保存文件对话框
 	filePath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:           "保存图片",

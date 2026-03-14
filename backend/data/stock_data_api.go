@@ -488,6 +488,7 @@ func (receiver StockDataApi) Follow(stockCode string) string {
 		AlarmChangePercent: 3,
 		AlarmPrice:         price + 1,
 	}, &FollowedStock{StockCode: stockCode})
+	logger.SugaredLogger.Infof("Follow Success: emitting refresh_stock_list for %s", stockCode)
 	util.Emit(receiver.ctx, "refresh_stock_list", stockCode)
 	return "关注成功"
 }

@@ -22,6 +22,7 @@
                             const err = await r.json();
                             throw new Error(err.error || 'Unknown error');
                         }
+                        if (r.status === 204) return null;
                         return r.json();
                     });
                 }
@@ -30,7 +31,9 @@
     });
 
     // 2. Mock window.runtime for events and other utilities
-    const eventListeners = {};
+    const eventListeners = {
+        'open_url': [(url) => window.open(url, '_blank')]
+    };
     window.runtime = {
         EventsOn: (name, callback) => {
             if (!eventListeners[name]) eventListeners[name] = [];

@@ -399,13 +399,8 @@ onBeforeMount(() => {
   })
 
   EventsOn("refresh_stock_list", async (code) => {
-    // 刷新列表
-    const newList = await GetFollowList(currentGroupId.value);
-    followList.value = newList;
-    // 更新 stocks 数组，确保包含最新的代码格式
-    stocks.value = newList.map(item => item.stock_code.toLowerCase());
-    // 立即执行一次数据监控抓取
-    monitor();
+    // 强制全页刷新以确保 UI 布局和数据彻底同步
+    window.location.reload();
   })
 
 
