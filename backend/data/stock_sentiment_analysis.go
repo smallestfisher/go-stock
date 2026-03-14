@@ -85,6 +85,7 @@ func InitAnalyzeSentiment() {
 	//}
 
 	// 尝试安全加载默认词典
+	isLoaded := false
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -96,9 +97,17 @@ func InitAnalyzeSentiment() {
 			logger.SugaredLogger.Error(err.Error())
 		} else {
 			logger.SugaredLogger.Info("加载默认词典成功")
+			isLoaded = true
 		}
-		seg.CalcToken()
+		if isLoaded {
+			seg.CalcToken()
+		}
 	}()
+
+	if !isLoaded {
+		logger.SugaredLogger.Warn("默认词典加载失败，跳过后续词典初始化")
+		return
+	}
 
 	stocks := &[]StockBasic{}
 	db.Dao.Model(&StockBasic{}).Find(stocks)
@@ -106,13 +115,16 @@ func InitAnalyzeSentiment() {
 		if strutil.Trim(stock.Name) == "" {
 			continue
 		}
-		err := seg.AddToken(stock.Name, basefreq+100, "n")
-		if strutil.Trim(stock.BKName) != "" {
-			err = seg.AddToken(stock.BKName, basefreq+100, "n")
-		}
-		if err != nil {
-			logger.SugaredLogger.Errorf("添加%s失败:%s", stock.Name, err.Error())
-		}
+		func() {
+			defer func() { recover() }() // 保护单条添加
+			err := seg.AddToken(stock.Name, basefreq+100, "n")
+			if strutil.Trim(stock.BKName) != "" {
+				err = seg.AddToken(stock.BKName, basefreq+100, "n")
+			}
+			if err != nil {
+				logger.SugaredLogger.Errorf("添加%s失败:%s", stock.Name, err.Error())
+			}
+		}()
 	}
 	logger.SugaredLogger.Info("加载股票名称词典成功")
 
@@ -122,38 +134,45 @@ func InitAnalyzeSentiment() {
 		if strutil.Trim(stock.Name) == "" {
 			continue
 		}
-		err := seg.AddToken(stock.Name, basefreq+100, "n")
-		if strutil.Trim(stock.BKName) != "" {
-			err = seg.AddToken(stock.BKName, basefreq+100, "n")
-		}
-		if err != nil {
-			logger.SugaredLogger.Errorf("添加%s失败:%s", stock.Name, err.Error())
-		}
+		func() {
+			defer func() { recover() }() // 保护单条添加
+			err := seg.AddToken(stock.Name, basefreq+100, "n")
+			if strutil.Trim(stock.BKName) != "" {
+				err = seg.AddToken(stock.BKName, basefreq+100, "n")
+			}
+			if err != nil {
+				logger.SugaredLogger.Errorf("添加%s失败:%s", stock.Name, err.Error())
+			}
+		}()
 	}
 	logger.SugaredLogger.Info("加载港股名称词典成功")
-	//stockus := &[]models.StockInfoUS{}
-	//db.Dao.Model(&models.StockInfoUS{}).Where("trim(name) != ?", "").Find(stockus)
-	//for _, stock := range *stockus {
-	//	err := seg.AddToken(stock.Name, 500)
-	//	if err != nil {
-	//		logger.SugaredLogger.Errorf("添加%s失败:%s", stock.Name, err.Error())
-	//	}
-	//}
+
 	tags := &[]models.Tags{}
 	db.Dao.Model(&models.Tags{}).Where("type = ?", "subject").Find(tags)
 	for _, tag := range *tags {
 		if tag.Name == "" {
 			continue
 		}
-		err := seg.AddToken(tag.Name, basefreq+100, "n")
-		if err != nil {
-			logger.SugaredLogger.Errorf("添加%s失败:%s", tag.Name, err.Error())
-		} else {
-			logger.SugaredLogger.Infof("添加tags词典[%s]成功", tag.Name)
-		}
+		func() {
+			defer func() { recover() }()
+			err := seg.AddToken(tag.Name, basefreq+100, "n")
+			if err != nil {
+				logger.SugaredLogger.Errorf("添加%s失败:%s", tag.Name, err.Error())
+			} else {
+				logger.SugaredLogger.Infof("添加tags词典[%s]成功", tag.Name)
+			}
+		}()
 	}
 	logger.SugaredLogger.Info("加载tags词典成功")
-	seg.CalcToken()
+	
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.SugaredLogger.Errorf("CalcToken发生Panic: %v", r)
+			}
+		}()
+		seg.CalcToken()
+	}()
 	//加载用户自定义词典 先判断用户词典是否存在
 	if fileutil.IsExist("data/dict/user.txt") {
 		lines, err := fileutil.ReadFileByLine("data/dict/user.txt")

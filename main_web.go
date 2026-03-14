@@ -122,20 +122,62 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// Basic Auth
+	// Auth Middleware
 	user := os.Getenv("APP_USER")
 	pass := os.Getenv("APP_PASSWORD")
-	if user != "" && pass != "" {
-		e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
-			if username == user && password == pass {
-				return true, nil
-			}
-			return false, nil
-		}))
-		log.SugaredLogger.Infof("Basic Auth enabled for user: %s", user)
-	} else {
-		log.SugaredLogger.Warn("Basic Auth NOT enabled. Set APP_USER and APP_PASSWORD to enable.")
+	if user == "" {
+		user = "admin"
 	}
+	if pass == "" {
+		pass = "admin"
+	}
+
+	// Simple token for demonstration (in production use JWT)
+	authToken := BuildKey
+
+	authMiddleware := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Skip auth for login and static assets
+			path := c.Path()
+			if path == "/auth/login" || !strings.HasPrefix(path, "/api/") && path != "/events" {
+				return next(c)
+			}
+
+			// Check for token in header or cookie
+			token := c.Request().Header.Get("Authorization")
+			if token == "" {
+				if cookie, err := c.Cookie("auth_token"); err == nil {
+					token = cookie.Value
+				}
+			}
+
+			if token == authToken || token == "Bearer "+authToken {
+				return next(c)
+			}
+
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+		}
+	}
+	e.Use(authMiddleware)
+
+	// Login API
+	e.POST("/auth/login", func(c echo.Context) error {
+		var loginReq struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		if err := c.Bind(&loginReq); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
+		}
+
+		if loginReq.Username == user && loginReq.Password == pass {
+			return c.JSON(http.StatusOK, map[string]string{
+				"token": authToken,
+				"msg":   "登录成功",
+			})
+		}
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "用户名或密码错误"})
+	})
 
 	// SSE Endpoint for Wails Events
 	e.GET("/events", func(c echo.Context) error {

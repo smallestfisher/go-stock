@@ -13,11 +13,23 @@
             get: (target, cls) => new Proxy({}, {
                 get: (target, method) => (...args) => {
                     // console.log(`Calling backend: ${pkg}.${cls}.${method}`, args);
+                    const token = localStorage.getItem('auth_token');
                     return fetch(`/api/${method}`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': token || ''
+                        },
                         body: JSON.stringify(args)
                     }).then(async r => {
+                        if (r.status === 401) {
+                            localStorage.removeItem('auth_token');
+                            // 如果当前不在登录页，才进行跳转
+                            if (!window.location.hash.includes('/login')) {
+                                window.location.hash = '#/login';
+                            }
+                            throw new Error('Unauthorized');
+                        }
                         if (!r.ok) {
                             const err = await r.json();
                             throw new Error(err.error || 'Unknown error');

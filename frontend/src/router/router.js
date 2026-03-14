@@ -8,8 +8,10 @@ import marketView from "../components/market.vue";
 import agentChat from "../components/agent-chat.vue"
 import research from "../components/researchIndex.vue";
 import cronTaskManager from "../components/cron-task-manager.vue"
+import loginView from "../components/Login.vue"
 
 const routes = [
+    { path: '/login', component: loginView, name: 'login' },
     { path: '/', component: stockView,name: 'stock'},
     { path: '/fund', component: fundView,name: 'fund' },
     { path: '/settings', component: settingsView,name: 'settings' },
@@ -26,5 +28,24 @@ const router = createRouter({
     history: createWebHashHistory(),
     routes,
 })
+
+// Authentication Guard
+router.beforeEach((to, from, next) => {
+    const isLoginPath = to.name === 'login';
+    const token = localStorage.getItem('auth_token');
+
+    // 如果是登录页，直接放行
+    if (isLoginPath) {
+        next();
+        return;
+    }
+
+    // 如果没有 token，强制跳到登录页
+    if (!token) {
+        next({ name: 'login' });
+    } else {
+        next();
+    }
+});
 
 export default router

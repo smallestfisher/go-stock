@@ -58,6 +58,9 @@ const officialStatement= ref("")
 // 检查是否为 Web 模式（非 Wails 环境）
 const isWebMode = !window.runtime || (typeof window.runtime.Quit !== 'function') || window.location.protocol.startsWith('http');
 
+// 响应式判断当前是否为登录页
+const isLoginPage = computed(() => router.currentRoute.value.name === 'login')
+
 const menuOptions = ref([
   {
     label: () =>
@@ -734,6 +737,11 @@ window.onerror = function (msg, source, lineno, colno, error) {
 };
 
 onBeforeMount(() => {
+  // 在 Web 模式下，如果没有 token 就不发起初始化请求，由路由卫士引导去登录
+  if (isWebMode && !localStorage.getItem('auth_token')) {
+    return;
+  }
+
   GetVersionInfo().then(result => {
     if(result.officialStatement){
       content.value = result.officialStatement+"\n\n"+content.value
@@ -810,12 +818,22 @@ onBeforeMount(() => {
 onMounted(() => {
   WindowSetTitle("go-stock：AI赋能股票分析✨ "+officialStatement.value+"  未经授权,禁止商业目的！ [数据来源于网络,仅供参考;投资有风险,入市需谨慎]")
   contentStyle.value = "max-height: calc(92vh);overflow: hidden"
+  
+  if (isLoginPage.value) {
+    loading.value = false;
+    return;
+  }
+
   GetConfig().then((res) => {
     if (res.enableNews) {
       enableNews.value = true
     }
     enableFund.value = res.enableFund
     enableAgent.value = res.enableAgent
+    
+    // 如果配置加载成功，说明连接正常，强制关闭一次加载中（作为 SSE 没收到的兜底）
+    loading.value = false;
+
     const {notification } =createDiscreteApi(["notification"], {
       configProviderProps: {
         theme: enableDarkTheme.value ? darkTheme : lightTheme ,
@@ -868,7 +886,14 @@ const filteredMenuOptions = computed(() => {
       <n-notification-provider>
         <n-modal-provider>
           <n-dialog-provider>
+            <!-- 登录页显示逻辑 -->
+            <template v-if="isLoginPage">
+              <RouterView />
+            </template>
+
+            <!-- 主程序显示逻辑 -->
             <n-watermark
+                v-else
                 :content="''"
                 cross
                 selectable
