@@ -558,7 +558,7 @@ func (a *App) domReady(ctx context.Context) {
 	//		logger.SugaredLogger.Infof("Edge浏览器已安装，路径为: %s", path)
 	//	}
 	//}()
-	followList := data.NewStockDataApi().GetFollowList(0)
+	followList := data.NewStockDataApi(a.ctx).GetFollowList(0)
 	for _, follow := range *followList {
 		if follow.Cron == nil || *follow.Cron == "" {
 			continue
@@ -581,7 +581,7 @@ func syncAllStockInfo(ctx context.Context) {
 	}()
 	db.Dao.Unscoped().Model(&models.AllStockInfo{}).Where("1=1").Delete(&models.AllStockInfo{})
 	for page := 1; page < 3; page++ {
-		res := data.NewStockDataApi().GetAllStocks(page, 3000, "", models.TechnicalIndicators{})
+		res := data.NewStockDataApi(ctx).GetAllStocks(page, 3000, "", models.TechnicalIndicators{})
 		var datas []models.AllStockInfo
 		for _, data := range (*res).Result.Data {
 			datas = append(datas, data.ToAllStockInfo())
@@ -685,7 +685,7 @@ func (a *App) CheckStockBaseInfo(ctx context.Context) {
 }
 func (a *App) NewsPush(news *[]models.Telegraph) {
 
-	follows := data.NewStockDataApi().GetFollowList(0)
+	follows := data.NewStockDataApi(a.ctx).GetFollowList(0)
 	stockNames := slice.Map(*follows, func(index int, item data.FollowedStock) string {
 		return item.Name
 	})
@@ -881,7 +881,7 @@ func GetStockInfos(follows ...data.FollowedStock) *[]data.StockInfo {
 		}
 		stockCodes = append(stockCodes, follow.StockCode)
 	}
-	stockData, _ := data.NewStockDataApi().GetStockCodeRealTimeData(stockCodes...)
+	stockData, _ := data.NewStockDataApi(nil).GetStockCodeRealTimeData(stockCodes...)
 	for _, info := range *stockData {
 		v, ok := slice.FindBy(follows, func(idx int, follow data.FollowedStock) bool {
 			if strutil.HasPrefixAny(follow.StockCode, []string{"US", "us"}) {
@@ -899,7 +899,7 @@ func GetStockInfos(follows ...data.FollowedStock) *[]data.StockInfo {
 }
 func getStockInfo(follow data.FollowedStock) *data.StockInfo {
 	stockCode := follow.StockCode
-	stockDatas, err := data.NewStockDataApi().GetStockCodeRealTimeData(stockCode)
+	stockDatas, err := data.NewStockDataApi(nil).GetStockCodeRealTimeData(stockCode)
 	if err != nil || len(*stockDatas) == 0 {
 		return &data.StockInfo{}
 	}
@@ -1001,7 +1001,7 @@ func (a *App) shutdown(ctx context.Context) {
 
 // Greet returns a greeting for the given name
 func (a *App) Greet(stockCode string) *data.StockInfo {
-	//stockInfo, _ := data.NewStockDataApi().GetStockCodeRealTimeData(stockCode)
+	//stockInfo, _ := data.NewStockDataApi(a.ctx).GetStockCodeRealTimeData(stockCode)
 
 	follow := &data.FollowedStock{
 		StockCode: stockCode,
@@ -1012,30 +1012,30 @@ func (a *App) Greet(stockCode string) *data.StockInfo {
 }
 
 func (a *App) Follow(stockCode string) string {
-	return data.NewStockDataApi().Follow(stockCode)
+	return data.NewStockDataApi(a.ctx).Follow(stockCode)
 }
 
 func (a *App) UnFollow(stockCode string) string {
-	return data.NewStockDataApi().UnFollow(stockCode)
+	return data.NewStockDataApi(a.ctx).UnFollow(stockCode)
 }
 
 func (a *App) GetFollowList(groupId int) *[]data.FollowedStock {
-	return data.NewStockDataApi().GetFollowList(groupId)
+	return data.NewStockDataApi(a.ctx).GetFollowList(groupId)
 }
 
 func (a *App) GetStockList(key string) []data.StockBasic {
-	return data.NewStockDataApi().GetStockList(key)
+	return data.NewStockDataApi(a.ctx).GetStockList(key)
 }
 
 func (a *App) SetCostPriceAndVolume(stockCode string, price float64, volume int64) string {
-	return data.NewStockDataApi().SetCostPriceAndVolume(price, volume, stockCode)
+	return data.NewStockDataApi(a.ctx).SetCostPriceAndVolume(price, volume, stockCode)
 }
 
 func (a *App) SetAlarmChangePercent(val, alarmPrice float64, stockCode string) string {
-	return data.NewStockDataApi().SetAlarmChangePercent(val, alarmPrice, stockCode)
+	return data.NewStockDataApi(a.ctx).SetAlarmChangePercent(val, alarmPrice, stockCode)
 }
 func (a *App) SetStockSort(sort int64, stockCode string) {
-	data.NewStockDataApi().SetStockSort(sort, stockCode)
+	data.NewStockDataApi(a.ctx).SetStockSort(sort, stockCode)
 }
 func (a *App) SendDingDingMessage(message string, stockCode string) string {
 	ttl, _ := a.cache.TTL([]byte(stockCode))
@@ -1337,7 +1337,7 @@ func (a *App) DelPrompt(id uint) string {
 	return data.NewPromptTemplateApi().DelPrompt(id)
 }
 func (a *App) SetStockAICron(cronText, stockCode string) {
-	data.NewStockDataApi().SetStockAICron(cronText, stockCode)
+	data.NewStockDataApi(a.ctx).SetStockAICron(cronText, stockCode)
 	if strutil.HasPrefixAny(stockCode, []string{"gb_"}) {
 		stockCode = strings.ToUpper(stockCode)
 		stockCode = strings.Replace(stockCode, "gb_", "us", 1)
@@ -1346,7 +1346,7 @@ func (a *App) SetStockAICron(cronText, stockCode string) {
 	if entryID, exists := a.cronEntrys[stockCode]; exists {
 		a.cron.Remove(entryID)
 	}
-	follow := data.NewStockDataApi().GetFollowedStockByStockCode(stockCode)
+	follow := data.NewStockDataApi(a.ctx).GetFollowedStockByStockCode(stockCode)
 	id, _ := a.cron.AddFunc(cronText, a.AddCronTask(follow))
 	a.cronEntrys[stockCode] = id
 
@@ -1403,12 +1403,12 @@ func (a *App) RemoveGroup(groupId int) string {
 }
 
 func (a *App) GetStockKLine(stockCode, stockName string, days int64) *[]data.KLineData {
-	return data.NewStockDataApi().GetHK_KLineData(stockCode, "day", days)
+	return data.NewStockDataApi(a.ctx).GetHK_KLineData(stockCode, "day", days)
 }
 
 func (a *App) GetStockMinutePriceLineData(stockCode, stockName string) map[string]any {
 	res := make(map[string]any, 4)
-	priceData, date := data.NewStockDataApi().GetStockMinutePriceData(stockCode)
+	priceData, date := data.NewStockDataApi(a.ctx).GetStockMinutePriceData(stockCode)
 	res["priceData"] = priceData
 	res["date"] = date
 	res["stockName"] = stockName
@@ -1417,7 +1417,7 @@ func (a *App) GetStockMinutePriceLineData(stockCode, stockName string) map[strin
 }
 
 func (a *App) GetStockCommonKLine(stockCode, stockName string, days int64) *[]data.KLineData {
-	return data.NewStockDataApi().GetCommonKLineData(stockCode, "day", days)
+	return data.NewStockDataApi(a.ctx).GetCommonKLineData(stockCode, "day", days)
 }
 
 func (a *App) GetTelegraphList(source string) *[]*models.Telegraph {

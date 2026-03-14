@@ -89,7 +89,7 @@ func handleGetStockMoneyData(o *OpenAi, funcArguments string, ctx *ToolContext) 
 		"time":     time.Now().Format(time.DateTime),
 	}
 
-	res := NewStockDataApi().GetStockMoneyData()
+	res := NewStockDataApi(nil).GetStockMoneyData()
 	md := util.MarkdownTableWithTitle("今日个股资金流向Top50", res.Data.Diff)
 	logger.SugaredLogger.Infof("%s", md)
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"go-stock/backend/agent"
 	"go-stock/backend/data"
 	"go-stock/backend/logger"
@@ -17,8 +18,8 @@ func updateBasicInfo() {
 	config := data.GetSettingConfig()
 	if config.UpdateBasicInfoOnStart {
 		//更新基本信息
-		go data.NewStockDataApi().GetStockBaseInfo()
-		go data.NewStockDataApi().GetIndexBasic()
+		go data.NewStockDataApi(context.TODO()).GetStockBaseInfo()
+		go data.NewStockDataApi(context.TODO()).GetIndexBasic()
 	}
 }
 
@@ -76,7 +77,7 @@ func (a *App) GetHotStrategy() map[string]any {
 }
 
 func (a *App) GetAllStocks(page int, pageSize int, name string, technicalIndicators models.TechnicalIndicators) *models.AllStocksResp {
-	return data.NewStockDataApi().GetAllStocks(page, pageSize, name, technicalIndicators)
+	return data.NewStockDataApi(a.ctx).GetAllStocks(page, pageSize, name, technicalIndicators)
 }
 
 func (a *App) ChatWithAgent(question string, aiConfigId int, sysPromptId *int) {
@@ -157,7 +158,7 @@ func (a *App) DeletePromptTemplate(id uint) string {
 }
 
 func (a *App) GetAllStockInfoList(query data.AllStockInfoQuery) *data.AllStockInfoPageData {
-	page, err := data.NewStockDataApi().GetAllStockInfoList(&query)
+	page, err := data.NewStockDataApi(a.ctx).GetAllStockInfoList(&query)
 	if err != nil {
 		return &data.AllStockInfoPageData{}
 	}
@@ -165,7 +166,7 @@ func (a *App) GetAllStockInfoList(query data.AllStockInfoQuery) *data.AllStockIn
 }
 
 func (a *App) GetAllStockInfoById(id uint) *models.AllStockInfo {
-	stock, err := data.NewStockDataApi().GetAllStockInfoById(id)
+	stock, err := data.NewStockDataApi(a.ctx).GetAllStockInfoById(id)
 	if err != nil {
 		return &models.AllStockInfo{}
 	}
@@ -173,7 +174,7 @@ func (a *App) GetAllStockInfoById(id uint) *models.AllStockInfo {
 }
 
 func (a *App) AddAllStockInfo(stock models.AllStockInfo) string {
-	err := data.NewStockDataApi().AddAllStockInfo(stock)
+	err := data.NewStockDataApi(a.ctx).AddAllStockInfo(stock)
 	if err != nil {
 		return "操作失败: " + err.Error()
 	}
@@ -181,7 +182,7 @@ func (a *App) AddAllStockInfo(stock models.AllStockInfo) string {
 }
 
 func (a *App) DeleteAllStockInfo(id uint) string {
-	err := data.NewStockDataApi().DeleteAllStockInfo(id)
+	err := data.NewStockDataApi(a.ctx).DeleteAllStockInfo(id)
 	if err != nil {
 		return "删除失败: " + err.Error()
 	}
@@ -189,7 +190,7 @@ func (a *App) DeleteAllStockInfo(id uint) string {
 }
 
 func (a *App) BatchDeleteAllStockInfo(ids []uint) string {
-	err := data.NewStockDataApi().BatchDeleteAllStockInfo(ids)
+	err := data.NewStockDataApi(a.ctx).BatchDeleteAllStockInfo(ids)
 	if err != nil {
 		return "批量删除失败: " + err.Error()
 	}
@@ -197,7 +198,7 @@ func (a *App) BatchDeleteAllStockInfo(ids []uint) string {
 }
 
 func (a *App) GetAllMarkets() []string {
-	markets, err := data.NewStockDataApi().GetAllMarkets()
+	markets, err := data.NewStockDataApi(a.ctx).GetAllMarkets()
 	if err != nil {
 		return []string{}
 	}
@@ -205,7 +206,7 @@ func (a *App) GetAllMarkets() []string {
 }
 
 func (a *App) GetAllIndustries() []string {
-	industries, err := data.NewStockDataApi().GetAllIndustries()
+	industries, err := data.NewStockDataApi(a.ctx).GetAllIndustries()
 	if err != nil {
 		return []string{}
 	}
@@ -213,7 +214,7 @@ func (a *App) GetAllIndustries() []string {
 }
 
 func (a *App) GetAllConcepts() []string {
-	concepts, err := data.NewStockDataApi().GetAllConcepts()
+	concepts, err := data.NewStockDataApi(a.ctx).GetAllConcepts()
 	if err != nil {
 		return []string{}
 	}

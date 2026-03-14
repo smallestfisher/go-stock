@@ -398,6 +398,16 @@ onBeforeMount(() => {
     });
   })
 
+  EventsOn("refresh_stock_list", async (code) => {
+    // 刷新列表
+    const newList = await GetFollowList(currentGroupId.value);
+    followList.value = newList;
+    // 更新 stocks 数组，确保包含最新的代码格式
+    stocks.value = newList.map(item => item.stock_code.toLowerCase());
+    // 立即执行一次数据监控抓取
+    monitor();
+  })
+
 
   EventsOn("updateVersion", async (msg) => {
     const githubTimeStr = msg.published_at;
@@ -642,18 +652,17 @@ function AddStock() {
     message.error("请输入有效股票代码");
     return;
   }
-  if (!stocks.value.includes(data.code)) {
-    Follow(data.code).then(result => {
+  // 处理美股前缀预览显示
+  let displayCode = data.code.toLowerCase();
+  if (displayCode.startsWith("us")) {
+    displayCode = "gb_" + displayCode.replace("us", "");
+  }
+
+  if (!stocks.value.includes(data.code) && !stocks.value.includes(displayCode)) {
+    Follow(data.code).then(async result => {
       if (result === "关注成功") {
-        if (data.code.startsWith("us")) {
-          data.code = "gb_" + data.code.replace("us", "").toLowerCase()
-        }
-        stocks.value.push(data.code)
         message.success(result)
-        GetFollowList(currentGroupId.value).then(result => {
-          followList.value = result
-        })
-        monitor();
+        // 逻辑已移至 EventsOn("refresh_stock_list")
       } else {
         message.error(result)
       }

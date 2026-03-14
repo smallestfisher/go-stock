@@ -45,7 +45,7 @@ func (t ToolQueryStockPriceInfo) InvokableRun(ctx context.Context, argumentsInJS
 	for _, code := range stockCodes {
 		codes = append(codes, GetStockCode(code))
 	}
-	realTimeData, err := data.NewStockDataApi().GetStockCodeRealTimeData(codes...)
+	realTimeData, err := data.NewStockDataApi(nil).GetStockCodeRealTimeData(codes...)
 	if err != nil {
 		return "", err
 	}

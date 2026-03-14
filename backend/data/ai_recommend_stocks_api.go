@@ -114,7 +114,7 @@ func (s *AiRecommendStocksService) GetAiRecommendStocksList(query *models.AiReco
 	stockCodes := slice.Map(list, func(index int, item models.AiRecommendStocks) string {
 		return ConvertTushareCodeToStockCode(item.StockCode)
 	})
-	stockData, _ := NewStockDataApi().GetStockCodeRealTimeData(stockCodes...)
+	stockData, _ := NewStockDataApi(nil).GetStockCodeRealTimeData(stockCodes...)
 	for _, info := range *stockData {
 		for idx, item := range list {
 			if ConvertTushareCodeToStockCode(item.StockCode) == ConvertTushareCodeToStockCode(info.Code) {

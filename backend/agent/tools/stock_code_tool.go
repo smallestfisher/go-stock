@@ -40,7 +40,7 @@ func (q QueryStockCodeInfo) InvokableRun(ctx context.Context, argumentsInJSON st
 	if err != nil {
 		return "", err
 	}
-	stockList := data.NewStockDataApi().GetStockList(parms["searchWord"].(string))
+	stockList := data.NewStockDataApi(nil).GetStockList(parms["searchWord"].(string))
 	marshal, err := json.Marshal(stockList)
 	if err != nil {
 		return "", err

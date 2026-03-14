@@ -98,33 +98,33 @@ func (a *App) shutdown(ctx context.Context) {
 
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) *data.StockInfo {
-	stockDatas, _ := data.NewStockDataApi().GetStockCodeRealTimeData(name)
+	stockDatas, _ := data.NewStockDataApi(a.ctx).GetStockCodeRealTimeData(name)
 	stockData := (*stockDatas)[0]
 	return &stockData
 }
 
 func (a *App) Follow(stockCode string) string {
-	return data.NewStockDataApi().Follow(stockCode)
+	return data.NewStockDataApi(a.ctx).Follow(stockCode)
 }
 
 func (a *App) UnFollow(stockCode string) string {
-	return data.NewStockDataApi().UnFollow(stockCode)
+	return data.NewStockDataApi(a.ctx).UnFollow(stockCode)
 }
 
 func (a *App) GetFollowList() []data.FollowedStock {
-	return data.NewStockDataApi().GetFollowList()
+	return data.NewStockDataApi(a.ctx).GetFollowList()
 }
 
 func (a *App) GetStockList(key string) []data.StockBasic {
-	return data.NewStockDataApi().GetStockList(key)
+	return data.NewStockDataApi(a.ctx).GetStockList(key)
 }
 
 func (a *App) SetCostPriceAndVolume(stockCode string, price float64, volume int64) string {
-	return data.NewStockDataApi().SetCostPriceAndVolume(price, volume, stockCode)
+	return data.NewStockDataApi(a.ctx).SetCostPriceAndVolume(price, volume, stockCode)
 }
 
 func (a *App) SetAlarmChangePercent(val, alarmPrice float64, stockCode string) string {
-	return data.NewStockDataApi().SetAlarmChangePercent(val, alarmPrice, stockCode)
+	return data.NewStockDataApi(a.ctx).SetAlarmChangePercent(val, alarmPrice, stockCode)
 }
 
 func (a *App) SendDingDingMessage(message string, stockCode string) string {
@@ -142,7 +142,7 @@ func (a *App) SendDingDingMessage(message string, stockCode string) string {
 }
 
 func (a *App) SetStockSort(sort int64, stockCode string) {
-	data.NewStockDataApi().SetStockSort(sort, stockCode)
+	data.NewStockDataApi(a.ctx).SetStockSort(sort, stockCode)
 }
 
 // SendDingDingMessageByType msgType 报警类型: 1 涨跌报警;2 股价报警 3 成本价报警

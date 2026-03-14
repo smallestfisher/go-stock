@@ -36,10 +36,10 @@ func handleGetStockKLine(o *OpenAi, funcArguments string, ctx *ToolContext) erro
 	if strutil.HasPrefixAny(stockCode, []string{"sz", "sh", "hk", "us", "gb_"}) {
 		K := &[]KLineData{}
 		if strutil.HasPrefixAny(stockCode, []string{"sz", "sh"}) {
-			K = NewStockDataApi().GetKLineData(stockCode, "240", o.KDays)
+			K = NewStockDataApi(nil).GetKLineData(stockCode, "240", o.KDays)
 		}
 		if strutil.HasPrefixAny(stockCode, []string{"hk", "us", "gb_"}) {
-			K = NewStockDataApi().GetHK_KLineData(stockCode, "day", o.KDays)
+			K = NewStockDataApi(nil).GetHK_KLineData(stockCode, "day", o.KDays)
 		}
 		Kmap := &[]map[string]any{}
 		for _, kline := range *K {

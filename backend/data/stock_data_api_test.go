@@ -73,7 +73,7 @@ func TestGetAllStocks(t *testing.T) {
 
 	db.Dao.Unscoped().Model(&models.AllStockInfo{}).Where("1=1").Delete(&models.AllStockInfo{})
 	for page := 1; page < 3; page++ {
-		res := NewStockDataApi().GetAllStocks(page, 3000, "", models.TechnicalIndicators{
+		res := NewStockDataApi(nil).GetAllStocks(page, 3000, "", models.TechnicalIndicators{
 			BEARISHENGULFING: true,
 			BLACKCLOUDTOPS:   true,
 		})
@@ -90,7 +90,7 @@ func TestGetAllStocks(t *testing.T) {
 func TestFilterStocks(t *testing.T) {
 	db.Init("../../data/stock.db")
 
-	res := NewStockDataApi().GetAllStocks(1, 100, "", models.TechnicalIndicators{
+	res := NewStockDataApi(nil).GetAllStocks(1, 100, "", models.TechnicalIndicators{
 		CONCERN_RANK_7DAYS: 50,
 	})
 	logger.SugaredLogger.Infof("%+#v", len((*res).Result.Data))
@@ -114,13 +114,13 @@ func TestSearchStockPriceInfo(t *testing.T) {
 }
 func TestGetStockMinutePriceData(t *testing.T) {
 	db.Init("../../data/stock.db")
-	data, date := NewStockDataApi().GetStockMinutePriceData("usTSLA.OQ")
+	data, date := NewStockDataApi(nil).GetStockMinutePriceData("usTSLA.OQ")
 	logger.SugaredLogger.Infof("date:%s", date)
 	logger.SugaredLogger.Infof("%+#v", *data)
 }
 func TestGetKLineData(t *testing.T) {
 	db.Init("../../data/stock.db")
-	k := NewStockDataApi().GetKLineData("sh600171", "240", 30)
+	k := NewStockDataApi(nil).GetKLineData("sh600171", "240", 30)
 	//for _, kline := range *k {
 	//	logger.SugaredLogger.Infof("%+#v", kline)
 	//}
@@ -134,7 +134,7 @@ func TestGetKLineData(t *testing.T) {
 }
 func TestGetHK_KLineData(t *testing.T) {
 	db.Init("../../data/stock.db")
-	k := NewStockDataApi().GetHK_KLineData("hk01810", "day", 1)
+	k := NewStockDataApi(nil).GetHK_KLineData("hk01810", "day", 1)
 	jsonData, _ := json.Marshal(*k)
 	markdownTable, err := JSONToMarkdownTable(jsonData)
 	if err != nil {
@@ -146,13 +146,13 @@ func TestGetHK_KLineData(t *testing.T) {
 
 func TestGetHKStockInfo(t *testing.T) {
 	db.Init("../../data/stock.db")
-	//NewStockDataApi().GetHKStockInfo(200)
-	//NewStockDataApi().GetSinaHKStockInfo()
+	//NewStockDataApi(nil).GetHKStockInfo(200)
+	//NewStockDataApi(nil).GetSinaHKStockInfo()
 	//m:105,m:106,m:107  //美股
 	//m:128+t:3,m:128+t:4,m:128+t:1,m:128+t:2 //港股
 	//274  224 605
 	for i := 197; i <= 274; i++ {
-		NewStockDataApi().getDCStockInfo("", i, 20)
+		NewStockDataApi(nil).getDCStockInfo("", i, 20)
 		time.Sleep(time.Duration(random.RandInt(2, 5)) * time.Second)
 	}
 }
@@ -223,7 +223,7 @@ func TestParseFullSingleStockData(t *testing.T) {
 
 func TestNewStockDataApi(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	datas, _ := stockDataApi.GetStockCodeRealTimeData("sz002352", "sh600859", "sh600745", "gb_tsla", "hk09660", "hk00700")
 	for _, data := range *datas {
 		t.Log(data)
@@ -232,12 +232,12 @@ func TestNewStockDataApi(t *testing.T) {
 
 func TestGetStockBaseInfo(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	stockDataApi.GetStockBaseInfo()
 	//stocks := &[]StockBasic{}
 	//db.Dao.Model(&StockBasic{}).Find(stocks)
 	//for _, stock := range *stocks {
-	//	NewStockDataApi().GetStockCodeRealTimeData(getSinaCode(stock.TsCode))
+	//	NewStockDataApi(nil).GetStockCodeRealTimeData(getSinaCode(stock.TsCode))
 	//}
 
 }
@@ -284,14 +284,14 @@ func TestReadFile(t *testing.T) {
 
 func TestFollowedList(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	stockDataApi.GetFollowList(1)
 
 }
 
 func TestStockDataApi_GetIndexBasic(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	stockDataApi.GetIndexBasic()
 }
 
@@ -314,14 +314,14 @@ func TestName(t *testing.T) {
 }
 func TestGetStockMoneyData(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	res := stockDataApi.GetStockMoneyData()
 	logger.SugaredLogger.Infof("%s", util.MarkdownTableWithTitle("今日个股资金流向Top50", res.Data.Diff))
 }
 
 func TestGetStockConceptInfo(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	res := stockDataApi.GetStockConceptInfo("601138.SH")
 	logger.SugaredLogger.Infof("%s", util.MarkdownTableWithTitle("601138.SH所属概念/板块信息", res.Result.Data))
 
@@ -329,7 +329,7 @@ func TestGetStockConceptInfo(t *testing.T) {
 
 func TestGetStockHistoryMoneyData(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	res := stockDataApi.GetStockHistoryMoneyData("sh601138")
 	logger.SugaredLogger.Infof("%s", util.MarkdownTableWithTitle("601138.SH历史资金流向一览", res))
 
@@ -337,7 +337,7 @@ func TestGetStockHistoryMoneyData(t *testing.T) {
 
 func TestGetIndustryValuation(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	res := stockDataApi.GetIndustryValuation("AI应用")
 	logger.SugaredLogger.Infof("%s", util.MarkdownTableWithTitle(" 消费电子行业估值", res.Result.Data))
 }
@@ -372,7 +372,7 @@ func Test11(t *testing.T) {
 
 func TestGetStockRZRQInfo(t *testing.T) {
 	db.Init("../../data/stock.db")
-	stockDataApi := NewStockDataApi()
+	stockDataApi := NewStockDataApi(nil)
 	res := stockDataApi.GetStockRZRQInfo("SZ001389")
 	logger.SugaredLogger.Infof("%s", util.MarkdownTableWithTitle("SZ001389融资融券信息", res.Result.Data))
 }

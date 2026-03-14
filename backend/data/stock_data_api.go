@@ -12,6 +12,7 @@ import (
 	"go-stock/backend/db"
 	"go-stock/backend/logger"
 	"go-stock/backend/models"
+	"go-stock/backend/util"
 	"io"
 	"io/ioutil"
 	url2 "net/url"
@@ -43,6 +44,7 @@ const tushareApiUrl = "http://api.tushare.pro"
 type StockDataApi struct {
 	client *resty.Client
 	config *SettingConfig
+	ctx    context.Context
 }
 type StockInfo struct {
 	gorm.Model
@@ -199,10 +201,11 @@ type StockBasicResponse struct {
 func (receiver StockBasic) TableName() string {
 	return "tushare_stock_basic"
 }
-func NewStockDataApi() *StockDataApi {
+func NewStockDataApi(ctx context.Context) *StockDataApi {
 	return &StockDataApi{
 		client: resty.New(),
 		config: GetSettingConfig(),
+		ctx:    ctx,
 	}
 }
 
@@ -302,12 +305,21 @@ func (receiver StockDataApi) GetStockCodeRealTimeData(StockCodes ...string) (*[]
 	stockInfos := make([]StockInfo, 0)
 
 	hkcodes := slice.Filter(StockCodes, func(i int, s string) bool {
-		return strutil.HasPrefixAny(s, []string{"hk", "HK", "sh", "sz"})
+		return strutil.HasPrefixAny(strings.ToLower(s), []string{"hk", "sh", "sz"})
 	})
+
+	remainingCodes := make([]string, 0)
+	for _, s := range StockCodes {
+		if !strutil.HasPrefixAny(strings.ToLower(s), []string{"hk", "sh", "sz"}) {
+			remainingCodes = append(remainingCodes, s)
+		}
+	}
+
+	fetchedMap := make(map[string]bool)
 
 	if hkcodes != nil && len(hkcodes) > 0 {
 		hkcodesStr := slice.JoinFunc(hkcodes, ",", func(s string) string {
-			if strutil.HasPrefixAny(s, []string{"hk", "HK"}) {
+			if strutil.HasPrefixAny(strings.ToLower(s), []string{"hk"}) {
 				return "r_" + strings.ToLower(s)
 			} else {
 				return strings.ToLower(s)
@@ -320,120 +332,116 @@ func (receiver StockDataApi) GetStockCodeRealTimeData(StockCodes ...string) (*[]
 			SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0").
 			Get(url)
 		logger.SugaredLogger.Infof("GetStockCodeRealTimeData %s", url)
-		if err != nil {
-			logger.SugaredLogger.Error(err.Error())
-			return &[]StockInfo{}, err
-		}
-		str := GB18030ToUTF8(resp.Body())
-		logger.SugaredLogger.Infof("GetStockCodeRealTimeData Response: %s", str)
-		dataStr := strutil.SplitAndTrim(strings.Trim(str, "\n"), ";")
+		if err == nil {
+			str := GB18030ToUTF8(resp.Body())
+			logger.SugaredLogger.Infof("GetStockCodeRealTimeData Response: %s", str)
+			dataStr := strutil.SplitAndTrim(strings.Trim(str, "\n"), ";")
 
-		for _, data := range dataStr {
-			stockData, err := ParseTxStockData(data)
-			if err != nil {
-				logger.SugaredLogger.Error(err.Error())
-				continue
-			}
-			stockInfos = append(stockInfos, *stockData)
-			go func() {
-				var count int64
-				db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Count(&count)
-				if count == 0 {
-					db.Dao.Model(&StockInfo{}).Create(stockData)
-				} else {
-					db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Updates(stockData)
+			for _, data := range dataStr {
+				stockData, err := ParseTxStockData(data)
+				if err != nil {
+					continue
 				}
-			}()
-		}
-	}
-
-	szzsusCodes := slice.Filter(StockCodes, func(i int, s string) bool {
-		return !strutil.HasPrefixAny(s, []string{"hk", "HK", "sh", "sz"})
-	})
-
-	codes := slice.JoinFunc(szzsusCodes, ",", func(s string) string {
-		if strings.HasPrefix(s, "us") {
-			s = strings.Replace(s, "us", "gb_", 1)
-		}
-		if strings.HasPrefix(s, "US") {
-			s = strings.Replace(s, "US", "gb_", 1)
-		}
-		return strings.ToLower(s)
-	})
-
-	url := fmt.Sprintf(sinaStockUrl, time.Now().Unix(), codes)
-	//logger.SugaredLogger.Infof("GetStockCodeRealTimeData %s", url)
-	resp, err := receiver.client.R().
-		SetHeader("Host", "hq.sinajs.cn").
-		SetHeader("Referer", "https://finance.sina.com.cn/").
-		SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0").
-		Get(url)
-	if err != nil {
-		logger.SugaredLogger.Error(err.Error())
-		return &[]StockInfo{}, err
-	}
-
-	str := GB18030ToUTF8(resp.Body())
-	dataStr := strutil.SplitEx(str, "\n", true)
-
-	for _, data := range dataStr {
-		//logger.SugaredLogger.Info(data)
-		stockData, err := ParseFullSingleStockData(data)
-		//logger.SugaredLogger.Infof("GetStockCodeRealTimeData %v", stockData)
-		if err != nil {
-			logger.SugaredLogger.Error(err.Error())
-			continue
-		}
-		if stockData == nil {
-			continue
-		}
-		stockInfos = append(stockInfos, *stockData)
-
-		go func() {
-			var count int64
-			db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Count(&count)
-			if count == 0 {
-				db.Dao.Model(&StockInfo{}).Create(stockData)
-			} else {
-				db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Updates(stockData)
+				stockInfos = append(stockInfos, *stockData)
+				fetchedMap[strings.ToLower(stockData.Code)] = true
+				go func() {
+					var count int64
+					db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Count(&count)
+					if count == 0 {
+						db.Dao.Model(&StockInfo{}).Create(stockData)
+					} else {
+						db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Updates(stockData)
+					}
+				}()
 			}
-		}()
-
+		}
 	}
 
-	return &stockInfos, err
+	// Add failed codes from Tencent to remainingCodes for Sina fallback
+	for _, code := range hkcodes {
+		if !fetchedMap[strings.ToLower(code)] {
+			remainingCodes = append(remainingCodes, code)
+		}
+	}
+
+	if len(remainingCodes) > 0 {
+		codes := slice.JoinFunc(remainingCodes, ",", func(s string) string {
+			lowerS := strings.ToLower(s)
+			if strings.HasPrefix(lowerS, "us") {
+				return strings.Replace(lowerS, "us", "gb_", 1)
+			}
+			return lowerS
+		})
+
+		url := fmt.Sprintf(sinaStockUrl, time.Now().Unix(), codes)
+		resp, err := receiver.client.R().
+			SetHeader("Host", "hq.sinajs.cn").
+			SetHeader("Referer", "https://finance.sina.com.cn/").
+			SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0").
+			Get(url)
+		if err == nil {
+			str := GB18030ToUTF8(resp.Body())
+			dataStr := strutil.SplitEx(str, "\n", true)
+
+			for _, data := range dataStr {
+				stockData, err := ParseFullSingleStockData(data)
+				if err != nil || stockData == nil {
+					continue
+				}
+				stockInfos = append(stockInfos, *stockData)
+
+				go func() {
+					var count int64
+					db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Count(&count)
+					if count == 0 {
+						db.Dao.Model(&StockInfo{}).Create(stockData)
+					} else {
+						db.Dao.Model(&StockInfo{}).Where("code = ?", stockData.Code).Updates(stockData)
+					}
+				}()
+			}
+		}
+	}
+
+	return &stockInfos, nil
 }
 
 func (receiver StockDataApi) Follow(stockCode string) string {
+	// 1. 预处理：如果是美股习惯的 us 前缀，尝试先获取一次
+	tempCode := strings.ToLower(stockCode)
+	if strings.HasPrefix(tempCode, "us") {
+		tempCode = strings.Replace(tempCode, "us", "gb_", 1)
+	}
+
 	// 尝试获取实时数据
 	stockInfos, err := receiver.GetStockCodeRealTimeData(stockCode)
-	
-	// 如果获取失败且代码是纯数字（缺少前缀），尝试补全前缀
-	if (err != nil || len(*stockInfos) == 0) && regexp.MustCompile(`^\d{6}$`).MatchString(stockCode) {
-		logger.SugaredLogger.Infof("Follow: No data for %s, trying to find prefix...", stockCode)
-		var basic StockBasic
-		// 从数据库查找对应的市场
-		res := db.Dao.Model(&StockBasic{}).Where("symbol = ?", stockCode).First(&basic)
+
+	// 2. 自动补全逻辑：如果获取失败，尝试根据代码特征猜测市场
+	if err != nil || len(*stockInfos) == 0 {
 		market := ""
-		if res.Error == nil {
-			market = "sh"
-			if strings.Contains(strings.ToLower(basic.TsCode), "sz") {
-				market = "sz"
-			}
-		} else {
-			// 数据库没查到，根据 A 股规则猜测
-			if strings.HasPrefix(stockCode, "6") || strings.HasPrefix(stockCode, "900") || strings.HasPrefix(stockCode, "688") {
+		// A股/ETF (6位数字)
+		if regexp.MustCompile(`^\d{6}$`).MatchString(stockCode) {
+			if strings.HasPrefix(stockCode, "6") || strings.HasPrefix(stockCode, "900") || strings.HasPrefix(stockCode, "688") || strings.HasPrefix(stockCode, "5") {
 				market = "sh"
-			} else if strings.HasPrefix(stockCode, "0") || strings.HasPrefix(stockCode, "3") || strings.HasPrefix(stockCode, "200") {
+			} else if strings.HasPrefix(stockCode, "0") || strings.HasPrefix(stockCode, "3") || strings.HasPrefix(stockCode, "200") || strings.HasPrefix(stockCode, "1") {
 				market = "sz"
 			} else if strings.HasPrefix(stockCode, "4") || strings.HasPrefix(stockCode, "8") {
-				market = "bj" // 北交所
+				market = "bj"
 			}
+		} else if regexp.MustCompile(`^\d{5}$`).MatchString(stockCode) {
+			// 港股 (通常是5位数字)
+			market = "hk"
+		} else if regexp.MustCompile(`^[a-zA-Z]+$`).MatchString(stockCode) {
+			// 美股 (纯字母，如 AAPL)
+			market = "us"
 		}
 
 		if market != "" {
 			newCode := market + stockCode
-			logger.SugaredLogger.Infof("Follow: Auto-completed prefix (guessed/db) for %s -> %s", stockCode, newCode)
+			if market == "us" {
+				newCode = "gb_" + strings.ToLower(stockCode)
+			}
+			logger.SugaredLogger.Infof("Follow: Auto-completed prefix for %s -> %s", stockCode, newCode)
 			stockCode = newCode
 			stockInfos, err = receiver.GetStockCodeRealTimeData(stockCode)
 		}
@@ -443,15 +451,14 @@ func (receiver StockDataApi) Follow(stockCode string) string {
 		logger.SugaredLogger.Errorf("Follow Failed: code=%s, err=%v, count=%d", stockCode, err, len(*stockInfos))
 		return "关注失败"
 	}
-	if strings.HasPrefix(stockCode, "us") {
-		stockCode = strings.Replace(stockCode, "us", "gb_", 1)
+
+	// 统一转换美股前缀存储格式
+	if strings.HasPrefix(strings.ToLower(stockCode), "us") {
+		stockCode = strings.Replace(strings.ToLower(stockCode), "us", "gb_", 1)
 	}
-	if strings.HasPrefix(stockCode, "US") {
-		stockCode = strings.Replace(stockCode, "US", "gb_", 1)
-	}
+	
 	count := int64(0)
 	db.Dao.Model(&FollowedStock{}).Where("is_del = ?", 0).Count(&count)
-	logger.SugaredLogger.Errorf("Follow-count %v", count)
 	if count >= 63 {
 		return "最多只能关注63只股票"
 	}
@@ -462,14 +469,11 @@ func (receiver StockDataApi) Follow(stockCode string) string {
 	var existingStock FollowedStock
 	result := db.Dao.Model(&FollowedStock{}).Where("stock_code = ? AND is_del = ?", stockCode, 0).First(&existingStock)
 	if result.Error == nil {
-		// 股票已经关注过
 		return "已经关注了"
 	}
 
 	maxSort := int64(0)
 	db.Dao.Model(&FollowedStock{}).Raw("select max(sort) as sort from followed_stock").Scan(&maxSort)
-
-	//logger.SugaredLogger.Infof("Follow-maxSort %v", maxSort)
 
 	stockInfo := (*stockInfos)[0]
 	price, _ := convertor.ToFloat(stockInfo.Price)
@@ -484,6 +488,7 @@ func (receiver StockDataApi) Follow(stockCode string) string {
 		AlarmChangePercent: 3,
 		AlarmPrice:         price + 1,
 	}, &FollowedStock{StockCode: stockCode})
+	util.Emit(receiver.ctx, "refresh_stock_list", stockCode)
 	return "关注成功"
 }
 
@@ -2116,9 +2121,9 @@ func (receiver StockDataApi) GetAllStocks(page int, pageSize int, name string, t
 	}
 	//for _, info := range data.Result.Data {
 	//	toAllStockInfo := info.ToAllStockInfo()
-	//	oldInfo := NewStockDataApi().GetStockInfoByCode(info.SECUCODE)
+	//	oldInfo := NewStockDataApi(nil).GetStockInfoByCode(info.SECUCODE)
 	//	toAllStockInfo.ID = oldInfo.ID
-	//	err := NewStockDataApi().AddAllStockInfo(toAllStockInfo)
+	//	err := NewStockDataApi(nil).AddAllStockInfo(toAllStockInfo)
 	//	if err != nil {
 	//		logger.SugaredLogger.Errorf("err:%s", err.Error())
 	//	}

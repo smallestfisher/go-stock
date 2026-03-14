@@ -343,8 +343,8 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 			"stockName":     RemoveAllBlankChar(stock),
 			"stockCode":     RemoveAllBlankChar(stockCode),
 		}
-		followedStock := NewStockDataApi().GetFollowedStockByStockCode(stockCode)
-		stockData, err := NewStockDataApi().GetStockCodeRealTimeData(stockCode)
+		followedStock := NewStockDataApi(nil).GetFollowedStockByStockCode(stockCode)
+		stockData, err := NewStockDataApi(nil).GetStockCodeRealTimeData(stockCode)
 		if err == nil && len(*stockData) > 0 {
 			msg = append(msg, map[string]interface{}{
 				"role":    "user",
@@ -446,10 +446,10 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 				K := &[]KLineData{}
 				logger.SugaredLogger.Infof("NewChatStream getKLineData stock:%s stockCode:%s", stock, stockCode)
 				if strutil.HasPrefixAny(stockCode, []string{"sz", "sh"}) {
-					K = NewStockDataApi().GetKLineData(stockCode, "240", o.KDays)
+					K = NewStockDataApi(nil).GetKLineData(stockCode, "240", o.KDays)
 				}
 				if strutil.HasPrefixAny(stockCode, []string{"hk", "us", "gb_"}) {
-					K = NewStockDataApi().GetHK_KLineData(stockCode, "day", o.KDays)
+					K = NewStockDataApi(nil).GetHK_KLineData(stockCode, "day", o.KDays)
 				}
 				Kmap := &[]map[string]any{}
 				for _, kline := range *K {

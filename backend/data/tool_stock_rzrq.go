@@ -39,7 +39,7 @@ func handleGetStockRZRQInfo(o *OpenAi, funcArguments string, ctx *ToolContext) e
 		"time":     time.Now().Format(time.DateTime),
 	}
 
-	res := NewStockDataApi().GetStockRZRQInfo(stockCode)
+	res := NewStockDataApi(nil).GetStockRZRQInfo(stockCode)
 	if len(res.Result.Data) == 0 {
 		appendToolMessages(
 			ctx.Messages,

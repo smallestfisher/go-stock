@@ -29,7 +29,7 @@ func handleGetIndustryValuation(o *OpenAi, funcArguments string, ctx *ToolContex
 	}
 
 	bkName := gjson.Get(funcArguments, "bkName").String()
-	res := NewStockDataApi().GetIndustryValuation(bkName)
+	res := NewStockDataApi(nil).GetIndustryValuation(bkName)
 	md := util.MarkdownTableWithTitle(bkName+"行业估值", res.Result.Data)
 	logger.SugaredLogger.Infof("%s", md)
 
@@ -58,7 +58,7 @@ func handleGetStockConceptInfo(o *OpenAi, funcArguments string, ctx *ToolContext
 	}
 
 	code := gjson.Get(funcArguments, "code").String()
-	res := NewStockDataApi().GetStockConceptInfo(code)
+	res := NewStockDataApi(nil).GetStockConceptInfo(code)
 	md := util.MarkdownTableWithTitle(code+" 股票所属概念详细信息", res.Result.Data)
 	logger.SugaredLogger.Infof("%s", md)
 
@@ -87,7 +87,7 @@ func handleGetStockFinancialInfo(o *OpenAi, funcArguments string, ctx *ToolConte
 	}
 
 	stockCode := gjson.Get(funcArguments, "stockCode").String()
-	res := NewStockDataApi().GetStockFinancialInfo(stockCode)
+	res := NewStockDataApi(nil).GetStockFinancialInfo(stockCode)
 	md := util.MarkdownTableWithTitle("股票"+stockCode+"财务报表信息", res.Result.Data)
 	logger.SugaredLogger.Infof("%s", md)
 
@@ -116,7 +116,7 @@ func handleGetStockHolderNum(o *OpenAi, funcArguments string, ctx *ToolContext) 
 	}
 
 	stockCode := gjson.Get(funcArguments, "stockCode").String()
-	res := NewStockDataApi().GetStockHolderNum(stockCode)
+	res := NewStockDataApi(nil).GetStockHolderNum(stockCode)
 	md := util.MarkdownTableWithTitle("股票"+stockCode+"股东人数信息", res.Result.Data)
 	logger.SugaredLogger.Infof("%s", md)
 
@@ -145,7 +145,7 @@ func handleGetStockHistoryMoneyData(o *OpenAi, funcArguments string, ctx *ToolCo
 	}
 
 	stockCode := gjson.Get(funcArguments, "stockCode").String()
-	res := NewStockDataApi().GetStockHistoryMoneyData(stockCode)
+	res := NewStockDataApi(nil).GetStockHistoryMoneyData(stockCode)
 	md := util.MarkdownTableWithTitle("股票"+stockCode+"历史资金流向数据", res)
 	logger.SugaredLogger.Infof("%s", md)
 
