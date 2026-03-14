@@ -29,9 +29,6 @@
             <div class="panel-header">
               <span class="panel-title">go-stock AI 助手</span>
               <div class="panel-actions">
-                <NButton size="small" quaternary @click="startNewChat" title="开始新对话">
-                  新对话
-                </NButton>
                 <NButton quaternary circle size="small" title="分享到社区" :loading="shareLoading" @click="shareAiToCommunity">
                   <template #icon>
                     <NIcon :component="ShareSocialOutline" />
@@ -605,19 +602,7 @@ function onSummaryStockNews(msg) {
     if (msg?.content) last.content += msg.content
     if (msg?.extraContent) last.content += msg.extraContent
     if (msg?.reasoning_content) last.reasoning += msg.reasoning_content
-    nextTick(scrollToBottom)
   }
-}
-
-// 开始新对话：清空当前消息，本地视图重置，但不会删除历史会话记录
-function startNewChat() {
-  if (isStreamLoad.value) {
-    message.warning('当前有回答正在生成，请先中断或等待完成')
-    return
-  }
-  messages.value = []
-  expandedBubbles.value = {}
-  saveHistory() // 空列表不会在后端创建新会话，历史会话仍然保留
 }
 
 function ensureSummaryEvent() {
@@ -626,26 +611,13 @@ function ensureSummaryEvent() {
   hasSummaryEvent = true
 }
 
-const PROMPT_TEMPLATES_CHANGED = 'promptTemplatesChanged'
 onBeforeUnmount(() => {
   EventsOff(AI_ASSISTANT_EVENT)
-  EventsOff(PROMPT_TEMPLATES_CHANGED)
   hasSummaryEvent = false
 })
 
-function loadPromptTemplates() {
-  GetPromptTemplates('', '').then(res => {
-    const list = Array.isArray(res) ? res : []
-    sysPromptTemplates.value = list.filter(t => t.type === '模型系统Prompt')
-    userPromptTemplates.value = list.filter(t => t.type === '模型用户Prompt')
-  })
-}
-
 watch(panelVisible, (v) => {
-  if (v) {
-    loadPromptTemplates()
-    nextTick(scrollToBottom)
-  }
+  if (v) nextTick(scrollToBottom)
 })
 
 onBeforeMount(()=> {
@@ -654,7 +626,6 @@ onBeforeMount(()=> {
   })
 } )
 onMounted(() => {
-  EventsOn(PROMPT_TEMPLATES_CHANGED, loadPromptTemplates)
   loadHistory()
   GetAiConfigs().then(res => {
     const list = Array.isArray(res) ? res : []
@@ -671,7 +642,12 @@ onMounted(() => {
       aiConfigId.value = aiConfigOptions.value[0].value
     }
   })
-  loadPromptTemplates()
+  // 加载所有提示词模板，前端按类型拆分为“系统提示词”和“用户提示词”
+  GetPromptTemplates('', '').then(res => {
+    const list = Array.isArray(res) ? res : []
+    sysPromptTemplates.value = list.filter(t => t.type === '模型系统Prompt')
+    userPromptTemplates.value = list.filter(t => t.type === '模型用户Prompt')
+  })
   GetVersionInfo().then(res => {
     if (res?.icon) appIcon.value = res.icon
   })

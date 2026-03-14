@@ -9,6 +9,7 @@ import (
 	"go-stock/backend/data"
 	"go-stock/backend/db"
 	"go-stock/backend/logger"
+	"go-stock/backend/util"
 	"log"
 	"time"
 
@@ -125,7 +126,7 @@ func MonitorStockPrices(a *App) {
 		price, _ := convertor.ToFloat(stockInfo.Price)
 
 		if stockInfo.PrePrice != price {
-			go runtime.EventsEmit(a.ctx, "stock_price", stockInfo)
+			go util.Emit(a.ctx, "stock_price", stockInfo)
 		}
 	}
 
@@ -142,7 +143,7 @@ func MonitorStockPrices(a *App) {
 	}
 
 	// 触发实时利润事件
-	go runtime.EventsEmit(a.ctx, "realtime_profit", fmt.Sprintf("  %.2f", total))
+	go util.Emit(a.ctx, "realtime_profit", fmt.Sprintf("  %.2f", total))
 }
 
 // onReady 在应用程序准备好时调用

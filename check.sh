@@ -1,0 +1,1 @@
+cat frontend/src/App.vue | sed -n '630,670p'

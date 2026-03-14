@@ -5,14 +5,22 @@ import (
 	"go-stock/backend/data"
 	"go-stock/backend/logger"
 	"go-stock/backend/models"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"go-stock/backend/util"
 )
 
 // @Author spark
 // @Date 2025/6/8 20:45
 // @Desc
 //-----------------------------------------------------------------------------------
+
+func updateBasicInfo() {
+	config := data.GetSettingConfig()
+	if config.UpdateBasicInfoOnStart {
+		//更新基本信息
+		go data.NewStockDataApi().GetStockBaseInfo()
+		go data.NewStockDataApi().GetIndexBasic()
+	}
+}
 
 func (a *App) LongTigerRank(date string) *[]models.LongTigerRankData {
 	return data.NewMarketNewsApi().LongTiger(date)
@@ -79,7 +87,7 @@ func (a *App) ChatWithAgent(question string, aiConfigId int, sysPromptId *int) {
 	}()
 	ch := agent.NewStockAiAgentApi().Chat(question, aiConfigId, sysPromptId)
 	for msg := range ch {
-		runtime.EventsEmit(a.ctx, "agent-message", msg)
+		util.Emit(a.ctx, "agent-message", msg)
 	}
 }
 

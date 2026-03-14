@@ -188,7 +188,7 @@ function handleSearch() {
   if (!loadingRef.value) {
     loadingRef.value = true
     query({
-      page: paginationReactive?.page ?? 1,
+      page: 1,
       pageSize: paginationReactive.pageSize,
       order: "desc",
       keyword: paginationReactive.keyword,
@@ -196,7 +196,7 @@ function handleSearch() {
       endDate: formatDate(paginationReactive.range[1])
     }).then((data) => {
       dataRef.value = data.data
-      paginationReactive.page = data.page
+      paginationReactive.page = 1
       paginationReactive.pageCount = data.pageCount
       paginationReactive.itemCount = data.total
       loadingRef.value = false

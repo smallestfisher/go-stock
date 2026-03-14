@@ -9,6 +9,7 @@ import (
 	"go-stock/backend/data"
 	"go-stock/backend/db"
 	"go-stock/backend/logger"
+	"go-stock/backend/util"
 	"syscall"
 	"time"
 
@@ -102,7 +103,7 @@ func MonitorStockPrices(a *App) {
 	//	total += stockData.ProfitAmountToday
 	//	price, _ := convertor.ToFloat(stockData.Price)
 	//	if stockData.PrePrice != price {
-	//		go runtime.EventsEmit(a.ctx, "stock_price", stockData)
+	//		go util.Emit(a.ctx, "stock_price", stockData)
 	//	}
 	//}
 
@@ -123,7 +124,7 @@ func MonitorStockPrices(a *App) {
 
 		if stockInfo.PrePrice != price {
 			//logger.SugaredLogger.Infof("-----------sz------------股票代码: %s, 股票名称: %s, 股票价格: %s,盘前盘后:%s", stockInfo.Code, stockInfo.Name, stockInfo.Price, stockInfo.BA)
-			go runtime.EventsEmit(a.ctx, "stock_price", stockInfo)
+			go util.Emit(a.ctx, "stock_price", stockInfo)
 		}
 
 	}
@@ -132,7 +133,7 @@ func MonitorStockPrices(a *App) {
 		systray.SetTooltip(title)
 	}
 
-	go runtime.EventsEmit(a.ctx, "realtime_profit", fmt.Sprintf("  %.2f", total))
+	go util.Emit(a.ctx, "realtime_profit", fmt.Sprintf("  %.2f", total))
 	//runtime.WindowSetTitle(a.ctx, title)
 
 }

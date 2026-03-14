@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build ignore
+// +build ignore
 
 package main
 
@@ -14,11 +14,13 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+/*
 // App struct
 type App struct {
 	ctx   context.Context
 	cache *freecache.Cache
 }
+*/
 
 // NewApp creates a new App application struct
 func NewApp() *App {

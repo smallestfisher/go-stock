@@ -12,6 +12,7 @@ import (
 	"go-stock/backend/db"
 	"go-stock/backend/logger"
 	"go-stock/backend/models"
+	"go-stock/backend/util"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,7 +167,7 @@ func (a *App) CheckUpdate(flag int) {
 		}
 
 		if !(IsWindows() || IsMacOS()) {
-			go runtime.EventsEmit(a.ctx, "updateVersion", releaseVersion)
+			go util.Emit(a.ctx, "updateVersion", releaseVersion)
 			return
 		}
 		downloadUrl := fmt.Sprintf("https://github.com/ArvinLovegood/go-stock/releases/download/%s/go-stock-windows-amd64.exe", releaseVersion.TagName)
@@ -177,7 +178,7 @@ func (a *App) CheckUpdate(flag int) {
 		if !done {
 			return
 		}
-		go runtime.EventsEmit(a.ctx, "newsPush", map[string]any{
+		go util.Emit(a.ctx, "newsPush", map[string]any{
 			"time":    "发现新版本：" + releaseVersion.TagName,
 			"isRed":   true,
 			"source":  "go-stock",
@@ -185,7 +186,7 @@ func (a *App) CheckUpdate(flag int) {
 		})
 		resp, err := resty.New().R().Get(downloadUrl)
 		if err != nil {
-			go runtime.EventsEmit(a.ctx, "newsPush", map[string]any{
+			go util.Emit(a.ctx, "newsPush", map[string]any{
 				"time":    "新版本：" + releaseVersion.TagName,
 				"isRed":   true,
 				"source":  "go-stock",
@@ -196,7 +197,7 @@ func (a *App) CheckUpdate(flag int) {
 		body := resp.Body()
 
 		if len(body) < 1024*500 {
-			go runtime.EventsEmit(a.ctx, "newsPush", map[string]any{
+			go util.Emit(a.ctx, "newsPush", map[string]any{
 				"time":    "新版本：" + releaseVersion.TagName,
 				"isRed":   true,
 				"source":  "go-stock",
@@ -208,10 +209,10 @@ func (a *App) CheckUpdate(flag int) {
 		err = update.Apply(bytes.NewReader(body), update.Options{})
 		if err != nil {
 			logger.SugaredLogger.Error("更新失败: ", err.Error())
-			go runtime.EventsEmit(a.ctx, "updateVersion", releaseVersion)
+			go util.Emit(a.ctx, "updateVersion", releaseVersion)
 			return
 		} else {
-			go runtime.EventsEmit(a.ctx, "newsPush", map[string]any{
+			go util.Emit(a.ctx, "newsPush", map[string]any{
 				"time":    "新版本：" + releaseVersion.TagName,
 				"isRed":   true,
 				"source":  "go-stock",
@@ -220,7 +221,7 @@ func (a *App) CheckUpdate(flag int) {
 		}
 	} else {
 		if flag == 1 {
-			go runtime.EventsEmit(a.ctx, "newsPush", map[string]any{
+			go util.Emit(a.ctx, "newsPush", map[string]any{
 				"time":    "当前版本：" + Version,
 				"isRed":   true,
 				"source":  "go-stock",
@@ -379,22 +380,22 @@ func (a *App) domReady(ctx context.Context) {
 		// 增加延迟确保前端已准备好接收事件
 		go func() {
 			time.Sleep(2 * time.Second)
-			runtime.EventsEmit(a.ctx, "loadingMsg", "done")
+			util.Emit(a.ctx, "loadingMsg", "done")
 		}()
 	}()
 
 	//if stocksBin != nil && len(stocksBin) > 0 {
-	//	go runtime.EventsEmit(a.ctx, "loadingMsg", "检查A股基础信息...")
+	//	go util.Emit(a.ctx, "loadingMsg", "检查A股基础信息...")
 	//	go initStockData(a.ctx)
 	//}
 	//
 	//if stocksBinHK != nil && len(stocksBinHK) > 0 {
-	//	go runtime.EventsEmit(a.ctx, "loadingMsg", "检查港股基础信息...")
+	//	go util.Emit(a.ctx, "loadingMsg", "检查港股基础信息...")
 	//	go initStockDataHK(a.ctx)
 	//}
 	//
 	//if stocksBinUS != nil && len(stocksBinUS) > 0 {
-	//	go runtime.EventsEmit(a.ctx, "loadingMsg", "检查美股基础信息...")
+	//	go util.Emit(a.ctx, "loadingMsg", "检查美股基础信息...")
 	//	go initStockDataUS(a.ctx)
 	//}
 	updateBasicInfo()
@@ -434,7 +435,7 @@ func (a *App) domReady(ctx context.Context) {
 			if config.EnablePushNews {
 				go a.NewsPush(news)
 			}
-			go runtime.EventsEmit(a.ctx, "newTelegraph", news)
+			go util.Emit(a.ctx, "newTelegraph", news)
 		})
 		if err != nil {
 			logger.SugaredLogger.Errorf("AddFunc error:%s", err.Error())
@@ -447,7 +448,7 @@ func (a *App) domReady(ctx context.Context) {
 			if config.EnablePushNews {
 				go a.NewsPush(news)
 			}
-			go runtime.EventsEmit(a.ctx, "newSinaNews", news)
+			go util.Emit(a.ctx, "newSinaNews", news)
 		})
 		if err != nil {
 			logger.SugaredLogger.Errorf("AddFunc error:%s", err.Error())
@@ -460,7 +461,7 @@ func (a *App) domReady(ctx context.Context) {
 			if config.EnablePushNews {
 				go a.NewsPush(news)
 			}
-			go runtime.EventsEmit(a.ctx, "tradingViewNews", news)
+			go util.Emit(a.ctx, "tradingViewNews", news)
 		})
 		if err != nil {
 			logger.SugaredLogger.Errorf("AddFunc error:%s", err.Error())
@@ -496,7 +497,7 @@ func (a *App) domReady(ctx context.Context) {
 		//	for range ticker.C {
 		//		telegraph := refreshTelegraphList()
 		//		if telegraph != nil {
-		//			go runtime.EventsEmit(a.ctx, "telegraph", telegraph)
+		//			go util.Emit(a.ctx, "telegraph", telegraph)
 		//		}
 		//	}
 		//
@@ -505,7 +506,7 @@ func (a *App) domReady(ctx context.Context) {
 		id, err := a.cron.AddFunc(fmt.Sprintf("@every %ds", 60), func() {
 			telegraph := refreshTelegraphList()
 			if telegraph != nil {
-				go runtime.EventsEmit(a.ctx, "telegraph", telegraph)
+				go util.Emit(a.ctx, "telegraph", telegraph)
 			}
 		})
 		if err != nil {
@@ -514,7 +515,7 @@ func (a *App) domReady(ctx context.Context) {
 			a.cronEntrys["refreshTelegraphList"] = id
 		}
 
-		go runtime.EventsEmit(a.ctx, "telegraph", refreshTelegraphList())
+		go util.Emit(a.ctx, "telegraph", refreshTelegraphList())
 	}
 	go MonitorStockPrices(a)
 	if config.EnableFund {
@@ -544,7 +545,7 @@ func (a *App) domReady(ctx context.Context) {
 	//go func() {
 	//	f := checkChromeOnWindows()
 	//	if !f {
-	//		go runtime.EventsEmit(a.ctx, "warnMsg", "谷歌浏览器未安装,ai分析功能可能无法使用")
+	//		go util.Emit(a.ctx, "warnMsg", "谷歌浏览器未安装,ai分析功能可能无法使用")
 	//	}
 	//}()
 
@@ -552,7 +553,7 @@ func (a *App) domReady(ctx context.Context) {
 	//go func() {
 	//	path, e := checkEdgeOnWindows()
 	//	if !e {
-	//		go runtime.EventsEmit(a.ctx, "warnMsg", "Edge浏览器未安装,ai分析功能可能无法使用")
+	//		go util.Emit(a.ctx, "warnMsg", "Edge浏览器未安装,ai分析功能可能无法使用")
 	//	} else {
 	//		logger.SugaredLogger.Infof("Edge浏览器已安装，路径为: %s", path)
 	//	}
@@ -576,7 +577,7 @@ func (a *App) domReady(ctx context.Context) {
 func syncAllStockInfo(ctx context.Context) {
 	defer PanicHandler()
 	defer func() {
-		go runtime.EventsEmit(ctx, "loadingMsg", "done")
+		go util.Emit(ctx, "loadingMsg", "done")
 	}()
 	db.Dao.Unscoped().Model(&models.AllStockInfo{}).Where("1=1").Delete(&models.AllStockInfo{})
 	for page := 1; page < 3; page++ {
@@ -594,7 +595,7 @@ func syncAllStockInfo(ctx context.Context) {
 func (a *App) CheckStockBaseInfo(ctx context.Context) {
 	defer PanicHandler()
 	defer func() {
-		go runtime.EventsEmit(ctx, "loadingMsg", "done")
+		go util.Emit(ctx, "loadingMsg", "done")
 	}()
 	stockBasics := &[]data.StockBasic{}
 	resty.New().R().
@@ -692,10 +693,10 @@ func (a *App) NewsPush(news *[]models.Telegraph) {
 	for _, telegraph := range *news {
 		if a.GetConfig().EnableOnlyPushRedNews {
 			if telegraph.IsRed || strutil.ContainsAny(telegraph.Content, stockNames) {
-				go runtime.EventsEmit(a.ctx, "newsPush", telegraph)
+				go util.Emit(a.ctx, "newsPush", telegraph)
 			}
 		} else {
-			go runtime.EventsEmit(a.ctx, "newsPush", telegraph)
+			go util.Emit(a.ctx, "newsPush", telegraph)
 		}
 		//go data.NewAlertWindowsApi("go-stock", telegraph.Source+" "+telegraph.Time, telegraph.Content, string(icon)).SendNotification()
 		//}
@@ -704,7 +705,7 @@ func (a *App) NewsPush(news *[]models.Telegraph) {
 
 func (a *App) AddCronTask(follow data.FollowedStock) func() {
 	return func() {
-		go runtime.EventsEmit(a.ctx, "warnMsg", "开始自动分析"+follow.Name+"_"+follow.StockCode)
+		go util.Emit(a.ctx, "warnMsg", "开始自动分析"+follow.Name+"_"+follow.StockCode)
 		ai := data.NewDeepSeekOpenAi(a.ctx, follow.AiConfigId)
 		msgs := ai.NewChatStream(follow.Name, follow.StockCode, "", nil, a.AiTools, true)
 		var res strings.Builder
@@ -727,7 +728,7 @@ func (a *App) AddCronTask(follow data.FollowedStock) func() {
 		}
 
 		data.NewDeepSeekOpenAi(a.ctx, follow.AiConfigId).SaveAIResponseResult(follow.StockCode, follow.Name, res.String(), chatId, question)
-		go runtime.EventsEmit(a.ctx, "warnMsg", "AI分析完成："+follow.Name+"_"+follow.StockCode)
+		go util.Emit(a.ctx, "warnMsg", "AI分析完成："+follow.Name+"_"+follow.StockCode)
 
 	}
 }
@@ -1087,9 +1088,9 @@ func (a *App) NewChatStream(stock, stockCode, question string, aiConfigId int, s
 		msgs = data.NewDeepSeekOpenAi(a.ctx, aiConfigId).NewChatStream(stock, stockCode, question, sysPromptId, []data.Tool{}, think)
 	}
 	for msg := range msgs {
-		runtime.EventsEmit(a.ctx, "newChatStream", msg)
+		util.Emit(a.ctx, "newChatStream", msg)
 	}
-	runtime.EventsEmit(a.ctx, "newChatStream", "DONE")
+	util.Emit(a.ctx, "newChatStream", "DONE")
 }
 
 func (a *App) SaveAIResponseResult(stockCode, stockName, result, chatId, question string, aiConfigId int) {
@@ -1477,14 +1478,14 @@ func (a *App) SummaryStockNews(question string, aiConfigId int, sysPromptId *int
 	}
 
 	for msg := range msgs {
-		runtime.EventsEmit(a.ctx, eventName, msg)
+		util.Emit(a.ctx, eventName, msg)
 	}
 
 	a.summaryMu.Lock()
 	a.summaryCancel = nil
 	a.summaryMu.Unlock()
 
-	runtime.EventsEmit(a.ctx, eventName, "DONE")
+	util.Emit(a.ctx, eventName, "DONE")
 }
 func (a *App) GetIndustryRank(sort string, cnt int) []any {
 	res := data.NewMarketNewsApi().GetIndustryRank(sort, cnt)
@@ -1600,53 +1601,6 @@ func (a *App) GetAiAssistantSession() ([]models.AiAssistantMessage, error) {
 // SaveAiAssistantSession 保存 AI 助手会话消息到数据库
 func (a *App) SaveAiAssistantSession(messages []models.AiAssistantMessage) error {
 	return data.SaveAiAssistantSession(messages)
-}
-
-// FetchAiModels
-//
-//	@Description: 根据接口地址与 apiKey 自动获取支持的模型列表（OpenAI/DeepSeek 兼容 /models 接口）
-//	@receiver a
-//	@param baseUrl 接口地址（如 https://api.deepseek.com）
-//	@param apiKey  鉴权令牌
-//	@return []string 模型 ID 列表
-func (a *App) FetchAiModels(baseUrl, apiKey string) []string {
-	baseUrl = strutil.Trim(baseUrl)
-	apiKey = strutil.Trim(apiKey)
-	if baseUrl == "" || apiKey == "" {
-		return []string{}
-	}
-
-	type modelItem struct {
-		ID string `json:"id"`
-	}
-	var respData struct {
-		Data []modelItem `json:"data"`
-	}
-
-	client := resty.New()
-	client.SetBaseURL(baseUrl)
-	client.SetHeader("Authorization", "Bearer "+apiKey)
-	client.SetHeader("Content-Type", "application/json")
-
-	resp, err := client.R().
-		SetResult(&respData).
-		Get("/models")
-	if err != nil {
-		logger.SugaredLogger.Errorf("FetchAiModels error: %v", err)
-		return []string{}
-	}
-	if resp.IsError() {
-		logger.SugaredLogger.Errorf("FetchAiModels http error: %s", resp.Status())
-		return []string{}
-	}
-
-	modelsList := make([]string, 0, len(respData.Data))
-	for _, m := range respData.Data {
-		if strings.TrimSpace(m.ID) != "" {
-			modelsList = append(modelsList, m.ID)
-		}
-	}
-	return modelsList
 }
 
 // InitCronTasks 在应用启动时，自动为启用状态的定时任务创建调度

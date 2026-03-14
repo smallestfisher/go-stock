@@ -1,3 +1,4 @@
+import './api/wails_adapter.js'
 import {createApp} from 'vue'
 import naive from 'naive-ui'
 import App from './App.vue'

@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	url2 "net/url"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -324,6 +325,7 @@ func (receiver StockDataApi) GetStockCodeRealTimeData(StockCodes ...string) (*[]
 			return &[]StockInfo{}, err
 		}
 		str := GB18030ToUTF8(resp.Body())
+		logger.SugaredLogger.Infof("GetStockCodeRealTimeData Response: %s", str)
 		dataStr := strutil.SplitAndTrim(strings.Trim(str, "\n"), ";")
 
 		for _, data := range dataStr {
@@ -403,10 +405,42 @@ func (receiver StockDataApi) GetStockCodeRealTimeData(StockCodes ...string) (*[]
 }
 
 func (receiver StockDataApi) Follow(stockCode string) string {
-	//logger.SugaredLogger.Infof("Follow %s", stockCode)
+	// 尝试获取实时数据
 	stockInfos, err := receiver.GetStockCodeRealTimeData(stockCode)
+	
+	// 如果获取失败且代码是纯数字（缺少前缀），尝试补全前缀
+	if (err != nil || len(*stockInfos) == 0) && regexp.MustCompile(`^\d{6}$`).MatchString(stockCode) {
+		logger.SugaredLogger.Infof("Follow: No data for %s, trying to find prefix...", stockCode)
+		var basic StockBasic
+		// 从数据库查找对应的市场
+		res := db.Dao.Model(&StockBasic{}).Where("symbol = ?", stockCode).First(&basic)
+		market := ""
+		if res.Error == nil {
+			market = "sh"
+			if strings.Contains(strings.ToLower(basic.TsCode), "sz") {
+				market = "sz"
+			}
+		} else {
+			// 数据库没查到，根据 A 股规则猜测
+			if strings.HasPrefix(stockCode, "6") || strings.HasPrefix(stockCode, "900") || strings.HasPrefix(stockCode, "688") {
+				market = "sh"
+			} else if strings.HasPrefix(stockCode, "0") || strings.HasPrefix(stockCode, "3") || strings.HasPrefix(stockCode, "200") {
+				market = "sz"
+			} else if strings.HasPrefix(stockCode, "4") || strings.HasPrefix(stockCode, "8") {
+				market = "bj" // 北交所
+			}
+		}
+
+		if market != "" {
+			newCode := market + stockCode
+			logger.SugaredLogger.Infof("Follow: Auto-completed prefix (guessed/db) for %s -> %s", stockCode, newCode)
+			stockCode = newCode
+			stockInfos, err = receiver.GetStockCodeRealTimeData(stockCode)
+		}
+	}
+
 	if err != nil || len(*stockInfos) == 0 {
-		logger.SugaredLogger.Error(err)
+		logger.SugaredLogger.Errorf("Follow Failed: code=%s, err=%v, count=%d", stockCode, err, len(*stockInfos))
 		return "关注失败"
 	}
 	if strings.HasPrefix(stockCode, "us") {

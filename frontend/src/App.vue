@@ -9,7 +9,7 @@ import {
   WindowUnfullscreen,
   WindowSetTitle
 } from '../wailsjs/runtime'
-import {h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
+import {computed, h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
 import {RouterLink, useRouter} from 'vue-router'
 import {createDiscreteApi,darkTheme,lightTheme , NIcon, NText,NButton,dateZhCN,zhCN} from 'naive-ui'
 import {
@@ -55,6 +55,9 @@ const realtimeProfit = ref(0)
 const telegraph = ref([])
 const groupList = ref([])
 const officialStatement= ref("")
+// 检查是否为 Web 模式（非 Wails 环境）
+const isWebMode = !window.runtime || (typeof window.runtime.Quit !== 'function') || window.location.protocol.startsWith('http');
+
 const menuOptions = ref([
   {
     label: () =>
@@ -627,42 +630,35 @@ const menuOptions = ref([
     key: 'about',
     icon: renderIcon(LogoGithub),
   },
-  {
-    show:false,
-    label: () => h("a", {
-      href: '#',
-      onClick: toggleFullscreen,
-      title: '全屏 Ctrl+F 退出全屏 Esc',
-    }, {default: () => isFullscreen.value ? '取消全屏' : '全屏'}),
-    key: 'full',
-    icon: renderIcon(ExpandOutline),
-  },
-  {
-    label: () => h("a", {
-      href: '#',
-      onClick: WindowHide,
-      title: '隐藏到托盘区 Ctrl+Z',
-    }, {default: () => '隐藏到托盘区'}),
-    key: 'hide',
-    icon: renderIcon(ReorderTwoOutline),
-  },
-  // {
-  //   label: ()=> h("a", {
-  //     href: 'javascript:void(0)',
-  //     style: 'cursor: move;',
-  //     onClick: toggleStartMoveWindow,
-  //   }, { default: () => '移动' }),
-  //   key: 'move',
-  //   icon: renderIcon(MoveOutline),
-  // },
-  {
-    label: () => h("a", {
-      href: '#',
-      onClick: Quit,
-    }, {default: () => '退出程序'}),
-    key: 'exit',
-    icon: renderIcon(PowerOutline),
-  },
+  // 以下项仅在非 Web 模式（桌面客户端）显示
+  ...(isWebMode ? [] : [
+    {
+      label: () => h("a", {
+        href: '#',
+        onClick: toggleFullscreen,
+        title: '全屏 Ctrl+F 退出全屏 Esc',
+      }, {default: () => isFullscreen.value ? '取消全屏' : '全屏'}),
+      key: 'full',
+      icon: renderIcon(ExpandOutline),
+    },
+    {
+      label: () => h("a", {
+        href: '#',
+        onClick: WindowHide,
+        title: '隐藏到托盘区 Ctrl+Z',
+      }, {default: () => '隐藏到托盘区'}),
+      key: 'hide',
+      icon: renderIcon(ReorderTwoOutline),
+    },
+    {
+      label: () => h("a", {
+        href: '#',
+        onClick: Quit,
+      }, {default: () => '退出程序'}),
+      key: 'exit',
+      icon: renderIcon(PowerOutline),
+    }
+  ])
 ])
 
 function renderIcon(icon) {
@@ -858,6 +854,13 @@ onMounted(() => {
     })
   })
 })
+// 动态过滤 Web 模式下的菜单
+const filteredMenuOptions = computed(() => {
+  if (window.isWeb) {
+    return menuOptions.value.filter(item => item.key !== 'hide' && item.key !== 'exit')
+  }
+  return menuOptions.value
+})
 </script>
 <template>
   <n-config-provider ref="containerRef" :theme="enableDarkTheme" :locale="zhCN" :date-locale="dateZhCN">
@@ -902,7 +905,7 @@ onMounted(() => {
                       <n-menu style="font-size: 18px;"
                               v-model:value="activeKey"
                               mode="horizontal"
-                              :options="menuOptions"
+                              :options="filteredMenuOptions"
                               responsive
                       />
                     </n-card>
@@ -917,5 +920,11 @@ onMounted(() => {
   </n-config-provider>
 </template>
 <style>
-
+/* 针对 Web 模式强行隐藏托盘和退出按钮 */
+.n-menu-item-content[data-key="hide"],
+.n-menu-item-content[data-key="exit"],
+.n-menu-item[data-key="hide"],
+.n-menu-item[data-key="exit"] {
+  display: none !important;
+}
 </style>

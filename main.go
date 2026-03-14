@@ -9,6 +9,7 @@ import (
 	"go-stock/backend/db"
 	log "go-stock/backend/logger"
 	"go-stock/backend/models"
+	"go-stock/backend/util"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -19,44 +20,19 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	// "github.com/wailsapp/wails/v2/pkg/options/mac"
+	// "github.com/wailsapp/wails/v2/pkg/options/windows"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed frontend/dist
 var assets embed.FS
 
-//go:embed build/appicon.png
-var icon []byte
+// var Version string
 
-//go:embed build/app.ico
-var icon2 []byte
-
-//go:embed build/screenshot/alipay.jpg
-var alipay []byte
-
-//go:embed build/screenshot/wxpay.jpg
-var wxpay []byte
-
-//go:embed build/screenshot/扫码_搜索联合传播样式-白色版.png
-var wxgzh []byte
-
-//go:embed build/stock_basic.json
-var stocksBin []byte
-
-//go:embed build/stock_base_info_hk.json
-var stocksBinHK []byte
-
-//go:embed build/stock_base_info_us.json
-var stocksBinUS []byte
-
-//go:generate cp -R ./data ./build/bin
-
-var Version string
-var VersionCommit string
-var OFFICIAL_STATEMENT string
-var BuildKey string
+// var VersionCommit string
+// var OFFICIAL_STATEMENT string
+// var BuildKey string
 
 func main() {
 	defer func() {
@@ -94,14 +70,14 @@ func main() {
 	//	runtime.WindowUnfullscreen(app.ctx)
 	//})
 	//FileMenu.AddText("显示搜索框", keys.CmdOrCtrl("s"), func(callbackData *menu.CallbackData) {
-	//	runtime.EventsEmit(app.ctx, "showSearch", 1)
+	//	util.Emit(app.ctx, "showSearch", 1)
 	//})
 	//FileMenu.AddText("隐藏搜索框", keys.CmdOrCtrl("d"), func(callbackData *menu.CallbackData) {
-	//	runtime.EventsEmit(app.ctx, "showSearch", 0)
+	//	util.Emit(app.ctx, "showSearch", 0)
 	//})
 	//FileMenu.AddText("刷新数据", keys.CmdOrCtrl("r"), func(callbackData *menu.CallbackData) {
-	//	//runtime.EventsEmit(app.ctx, "refresh", "setting-"+time.Now().Format("2006-01-02 15:04:05"))
-	//	runtime.EventsEmit(app.ctx, "refreshFollowList", "refresh-"+time.Now().Format("2006-01-02 15:04:05"))
+	//	//util.Emit(app.ctx, "refresh", "setting-"+time.Now().Format("2006-01-02 15:04:05"))
+	//	util.Emit(app.ctx, "refreshFollowList", "refresh-"+time.Now().Format("2006-01-02 15:04:05"))
 	//})
 	//FileMenu.AddSeparator()
 
@@ -181,6 +157,7 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
+		/*
 		// Windows platform specific options
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
@@ -207,6 +184,7 @@ func main() {
 				Icon:    icon,
 			},
 		},
+		*/
 	})
 
 	if err != nil {
@@ -267,7 +245,7 @@ func AutoMigrate() {
 
 func initStockDataUS(ctx context.Context) {
 	defer func() {
-		go runtime.EventsEmit(ctx, "loadingMsg", "done")
+		go util.Emit(ctx, "loadingMsg", "done")
 	}()
 	var v []models.StockInfoUS
 	err := json.Unmarshal(stocksBinUS, &v)
@@ -293,7 +271,7 @@ func initStockDataUS(ctx context.Context) {
 
 func initStockDataHK(ctx context.Context) {
 	defer func() {
-		go runtime.EventsEmit(ctx, "loadingMsg", "done")
+		go util.Emit(ctx, "loadingMsg", "done")
 	}()
 	var v []models.StockInfoHK
 	err := json.Unmarshal(stocksBinHK, &v)
@@ -318,18 +296,9 @@ func initStockDataHK(ctx context.Context) {
 
 }
 
-func updateBasicInfo() {
-	config := data.GetSettingConfig()
-	if config.UpdateBasicInfoOnStart {
-		//更新基本信息
-		go data.NewStockDataApi().GetStockBaseInfo()
-		go data.NewStockDataApi().GetIndexBasic()
-	}
-}
-
 func initStockData(ctx context.Context) {
 	defer func() {
-		go runtime.EventsEmit(ctx, "loadingMsg", "done")
+		go util.Emit(ctx, "loadingMsg", "done")
 	}()
 	fields := "ts_code,symbol,name,area,industry,cnspell,market,list_date,act_name,act_ent_type,fullname,exchange,list_status,curr_type,enname,delist_date,is_hs"
 	log.SugaredLogger.Info("init stock data")

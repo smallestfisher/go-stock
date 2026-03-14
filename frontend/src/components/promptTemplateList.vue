@@ -7,7 +7,6 @@ import {
   DeletePromptTemplate,
   UpdatePromptTemplate
 } from "../../wailsjs/go/main/App";
-import { EventsEmit } from "../../wailsjs/runtime";
 import {NButton, NInput, NTag, NText, useMessage, useNotification,useDialog, NModal, NCard, NForm, NFormItem, NSpace} from "naive-ui";
 
 const notify = useNotification()
@@ -184,14 +183,14 @@ function handleSearch() {
   if (!loadingRef.value) {
     loadingRef.value = true
     query({
-      page: paginationReactive?.page ?? 1,
+      page: 1,
       pageSize: paginationReactive.pageSize,
       name: searchFormRef.name,
       type: searchFormRef.type,
       content: searchFormRef.content
     }).then((data) => {
       dataRef.value = data.data
-      paginationReactive.page = data.page
+      paginationReactive.page = 1
       paginationReactive.pageCount = data.totalPages
       paginationReactive.itemCount = data.total
       loadingRef.value = false
@@ -232,7 +231,6 @@ function savePromptTemplate() {
     message.info( res )
     modalDataRef.visible = false
     handleSearch()
-    EventsEmit('promptTemplatesChanged')
   })
 }
 
@@ -247,7 +245,6 @@ function deletePromptTemplate(id) {
       DeletePromptTemplate(id).then((res) => {
         message.info( res )
         handleSearch()
-        EventsEmit('promptTemplatesChanged')
       })
     }
   })
