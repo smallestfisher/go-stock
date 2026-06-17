@@ -1,298 +1,113 @@
 /*
- _       __      _ __
-| |     / /___ _(_) /____
-| | /| / / __ `/ / / ___/
-| |/ |/ / /_/ / / (__  )
-|__/|__/\__,_/_/_/____/
-The electron alternative for Go
-(c) Lea Anthony 2019-present
+  go-stock Web 模式下的 wails runtime 替代实现。
+  - EventsOn/Off/Emit/Eonce：走 transport 的 SSE 事件总线（/api/events）
+  - BrowserOpenURL：window.open 打开新标签
+  - Environment：返回固定的 web 环境
+  - 窗口、通知、剪贴板等桌面能力：置为安全的 no-op（浏览器无对应概念）
+  导出名与原 wails runtime 保持一致，确保前端 import 全部可解析。
 */
+import { subscribeEvent, unsubscribeEvent, unsubscribeEventAll } from "../../src/api/transport.js";
 
-export function LogPrint(message) {
-    window.runtime.LogPrint(message);
-}
+export function LogPrint() {}
+export function LogTrace() {}
+export function LogDebug() {}
+export function LogInfo() {}
+export function LogWarning() {}
+export function LogError() {}
+export function LogFatal() {}
 
-export function LogTrace(message) {
-    window.runtime.LogTrace(message);
-}
-
-export function LogDebug(message) {
-    window.runtime.LogDebug(message);
-}
-
-export function LogInfo(message) {
-    window.runtime.LogInfo(message);
-}
-
-export function LogWarning(message) {
-    window.runtime.LogWarning(message);
-}
-
-export function LogError(message) {
-    window.runtime.LogError(message);
-}
-
-export function LogFatal(message) {
-    window.runtime.LogFatal(message);
-}
-
+// 监听事件，返回一个取消函数（与 wails EventsOn 返回 cancel 的语义一致）。
 export function EventsOnMultiple(eventName, callback, maxCallbacks) {
-    return window.runtime.EventsOnMultiple(eventName, callback, maxCallbacks);
+  if (maxCallbacks === 1) {
+    const off = subscribeEvent(eventName, (data) => { off(); callback(data); });
+    return off;
+  }
+  return subscribeEvent(eventName, callback);
 }
 
 export function EventsOn(eventName, callback) {
-    return EventsOnMultiple(eventName, callback, -1);
-}
-
-export function EventsOff(eventName, ...additionalEventNames) {
-    return window.runtime.EventsOff(eventName, ...additionalEventNames);
-}
-
-export function EventsOffAll() {
-  return window.runtime.EventsOffAll();
+  return EventsOnMultiple(eventName, callback, -1);
 }
 
 export function EventsOnce(eventName, callback) {
-    return EventsOnMultiple(eventName, callback, 1);
+  return EventsOnMultiple(eventName, callback, 1);
 }
 
-export function EventsEmit(eventName) {
-    let args = [eventName].slice.call(arguments);
-    return window.runtime.EventsEmit.apply(null, args);
+export function EventsOff(eventName, ...additionalEventNames) {
+  const names = [eventName, ...additionalEventNames];
+  names.forEach((n) => unsubscribeEventAll(n));
 }
 
-export function WindowReload() {
-    window.runtime.WindowReload();
+export function EventsOffAll() {
+  // Web 端无法枚举所有事件名，安全 no-op
 }
 
-export function WindowReloadApp() {
-    window.runtime.WindowReloadApp();
-}
-
-export function WindowSetAlwaysOnTop(b) {
-    window.runtime.WindowSetAlwaysOnTop(b);
-}
-
-export function WindowSetSystemDefaultTheme() {
-    window.runtime.WindowSetSystemDefaultTheme();
-}
-
-export function WindowSetLightTheme() {
-    window.runtime.WindowSetLightTheme();
-}
-
-export function WindowSetDarkTheme() {
-    window.runtime.WindowSetDarkTheme();
-}
-
-export function WindowCenter() {
-    window.runtime.WindowCenter();
-}
-
-export function WindowSetTitle(title) {
-    window.runtime.WindowSetTitle(title);
-}
-
-export function WindowFullscreen() {
-    window.runtime.WindowFullscreen();
-}
-
-export function WindowUnfullscreen() {
-    window.runtime.WindowUnfullscreen();
-}
-
-export function WindowIsFullscreen() {
-    return window.runtime.WindowIsFullscreen();
-}
-
-export function WindowGetSize() {
-    return window.runtime.WindowGetSize();
-}
-
-export function WindowSetSize(width, height) {
-    window.runtime.WindowSetSize(width, height);
-}
-
-export function WindowSetMaxSize(width, height) {
-    window.runtime.WindowSetMaxSize(width, height);
-}
-
-export function WindowSetMinSize(width, height) {
-    window.runtime.WindowSetMinSize(width, height);
-}
-
-export function WindowSetPosition(x, y) {
-    window.runtime.WindowSetPosition(x, y);
-}
-
-export function WindowGetPosition() {
-    return window.runtime.WindowGetPosition();
-}
-
-export function WindowHide() {
-    window.runtime.WindowHide();
-}
-
-export function WindowShow() {
-    window.runtime.WindowShow();
-}
-
-export function WindowMaximise() {
-    window.runtime.WindowMaximise();
-}
-
-export function WindowToggleMaximise() {
-    window.runtime.WindowToggleMaximise();
-}
-
-export function WindowUnmaximise() {
-    window.runtime.WindowUnmaximise();
-}
-
-export function WindowIsMaximised() {
-    return window.runtime.WindowIsMaximised();
-}
-
-export function WindowMinimise() {
-    window.runtime.WindowMinimise();
-}
-
-export function WindowUnminimise() {
-    window.runtime.WindowUnminimise();
-}
-
-export function WindowSetBackgroundColour(R, G, B, A) {
-    window.runtime.WindowSetBackgroundColour(R, G, B, A);
-}
-
-export function ScreenGetAll() {
-    return window.runtime.ScreenGetAll();
-}
-
-export function WindowIsMinimised() {
-    return window.runtime.WindowIsMinimised();
-}
-
-export function WindowIsNormal() {
-    return window.runtime.WindowIsNormal();
-}
+// Web 端前端发事件后端不监听，忽略。
+export function EventsEmit() {}
 
 export function BrowserOpenURL(url) {
-    window.runtime.BrowserOpenURL(url);
+  if (typeof window !== "undefined" && url) {
+    window.open(url, "_blank");
+  }
 }
 
 export function Environment() {
-    return window.runtime.Environment();
+  return Promise.resolve({ buildType: "production", platform: "web", arch: "web" });
 }
 
-export function Quit() {
-    window.runtime.Quit();
-}
+// --- 桌面专属能力，Web 下为 no-op / 兜底返回 ---
+function noop() {}
+function noopPromise(v) { return () => Promise.resolve(v); }
 
-export function Hide() {
-    window.runtime.Hide();
-}
-
-export function Show() {
-    window.runtime.Show();
-}
-
-export function ClipboardGetText() {
-    return window.runtime.ClipboardGetText();
-}
-
-export function ClipboardSetText(text) {
-    return window.runtime.ClipboardSetText(text);
-}
-
-/**
- * Callback for OnFileDrop returns a slice of file path strings when a drop is finished.
- *
- * @export
- * @callback OnFileDropCallback
- * @param {number} x - x coordinate of the drop
- * @param {number} y - y coordinate of the drop
- * @param {string[]} paths - A list of file paths.
- */
-
-/**
- * OnFileDrop listens to drag and drop events and calls the callback with the coordinates of the drop and an array of path strings.
- *
- * @export
- * @param {OnFileDropCallback} callback - Callback for OnFileDrop returns a slice of file path strings when a drop is finished.
- * @param {boolean} [useDropTarget=true] - Only call the callback when the drop finished on an element that has the drop target style. (--wails-drop-target)
- */
-export function OnFileDrop(callback, useDropTarget) {
-    return window.runtime.OnFileDrop(callback, useDropTarget);
-}
-
-/**
- * OnFileDropOff removes the drag and drop listeners and handlers.
- */
-export function OnFileDropOff() {
-    return window.runtime.OnFileDropOff();
-}
-
-export function CanResolveFilePaths() {
-    return window.runtime.CanResolveFilePaths();
-}
-
-export function ResolveFilePaths(files) {
-    return window.runtime.ResolveFilePaths(files);
-}
-
-export function InitializeNotifications() {
-    return window.runtime.InitializeNotifications();
-}
-
-export function CleanupNotifications() {
-    return window.runtime.CleanupNotifications();
-}
-
-export function IsNotificationAvailable() {
-    return window.runtime.IsNotificationAvailable();
-}
-
-export function RequestNotificationAuthorization() {
-    return window.runtime.RequestNotificationAuthorization();
-}
-
-export function CheckNotificationAuthorization() {
-    return window.runtime.CheckNotificationAuthorization();
-}
-
-export function SendNotification(options) {
-    return window.runtime.SendNotification(options);
-}
-
-export function SendNotificationWithActions(options) {
-    return window.runtime.SendNotificationWithActions(options);
-}
-
-export function RegisterNotificationCategory(category) {
-    return window.runtime.RegisterNotificationCategory(category);
-}
-
-export function RemoveNotificationCategory(categoryId) {
-    return window.runtime.RemoveNotificationCategory(categoryId);
-}
-
-export function RemoveAllPendingNotifications() {
-    return window.runtime.RemoveAllPendingNotifications();
-}
-
-export function RemovePendingNotification(identifier) {
-    return window.runtime.RemovePendingNotification(identifier);
-}
-
-export function RemoveAllDeliveredNotifications() {
-    return window.runtime.RemoveAllDeliveredNotifications();
-}
-
-export function RemoveDeliveredNotification(identifier) {
-    return window.runtime.RemoveDeliveredNotification(identifier);
-}
-
-export function RemoveNotification(identifier) {
-    return window.runtime.RemoveNotification(identifier);
-}
+export const WindowReload = noop;
+export const WindowReloadApp = noop;
+export const WindowSetAlwaysOnTop = noop;
+export const WindowSetSystemDefaultTheme = noop;
+export const WindowSetLightTheme = noop;
+export const WindowSetDarkTheme = noop;
+export const WindowCenter = noop;
+export const WindowSetTitle = noop;
+export const WindowFullscreen = noop;
+export const WindowUnfullscreen = noop;
+export const WindowIsFullscreen = noopPromise(false);
+export const WindowGetSize = noopPromise({ w: 0, h: 0 });
+export const WindowSetSize = noop;
+export const WindowSetMaxSize = noop;
+export const WindowSetMinSize = noop;
+export const WindowSetPosition = noop;
+export const WindowGetPosition = noopPromise({ x: 0, y: 0 });
+export const WindowHide = noop;
+export const WindowShow = noop;
+export const WindowMaximise = noop;
+export const WindowToggleMaximise = noop;
+export const WindowUnmaximise = noop;
+export const WindowIsMaximised = noopPromise(false);
+export const WindowMinimise = noop;
+export const WindowUnminimise = noop;
+export const WindowSetBackgroundColour = noop;
+export const ScreenGetAll = noopPromise([]);
+export const WindowIsMinimised = noopPromise(false);
+export const WindowIsNormal = noopPromise(true);
+export const Quit = noop;
+export const Hide = noop;
+export const Show = noop;
+export const ClipboardGetText = noopPromise("");
+export const ClipboardSetText = noop;
+export const OnFileDrop = noop;
+export const OnFileDropOff = noop;
+export const CanResolveFilePaths = noopPromise(false);
+export const ResolveFilePaths = noopPromise([]);
+export const InitializeNotifications = noop;
+export const CleanupNotifications = noop;
+export const IsNotificationAvailable = noopPromise(false);
+export const RequestNotificationAuthorization = noopPromise(true);
+export const CheckNotificationAuthorization = noopPromise(true);
+export const SendNotification = noop;
+export const SendNotificationWithActions = noop;
+export const RegisterNotificationCategory = noop;
+export const RemoveNotificationCategory = noop;
+export const RemoveAllPendingNotifications = noop;
+export const RemovePendingNotification = noop;
+export const RemoveAllDeliveredNotifications = noop;
+export const RemoveDeliveredNotification = noop;
+export const RemoveNotification = noop;
