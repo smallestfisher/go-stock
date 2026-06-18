@@ -338,7 +338,6 @@ import {
 import { EventsOff, EventsOn } from '../api/runtime'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
-import html2canvas from 'html2canvas'
 
 const STORAGE_KEY_MODEL_ID = 'go-stock-agent-last-model-id'
 
@@ -668,6 +667,7 @@ async function exportAiReplyImage(assistantIndex, evt) {
     target.style.overflow = 'visible'
     target.style.overflowY = 'visible'
     await nextTick()
+    const {default: html2canvas} = await import('html2canvas')
     const canvas = await html2canvas(target, {
       useCORS: true,
       scale: 2,

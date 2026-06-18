@@ -1,5 +1,5 @@
 <script setup>
-import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
+import {computed, defineAsyncComponent, h, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
 import * as echarts from 'echarts';
 import {
   AddGroup,
@@ -59,11 +59,6 @@ import {MdEditor, MdPreview} from 'md-editor-v3';
 //import 'md-editor-v3/lib/preview.css';
 import 'md-editor-v3/lib/style.css';
 
-import {ExportPDF} from '@vavt/v3-extension';
-import '@vavt/v3-extension/lib/asset/ExportPDF.css';
-import html2canvas from "html2canvas";
-import {asBlob} from 'html-docx-js-typescript';
-
 import vueDanmaku from 'vue3-danmaku'
 import {keys, padStart} from "lodash";
 import {useRoute, useRouter} from 'vue-router'
@@ -73,6 +68,11 @@ import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 
 const route = useRoute()
 const router = useRouter()
+const ExportPDF = defineAsyncComponent(async () => {
+  await import('@vavt/v3-extension/lib/asset/ExportPDF.css')
+  const mod = await import('@vavt/v3-extension')
+  return mod.ExportPDF
+})
 
 const danmus = ref([])
 const ws = ref(null)
@@ -1960,6 +1960,7 @@ function saveAsImage(name, code) {
   nextTick(async () => {
     const isDark = document.documentElement.getAttribute('theme-mode') === 'dark'
     try {
+      const {default: html2canvas} = await import('html2canvas')
       const canvas = await html2canvas(element, {
         useCORS: true,
         scale: 2,
@@ -2068,6 +2069,7 @@ AI赋能股票分析：自选股行情获取，成本盈亏展示，涨跌报警
 </a></p>
 `
   // landscape就是横着的，portrait是竖着的，默认是竖屏portrait。
+  const {asBlob} = await import('html-docx-js-typescript')
   const blob = await asBlob(value, {orientation: 'portrait'})
   const arrayBuffer = await blob.arrayBuffer()
   const uint8Array = new Uint8Array(arrayBuffer)

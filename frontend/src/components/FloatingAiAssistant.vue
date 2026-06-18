@@ -320,7 +320,6 @@ import { AbortSummaryStockNews, GetAiAssistantSession, GetAiConfigs, GetConfig, 
 import { EventsOn, EventsOff } from '../api/runtime'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
-import html2canvas from 'html2canvas'
 
 const DEFAULT_VISIBLE_COUNT = 20
 const COLLAPSE_CHAR_LIMIT = 200
@@ -491,6 +490,7 @@ async function exportAiReplyImage(displayFromIndex, index, evt) {
       shareTipVisible.value = true
       return
     }
+    const {default: html2canvas} = await import('html2canvas')
     const canvas = await html2canvas(target, {
       useCORS: true,
       scale: 2,

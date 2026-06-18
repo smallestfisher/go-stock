@@ -4,7 +4,7 @@ import {
   EventsOff,
   EventsOn
 } from './api/runtime'
-import {h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
+import {defineAsyncComponent, h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
 import {RouterLink, useRouter} from 'vue-router'
 import {createDiscreteApi,darkTheme,lightTheme , NIcon, NText,NButton,dateZhCN,zhCN} from 'naive-ui'
 import {
@@ -26,8 +26,6 @@ import {
   Wallet, WarningOutline, TimeOutline, SearchOutline,
 } from '@vicons/ionicons5'
 import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "./api/app";
-import FloatingAiAssistant from "./components/FloatingAiAssistant.vue";
-import FloatingAgentAssistant from "./components/FloatingAgentAssistant.vue";
 import {Dragon, Fire, FirefoxBrowser, Gripfire, Robot} from "@vicons/fa";
 import {Prompt, ReportAnalytics, ReportMoney, ReportSearch, TrendingUp} from "@vicons/tabler";
 import {LocalFireDepartmentRound} from "@vicons/material";
@@ -38,6 +36,7 @@ import {FireFilled, MoneyCollectOutlined, NotificationFilled, StockOutlined} fro
 
 
 const router = useRouter()
+const FloatingAgentAssistant = defineAsyncComponent(() => import("./components/FloatingAgentAssistant.vue"))
 const loading = ref(true)
 const loadingMsg = ref("加载数据中...")
 const enableNews = ref(false)

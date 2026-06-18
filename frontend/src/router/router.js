@@ -1,15 +1,15 @@
-import {createMemoryHistory, createRouter, createWebHashHistory, createWebHistory} from 'vue-router'
+import {createRouter, createWebHashHistory} from 'vue-router'
 
-import stockView from '../components/stock.vue'
-import settingsView from '../components/settings.vue'
-import aboutView from "../components/about.vue";
-import fundView from "../components/fund.vue";
-import marketView from "../components/market.vue";
-import agentChat from "../components/agent-chat.vue"
-import research from "../components/researchIndex.vue";
-import cronTaskManager from "../components/cron-task-manager.vue"
-import mcpServerManager from "../components/mcp-server-manager.vue"
-import klineAnalysis from "../components/kline-analysis.vue"
+const stockView = () => import('../components/stock.vue')
+const settingsView = () => import('../components/settings.vue')
+const aboutView = () => import('../components/about.vue')
+const fundView = () => import('../components/fund.vue')
+const marketView = () => import('../components/market.vue')
+const agentChat = () => import('../components/agent-chat.vue')
+const research = () => import('../components/researchIndex.vue')
+const cronTaskManager = () => import('../components/cron-task-manager.vue')
+const mcpServerManager = () => import('../components/mcp-server-manager.vue')
+const klineAnalysis = () => import('../components/kline-analysis.vue')
 
 const routes = [
     { path: '/', component: stockView,name: 'stock'},

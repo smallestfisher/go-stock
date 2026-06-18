@@ -1,5 +1,4 @@
 import {createApp} from 'vue'
-import naive from 'naive-ui'
 import App from './App.vue'
 import Login from './Login.vue'
 import router from './router/router'
@@ -33,7 +32,6 @@ async function bootstrap() {
   if (ok) {
     app.use(router)
   }
-  app.use(naive)
   app.mount('#app')
 }
 
