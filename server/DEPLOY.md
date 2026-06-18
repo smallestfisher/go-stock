@@ -83,16 +83,15 @@ GO_STOCK_TOKEN=请改成你自己的强随机令牌 \
 
 ### 迁移覆盖情况
 
-已迁移 **182 个** RPC 方法，覆盖核心功能：行情/K线、自选与分组(读写)、基金、通达信 F10、资讯/研报/龙虎榜/热门、
-异动与统计、板块/概念资金流、市场统计、策略与选股、情感分析、AI 流式分析(NewChatStream/SummaryStockNews/ChatWithAgent)、
-AI 结果与推荐历史、提示词模板、MCP 服务器与技能、交易记录、定时任务(增删改查 + 启动恢复 + 单股AI分析)、
-钉钉告警、分享、AI 助手会话/配置、赞助/设备绑定、交易时间等。桌面专属(托盘/本地保存/自动更新)已置 no-op。
+已迁移 **189 个** RPC 方法(另加 6 个桌面专属 no-op),**覆盖 App 全部用户态方法**：
+行情/K线、自选与分组(读写)、基金、通达信 F10、资讯/研报/龙虎榜/热门、异动与统计、板块/概念资金流、
+市场统计(含采集)、策略与选股、情感分析、AI 流式分析(NewChatStream/SummaryStockNews/ChatWithAgent)、
+AI 结果与推荐历史、提示词模板、MCP 服务器与技能、交易记录、定时任务(增删改查 + 启动恢复 + 单股AI分析 + 下次运行时间计算)、
+钉钉告警、分享、AI 助手会话/配置、模型信息探测(FetchAiModels/FetchAiModelInfo)、赞助/设备绑定、交易时间、
+NewsPush、CheckStockBaseInfo、Greet 等。桌面专属(托盘/本地保存/自动更新)已置 no-op。
 
-仍待迁移（少量边角 + 内部 helper，按需补）：
-- `Greet`（依赖根包 `getStockInfo`，需一并移植）
-- `FetchAiModelInfo`、`CalculateNextRunTime/CalculateNextRunTimes`（cron/模型信息辅助）
-- `CheckStockBaseInfo`、`FetchAndSaveMarketStatistic`（基础信息/市场统计采集，内部触发）
-- 内部 helper（非前端直调）：`AddCronTask`、`InitCronTasks`、`NewsPush`、`MonitorStockPrices`
+仅余以下**内部 helper** 未注册为 RPC（它们不是前端可调用的方法形态，无需迁移）：
+`AddCronTask`（返回 `func()`，被 SetStockAICron 内部使用）、`InitCronTasks`（启动时由 cmd/server 调用）、
+`MonitorStockPrices`（包级函数，由 cron 调度执行）。
 
-> 前端桩已为全部方法生成 `rpc(...)`，未迁移的方法被调用时会返回 404 `method not found`，
-> 前端 catch 后忽略，不影响已迁移功能。
+> 前端桩已为全部方法生成 `rpc(...)`；上述内部 helper 不在 Wails 绑定内，不会产生 404。
