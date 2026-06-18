@@ -24,7 +24,7 @@ func init() {
 	server.Register("CheckSponsorCode", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
 		return map[string]any{
 			"code": 1,
-			"msg":  "全部本地功能已免费开放，无需赞助码。",
+			"msg":  "全部本地功能已免费开放，无需激活。",
 		}, nil
 	})
 

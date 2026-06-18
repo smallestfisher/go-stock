@@ -1,22 +1,15 @@
 <script setup>
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/preview.css';
-import {h, computed, nextTick, onBeforeUnmount, onMounted, ref} from 'vue';
-import {GetConfig, GetVersionInfo,GetSponsorInfo,GetUserManual} from "../api/app";
-import {NAvatar, NButton, NTree, useNotification,NText} from "naive-ui";
-import { addMonths, format ,parse} from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import {computed, nextTick, onMounted, ref} from 'vue';
+import {GetConfig, GetVersionInfo, GetUserManual} from "../api/app";
+import {NAvatar, NButton, NTree} from "naive-ui";
 const updateLog = ref('');
 const versionInfo = ref('');
 const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/master/build/appicon.png');
 const alipay =ref('https://github.com/ArvinLovegood/go-stock/raw/master/build/screenshot/alipay.jpg')
 const wxpay =ref('https://github.com/ArvinLovegood/go-stock/raw/master/build/screenshot/wxpay.jpg')
 const wxgzh =ref('https://github.com/ArvinLovegood/go-stock/raw/dev/build/screenshot/%E6%89%AB%E7%A0%81_%E6%90%9C%E7%B4%A2%E8%81%94%E5%90%88%E4%BC%A0%E6%92%AD%E6%A0%B7%E5%BC%8F-%E7%99%BD%E8%89%B2%E7%89%88.png')
-const notify = useNotification()
-const vipLevel=ref("");
-const vipStartTime=ref("");
-const vipEndTime=ref("");
-const expired=ref(false)
 const showManual = ref(false)
 const manualContent = ref('')
 const manualId = 'manual-preview'
@@ -115,26 +108,10 @@ onMounted(() => {
     wxpay.value=res.wxpay;
     wxgzh.value=res.wxgzh;
 
-    GetSponsorInfo().then((res) => {
-      vipLevel.value = res.vipLevel;
-      vipStartTime.value = res.vipStartTime;
-      vipEndTime.value = res.vipEndTime;
-      //判断时间是否到期
-      if (res.vipLevel) {
-        if (res.vipEndTime < format(new Date(), 'yyyy-MM-dd HH:mm:ss')) {
-          notify.warning({content: 'VIP已到期'})
-          expired.value = true;
-        }
-      }
-    })
-
   });
 
 
 
-})
-onBeforeUnmount(() => {
-  notify.destroyAll()
 })
 
 </script>
@@ -147,14 +124,10 @@ onBeforeUnmount(() => {
           <n-space vertical >
             <n-image width="100" :src="icon" />
             <h1>
-              <n-badge v-if="!vipLevel"  :value="versionInfo" :offset="[80,10]"  type="success">
+              <n-badge :value="versionInfo" :offset="[80,10]" type="success">
                 <n-gradient-text type="info" :size="50" >go-stock</n-gradient-text>
               </n-badge>
-              <n-badge v-if="vipLevel"  :value="versionInfo" :offset="[70,10]"  type="success">
-                <n-gradient-text :type="expired?'error':'warning'" :size="50" >go-stock</n-gradient-text><n-tag :bordered="false" size="small" type="warning">VIP{{vipLevel}}</n-tag>
-              </n-badge>
             </h1>
-            <n-gradient-text  :type="expired?'error':'warning'" v-if="vipLevel" >vip到期时间：{{vipEndTime}}</n-gradient-text>
             <n-flex justify="center">
               <n-button size="tiny" @click="openManual" type="success" tertiary >查看用户手册</n-button>
             </n-flex>
@@ -176,32 +149,10 @@ onBeforeUnmount(() => {
               <p>QQ交流群：<a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=0YQ8qD3exahsD4YLNhzQTWe5ssstWC89&authKey=usOMMRFtIQDC%2FYcatHYapcxQbJ7PwXPHK9OypTXWzNjAq%2FRVvQu9bj2lRgb%2BSZ3p&noverify=0&group_code=491605333" target="_blank">491605333</a></p>
             </div>
           </n-space>
-          <n-divider title-placement="center">支持💕开源</n-divider>
-          <n-flex justify="center">
-            <n-table  size="small" style="width: 820px">
-              <n-thead>
-                <n-tr>
-                  <n-th>赞助计划</n-th>
-                  <n-th>赞助等级</n-th>
-                  <n-th>权益说明</n-th>
-                </n-tr>
-              </n-thead>
-              <n-tbody>
-                <n-tr>
-                  <n-td>每月 0 RMB</n-td><n-td>vip0</n-td><n-td>🌟 全部功能,软件自动更新(从GitHub下载),自行解决github平台网络问题。</n-td>
-                </n-tr>
-                <n-tr>
-                  <n-td>赞助 18.8 RMB/月<br>赞助 120 RMB/年</n-td><n-td>vip1</n-td><n-td>💕 全部功能,软件自动更新(从CDN下载),更新快速便捷。AI配置指导，提示词参考等</n-td>
-                </n-tr>
-                <n-tr>
-                  <n-td>赞助 28.8 RMB/月<br>赞助 240 RMB/年</n-td><n-td>vip2</n-td><n-td>💕 vip1全部功能,启动时自动同步最近24小时市场资讯(包括外媒简讯)，go-stock Ai助手等(详询作者微信/QQ)💕</n-td>
-                </n-tr>
-                <n-tr>
-                  <n-td>每月赞助 X RMB</n-td><n-td>vipX</n-td><n-td>🧩 更多计划，视go-stock开源项目发展情况而定...(承接GitHub项目README广告推广💖)</n-td>
-                </n-tr>
-              </n-tbody>
-            </n-table>
-          </n-flex>
+          <n-divider title-placement="center">支持开源</n-divider>
+          <n-space vertical align="center">
+            <p>go-stock 本地功能已全部免费开放。如果觉得好用，可以自愿支持项目持续维护。</p>
+          </n-space>
           <n-divider title-placement="center">关于作者</n-divider>
           <n-space vertical>
 <!--            <h1>关于作者</h1>-->
@@ -248,7 +199,7 @@ onBeforeUnmount(() => {
               本软件基于开源技术构建，使用 Go、NaiveUI、Vue 等开源项目。技术上如有问题，可以先向对应的开源社区请求帮助。
             </p>
             <p>
-              开源不易，本人精力和时间有限，如确实需要一对一技术支持，<i style="color: crimson">请先赞助！</i>联系微信(备注 技术支持)：ArvinLovegood
+              开源不易，本人精力和时间有限，如确实需要一对一技术支持，请联系微信(备注 技术支持)：ArvinLovegood
             </p>
             <p style="color: #FAA04A">*加微信或者QQ时，请先备注或留言需求(如：<a href="#support">技术支持</a>，功能建议，商业咨询等，否则会被忽略)</p>
             <n-table id="support">

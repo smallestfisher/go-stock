@@ -56,7 +56,7 @@ const isShowToBottom = ref(false);
 
 const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/master/build/appicon.png');
 import {darkTheme, NAvatar, NImage} from "naive-ui";
-import {ChatWithAgent, GetConfig, GetSponsorInfo, GetVersionInfo} from "../api/app";
+import {ChatWithAgent, GetConfig, GetVersionInfo} from "../api/app";
 import {EventsOff, EventsOn} from '../api/runtime'
 import 'tdesign-vue-next/es/style/index.css';
 

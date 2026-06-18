@@ -8,7 +8,6 @@ import {
   GetPromptTemplates,
   SendDingDingMessageByType,
   UpdateConfig,
-  CheckSponsorCode,
   FetchAiModels,
   FetchAiModelInfo
 } from "../api/app";
@@ -48,7 +47,6 @@ const formValue = ref({
   enableFund: false,
   enablePushNews: true,
   enableOnlyPushRedNews: true,
-  sponsorCode: "",
   httpProxy:"",
   httpProxyEnabled:false,
   enableAgent: false,
@@ -218,7 +216,6 @@ onMounted(() => {
     formValue.value.enableFund = res.enableFund
     formValue.value.enablePushNews = res.enablePushNews
     formValue.value.enableOnlyPushRedNews = res.enableOnlyPushRedNews
-    formValue.value.sponsorCode = res.sponsorCode
     formValue.value.httpProxy=res.httpProxy;
     formValue.value.httpProxyEnabled=res.httpProxyEnabled;
     formValue.value.enableAgent = res.enableAgent;
@@ -261,21 +258,12 @@ function saveConfig() {
     enableFund: formValue.value.enableFund,
     enablePushNews: formValue.value.enablePushNews,
     enableOnlyPushRedNews: formValue.value.enableOnlyPushRedNews,
-    sponsorCode: formValue.value.sponsorCode,
     httpProxy:formValue.value.httpProxy,
     httpProxyEnabled:formValue.value.httpProxyEnabled,
     enableAgent: formValue.value.enableAgent,
     qgqpBId: formValue.value.qgqpBId,
     promptPlazaApiBase: formValue.value.promptPlazaApiBase,
   })
-
-  if (config.sponsorCode) {
-    CheckSponsorCode(config.sponsorCode).then(res => {
-      if (!res.code) {
-        message.warning(res.msg || '赞助码验证失败')
-      }
-    })
-  }
 
   UpdateConfig(config).then(res => {
     if (res === '保存成功！') {
@@ -351,7 +339,6 @@ function importConfig() {
       formValue.value.enableFund = config.enableFund
       formValue.value.enablePushNews = config.enablePushNews
       formValue.value.enableOnlyPushRedNews = config.enableOnlyPushRedNews
-      formValue.value.sponsorCode = config.sponsorCode
       formValue.value.httpProxy=config.httpProxy
       formValue.value.httpProxyEnabled=config.httpProxyEnabled
       formValue.value.enableAgent = config.enableAgent
@@ -511,30 +498,6 @@ function deletePrompt(ID) {
                   </n-gradient-text>
                 </template>
               </n-tooltip>
-            </n-form-item-gi>
-
-            <n-form-item-gi :span="11" label="赞助码：" path="sponsorCode">
-              <n-input-group>
-                <n-input :show-count="true" placeholder="联系作者QQ或微信获取，激活VIP功能" v-model:value="formValue.sponsorCode">
-                </n-input>
-                <n-button type="success" secondary strong
-                          @click="CheckSponsorCode(formValue.sponsorCode).then((res) => {message.warning(res.msg)})">验证
-                </n-button>
-                <n-popover trigger="hover" placement="top">
-                  <template #trigger>
-                    <n-icon color="#0e7a0d" size="20">
-                      <HelpCircleFilledIcon />
-                    </n-icon>
-                  </template>
-                  <n-gradient-text :type="'warning'">
-                    <div style="max-width: 400px;text-align: left">
-                      赞助码获取方式：<br>
-                      联系作者获取赞助码，激活VIP功能<br>
-                      享受更多高级功能和优先支持
-                    </div>
-                  </n-gradient-text>
-                </n-popover>
-              </n-input-group>
             </n-form-item-gi>
 
             <n-form-item-gi :span="11" label="提示词广场地址：" path="promptPlazaApiBase">

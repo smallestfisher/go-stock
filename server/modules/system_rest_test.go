@@ -49,6 +49,9 @@ func TestCheckSponsorCodeNoLongerValidatesCodes(t *testing.T) {
 		if got := int(payload["code"].(float64)); got != 1 {
 			t.Fatalf("code = %d, want 1 for args %#v", got, args)
 		}
+		if got, _ := payload["msg"].(string); got != "全部本地功能已免费开放，无需激活。" {
+			t.Fatalf("msg = %q, want free activation message", got)
+		}
 	}
 }
 

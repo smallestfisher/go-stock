@@ -84,7 +84,7 @@ GO_STOCK_TOKEN=请改成你自己的强随机令牌 \
 行情/K线、自选与分组(读写)、基金、通达信 F10、资讯/研报/龙虎榜/热门、异动与统计、板块/概念资金流、
 市场统计(含采集)、策略与选股、情感分析、AI 流式分析(NewChatStream/SummaryStockNews/ChatWithAgent)、
 AI 结果与推荐历史、提示词模板、MCP 服务器与技能、交易记录、定时任务(增删改查 + 启动恢复 + 单股AI分析 + 下次运行时间计算)、
-钉钉告警、分享、AI 助手会话/配置、模型信息探测(FetchAiModels/FetchAiModelInfo)、赞助/设备绑定、交易时间、NewsPush、CheckStockBaseInfo、Greet 等。
+钉钉告警、分享、AI 助手会话/配置、模型信息探测(FetchAiModels/FetchAiModelInfo)、免费授权兼容接口、交易时间、NewsPush、CheckStockBaseInfo、Greet 等。
 
 ### Web 运行时说明
 
