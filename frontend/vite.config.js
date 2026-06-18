@@ -13,19 +13,23 @@ function manualChunks(id) {
     if (!id.includes('node_modules')) {
         return
     }
-    if (id.includes('/vue/') || id.includes('/vue-router/')) {
-        return 'vue-vendor'
-    }
-    if (id.includes('/naive-ui/') || id.includes('/vdirs/') || id.includes('/vooks/') || id.includes('/vueuc/')) {
-        return 'naive-vendor'
+    if (
+        id.includes('/vue/') ||
+        id.includes('/vue-router/') ||
+        id.includes('/naive-ui/') ||
+        id.includes('/vdirs/') ||
+        id.includes('/vooks/') ||
+        id.includes('/vueuc/')
+    ) {
+        return 'ui-vendor'
     }
     if (id.includes('/echarts/') || id.includes('/zrender/') || id.includes('/lightweight-charts/')) {
         return 'chart-vendor'
     }
-    if (id.includes('/md-editor-v3/') || id.includes('/@lezer/')) {
+    if (id.includes('/md-editor-v3/') || id.includes('/@lezer/') || id.includes('/@vavt/')) {
         return 'markdown-vendor'
     }
-    if (id.includes('/html2canvas/') || id.includes('/html-docx-js-typescript/') || id.includes('/@vavt/')) {
+    if (id.includes('/html2canvas/') || id.includes('/html-docx-js-typescript/')) {
         return 'export-vendor'
     }
     if (id.includes('/@tdesign-vue-next/') || id.includes('/tdesign-icons-vue-next/')) {
@@ -48,6 +52,7 @@ export default defineConfig({
       }),
   ],
   build: {
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
           output: {
               manualChunks,
