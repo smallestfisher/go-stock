@@ -8,7 +8,7 @@ import (
 	"go-stock/server"
 )
 
-// aiModelInfo 对应桌面端 app.go 的 AiModelInfo（字段 json 标签一致）。
+// aiModelInfo 是前端模型探测接口使用的响应结构。
 type aiModelInfo struct {
 	ModelName string `json:"modelName"`
 	MaxTokens int    `json:"maxTokens"`
@@ -16,7 +16,7 @@ type aiModelInfo struct {
 }
 
 func init() {
-	// FetchAiModelInfo：探测模型最大 token（优先接口 /models/{name}，回退内置表）。复刻 app.go:2630。
+	// FetchAiModelInfo：探测模型最大 token（优先接口 /models/{name}，回退内置表）。
 	server.Register("FetchAiModelInfo", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
 		baseUrl := strings.TrimSpace(server.ArgString(args, 0))
 		apiKey := strings.TrimSpace(server.ArgString(args, 1))
@@ -65,7 +65,7 @@ func init() {
 	})
 }
 
-// getBuiltinModelMaxTokens 内置模型 max_tokens 兜底表（复刻 app.go:2689）。
+// getBuiltinModelMaxTokens 内置模型 max_tokens 兜底表（
 func getBuiltinModelMaxTokens(modelName string) int {
 	modelTokenMap := map[string]int{
 		"deepseek-chat": 65536, "deepseek-reasoner": 65536, "deepseek-coder": 16384,

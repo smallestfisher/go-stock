@@ -1,4 +1,4 @@
-// go-stock 纯服务端入口：放弃 Wails 桌面形态，以 HTTP 服务承载全部功能，供浏览器远程访问。
+// go-stock 纯服务端入口：以 HTTP 服务承载全部功能，供浏览器远程访问。
 package main
 
 import (
@@ -12,7 +12,7 @@ import (
 	"go-stock/server/modules" // 触发各功能模块的 init() 注册 RPC handler，并提供 InitCronTasks
 )
 
-// 由 -ldflags 注入（与桌面端构建一致）。
+// 由 -ldflags 注入（与构建一致）。
 var (
 	Version       string
 	VersionCommit string
@@ -33,7 +33,7 @@ func main() {
 
 	db.Init("")
 	data.InitAnalyzeSentiment()
-	go server.RunMigrate()
+	server.RunMigrate()
 
 	log.SugaredLogger.Infof("go-stock server 启动: version=%s commit=%s", Version, VersionCommit)
 
@@ -43,7 +43,7 @@ func main() {
 
 	core := server.NewCore()
 	// 启动时重建所有已启用的定时任务（异动保存、自定义 cron 等）。
-	go modules.InitCronTasks(core)
+	modules.InitCronTasks(core)
 
 	addr := os.Getenv("GO_STOCK_ADDR")
 	if addr == "" {

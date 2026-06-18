@@ -7,8 +7,8 @@ import (
 	"go-stock/backend/models"
 )
 
-// RunMigrate 建表。内容与桌面端 main.go 的 AutoMigrate 保持一致（幂等）。
-// 由 cmd/server 在启动时以 goroutine 调用。
+// RunMigrate 建表。内容与 main.go 的 AutoMigrate 保持一致（幂等）。
+// 由 cmd/server 在启动 HTTP 前同步调用，确保数据库结构和内置数据先就绪。
 func RunMigrate() {
 	db.Dao.AutoMigrate(&data.StockInfo{})
 	db.Dao.AutoMigrate(&data.StockBasic{})
@@ -51,7 +51,7 @@ func RunMigrate() {
 	SeedStockBasic()
 }
 
-// initGlobalStockIndexCacheTask 确保存在“全球指数缓存”定时任务记录（与桌面端一致）。
+// initGlobalStockIndexCacheTask 确保存在“全球指数缓存”定时任务记录（与一致）。
 func initGlobalStockIndexCacheTask() {
 	var count int64
 	db.Dao.Model(&models.CronTask{}).Where("task_type = ?", "global_stock_index_cache").Count(&count)

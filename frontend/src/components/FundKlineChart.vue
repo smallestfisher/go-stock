@@ -1,5 +1,5 @@
 <script setup>
-import { GetFundKLine } from '../../wailsjs/go/main/App'
+import { GetFundKLine } from '../api/app'
 import {
   CandlestickSeries,
   createChart,

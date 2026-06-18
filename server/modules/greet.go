@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	// Greet：取某只股票的实时行情(含成本/盈亏计算)，复刻 app.go Greet + getStockInfo + addStockFollowData。
+	// Greet：取某只股票的实时行情(含成本/盈亏计算)，
 	server.Register("Greet", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
 		stockCode := server.ArgString(args, 0)
 		follow := &data.FollowedStock{StockCode: stockCode}
@@ -21,7 +21,7 @@ func init() {
 	})
 }
 
-// getStockInfo 取实时行情并附加自选股的成本/盈亏信息（复刻 app.go:1633）。
+// getStockInfo 取实时行情并附加自选股的成本/盈亏信息（
 func getStockInfo(follow data.FollowedStock) *data.StockInfo {
 	stockDatas, err := data.NewStockDataApi().GetStockCodeRealTimeData(follow.StockCode)
 	if err != nil || stockDatas == nil || len(*stockDatas) == 0 {

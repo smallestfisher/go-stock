@@ -42,10 +42,10 @@ func init() {
 	})
 
 	// --- 流式 AI 分析：NewChatStream ---
-	// 桌面端该方法为 fire-and-forget，边收 channel 边 EventsEmit("newChatStream")。
+	// 该方法为 fire-and-forget，边收 channel 边 EventsEmit("newChatStream")。
 	// Web 版在后台 goroutine 中跑流，并通过事件总线 hub 推送；handler 立即返回，
 	// 前端调用后经 /api/events 监听 "newChatStream" 收数据。
-	server.Register("NewChatStream", func(_ context.Context, core *server.Core, args server.Args) (any, error) {
+	server.Register("NewChatStream", func(ctx context.Context, core *server.Core, args server.Args) (any, error) {
 		stock := server.ArgString(args, 0)
 		stockCode := server.ArgString(args, 1)
 		question := server.ArgString(args, 2)
@@ -53,16 +53,17 @@ func init() {
 		sysPromptId := server.ArgIntPtr(args, 4)
 		enableTools := server.ArgBool(args, 5)
 		think := server.ArgBool(args, 6)
+		clientID := server.ClientIDFromContext(ctx)
 
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
 					log.SugaredLogger.Errorf("NewChatStream panic: %v", r)
-					core.Events.Emit("newChatStream", map[string]any{
+					emitClientEvent(core, clientID, "newChatStream", map[string]any{
 						"code":    0,
 						"content": fmt.Sprintf("AI分析异常: %v", r),
 					})
-					core.Events.Emit("newChatStream", "DONE")
+					emitClientEvent(core, clientID, "newChatStream", "DONE")
 				}
 			}()
 			var tools []data.Tool
@@ -71,16 +72,16 @@ func init() {
 			}
 			msgs := data.NewDeepSeekOpenAi(context.Background(), aiConfigId).NewChatStream(stock, stockCode, question, sysPromptId, tools, think)
 			for msg := range msgs {
-				core.Events.Emit("newChatStream", msg)
+				emitClientEvent(core, clientID, "newChatStream", msg)
 			}
-			core.Events.Emit("newChatStream", "DONE")
+			emitClientEvent(core, clientID, "newChatStream", "DONE")
 		}()
 		return nil, nil
 	})
 
 	// --- 流式市场资讯总结：SummaryStockNews ---
 	// 支持自定义事件名(默认 summaryStockNews)与对话历史；可被前端 AbortSummaryStockNews 中断。
-	server.Register("SummaryStockNews", func(_ context.Context, core *server.Core, args server.Args) (any, error) {
+	server.Register("SummaryStockNews", func(reqCtx context.Context, core *server.Core, args server.Args) (any, error) {
 		question := server.ArgString(args, 0)
 		aiConfigId := server.ArgInt(args, 1)
 		sysPromptId := server.ArgIntPtr(args, 2)
@@ -91,15 +92,16 @@ func init() {
 			eventName = "summaryStockNews"
 		}
 		history := parseHistory(server.ArgString(args, 6))
+		clientID := server.ClientIDFromContext(reqCtx)
 
 		ctx, cancel := context.WithCancel(context.Background())
-		core.SetSummaryCancel(cancel)
+		core.SetSummaryCancel(clientID, cancel)
 
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
 					log.SugaredLogger.Errorf("SummaryStockNews panic: %v", r)
-					core.Events.Emit(eventName, map[string]any{
+					emitClientEvent(core, clientID, eventName, map[string]any{
 						"code":    0,
 						"content": fmt.Sprintf("AI分析异常: %v", r),
 					})
@@ -112,26 +114,33 @@ func init() {
 				msgs = data.NewDeepSeekOpenAi(ctx, aiConfigId).NewSummaryStockNewsStream(question, sysPromptId, think, history)
 			}
 			for msg := range msgs {
-				core.Events.Emit(eventName, msg)
+				emitClientEvent(core, clientID, eventName, msg)
 			}
-			core.SetSummaryCancel(nil)
-			core.Events.Emit(eventName, "DONE")
+			emitClientEvent(core, clientID, eventName, "DONE")
 		}()
 		return nil, nil
 	})
 
-	server.Register("AbortSummaryStockNews", func(_ context.Context, core *server.Core, _ server.Args) (any, error) {
-		core.CancelSummary()
+	server.Register("AbortSummaryStockNews", func(ctx context.Context, core *server.Core, _ server.Args) (any, error) {
+		core.CancelSummary(server.ClientIDFromContext(ctx))
 		return nil, nil
 	})
 
-	server.Register("AbortChatWithAgent", func(_ context.Context, core *server.Core, _ server.Args) (any, error) {
-		core.CancelAgent()
+	server.Register("AbortChatWithAgent", func(ctx context.Context, core *server.Core, _ server.Args) (any, error) {
+		core.CancelAgent(server.ClientIDFromContext(ctx))
 		return nil, nil
 	})
 }
 
-// parseHistory 解析 AI 助手对话历史 JSON（与桌面端 app.go SummaryStockNews 一致）。
+func emitClientEvent(core *server.Core, clientID string, eventName string, data any) {
+	if clientID == "" {
+		core.Events.Emit(eventName, data)
+		return
+	}
+	core.Events.EmitTo(clientID, eventName, data)
+}
+
+// parseHistory 解析 AI 助手对话历史 JSON。
 func parseHistory(historyJSON string) []map[string]interface{} {
 	historyJSON = strings.TrimSpace(historyJSON)
 	if historyJSON == "" {

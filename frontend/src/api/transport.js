@@ -1,7 +1,8 @@
 // go-stock Web 端统一传输层：RPC 调用 + SSE 事件总线 + 访问令牌管理。
-// 取代 Wails 的 window.go.* 绑定与 runtime.Events*。
+// 
 const BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE) || "";
 const TOKEN_KEY = "go_stock_token";
+const CLIENT_ID_KEY = "go_stock_client_id";
 
 export class AuthError extends Error {
   constructor(message) {
@@ -34,12 +35,31 @@ export function isAuthed() {
   return !!getToken();
 }
 
+export function getClientId() {
+  try {
+    let clientId = sessionStorage.getItem(CLIENT_ID_KEY) || "";
+    if (!clientId) {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        clientId = crypto.randomUUID();
+      } else {
+        clientId = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      }
+      sessionStorage.setItem(CLIENT_ID_KEY, clientId);
+    }
+    return clientId;
+  } catch (_) {
+    return "";
+  }
+}
+
 // 发起一次 RPC 调用：POST /api/rpc/{method}，body: {"args":[...]}
-// 成功时 resolve 为后端返回值（与 Wails 直接返回 Go 值的语义一致）。
+// 成功时 resolve 为后端返回值。
 export async function rpc(method, args) {
   const headers = { "Content-Type": "application/json" };
   const token = getToken();
   if (token) headers["Authorization"] = "Bearer " + token;
+  const clientId = getClientId();
+  if (clientId) headers["X-Go-Stock-Client-Id"] = clientId;
   let resp;
   try {
     resp = await fetch(BASE_URL + "/api/rpc/" + encodeURIComponent(method), {
@@ -62,7 +82,7 @@ export async function rpc(method, args) {
   return resp.json();
 }
 
-// --- SSE 事件总线（取代 wails runtime.EventsOn/Off）---
+// --- 事件总线（浏览器本地事件 + 后端 SSE 推送）---
 // 后端 hub 把每条事件包成 {"event":<name>,"data":<payload>} 作为默认 message 发送，
 // 这里用一个全局 EventSource 订阅 /api/events，并按 frame.event 分发给对应回调。
 const listeners = new Map(); // eventName -> Set<callback>
@@ -89,10 +109,30 @@ export function unsubscribeEventAll(name) {
   maybeDisconnect();
 }
 
+export function clearEventListeners() {
+  listeners.clear();
+  maybeDisconnect();
+}
+
+export function emitLocalEvent(name, ...data) {
+  const set = listeners.get(name);
+  if (!set) return;
+  set.forEach((cb) => {
+    try {
+      cb(...data);
+    } catch (_) {}
+  });
+}
+
 function ensureConnected() {
   if (es || typeof EventSource === "undefined") return;
   const token = getToken();
-  const url = BASE_URL + "/api/events" + (token ? "?token=" + encodeURIComponent(token) : "");
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  const clientId = getClientId();
+  if (clientId) params.set("clientId", clientId);
+  const qs = params.toString();
+  const url = BASE_URL + "/api/events" + (qs ? "?" + qs : "");
   es = new EventSource(url);
   es.onmessage = (ev) => {
     try {
@@ -119,4 +159,37 @@ function reconnectEvents() {
     es = null;
   }
   if (listeners.size > 0) ensureConnected();
+}
+
+export function openURL(url) {
+  if (typeof window !== "undefined" && url) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+  return url;
+}
+
+export function downloadBase64File(filename, base64, mimeType) {
+  if (typeof document === "undefined") {
+    return "";
+  }
+  const clean = String(base64 || "").replace(/^data:[^;]+;base64,/, "");
+  const byteChars = atob(clean);
+  const chunks = [];
+  for (let offset = 0; offset < byteChars.length; offset += 8192) {
+    const slice = byteChars.slice(offset, offset + 8192);
+    const bytes = new Uint8Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      bytes[i] = slice.charCodeAt(i);
+    }
+    chunks.push(bytes);
+  }
+  const blob = new Blob(chunks, { type: mimeType || "application/octet-stream" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
+  return filename;
 }

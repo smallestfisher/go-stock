@@ -22,7 +22,6 @@ import {
   OpenURL,
   RemoveGroup,
   RemoveStockGroup,
-  RestartAsAdmin,
   SaveAIResponseResult,
   SaveAsMarkdown,
   SaveImage,
@@ -36,7 +35,7 @@ import {
   ShareAnalysis,
   UnFollow,
   UpdateGroupSort
-} from '../../wailsjs/go/main/App'
+} from '../api/app'
 import {
   NAvatar,
   NButton,
@@ -50,14 +49,10 @@ import {
   useNotification
 } from 'naive-ui'
 import {
-  Environment,
   EventsEmit,
   EventsOff,
-  EventsOn,
-  WindowFullscreen,
-  WindowReload,
-  WindowUnfullscreen
-} from '../../wailsjs/runtime'
+  EventsOn
+} from '../api/runtime'
 import {Add, ChatboxOutline,} from '@vicons/ionicons5'
 import {MdEditor, MdPreview} from 'md-editor-v3';
 // preview.css相比style.css少了编辑器那部分样式
@@ -390,8 +385,7 @@ onBeforeMount(() => {
   })
 
   EventsOn("refreshFollowList", (data) => {
-
-    WindowReload()
+    window.location.reload()
   })
 
   EventsOn("newChatStream", async (msg) => {
@@ -444,86 +438,6 @@ onBeforeMount(() => {
     nextTick(() => {
       updateTab(currentGroupId.value);
     });
-  })
-
-
-  EventsOn("updateVersion", async (msg) => {
-    const githubTimeStr = msg.published_at;
-    const utcDate = new Date(githubTimeStr);
-    const date = new Date(utcDate.getTime());
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    notify.info({
-      avatar: () =>
-          h(NAvatar, {
-            size: 'small',
-            round: false,
-            src: icon.value
-          }),
-      title: '发现新版本: ' + msg.tag_name,
-      content: () => {
-        return h('div', {
-          style: {
-            'text-align': 'left',
-            'font-size': '14px',
-          }
-        }, {default: () => msg.commit?.message})
-      },
-      duration: 5000,
-      meta: "发布时间:" + formattedDate,
-      action: () => {
-        return h(NButton, {
-          type: 'primary',
-          size: 'small',
-          onClick: () => {
-            Environment().then(env => {
-              switch (env.platform) {
-                case 'windows':
-                  window.open(msg.html_url)
-                  break
-                default :
-                  OpenURL(msg.html_url)
-              }
-            })
-          }
-        }, {default: () => '查看'})
-      }
-    })
-  })
-
-  EventsOn("updateNeedAdmin", (msg) => {
-    notify.warning({
-      avatar: () =>
-          h(NAvatar, {
-            size: 'small',
-            round: false,
-            src: icon.value
-          }),
-      title: '更新需要管理员权限',
-      content: () => {
-        return h('div', {
-          style: {
-            'text-align': 'left',
-            'font-size': '14px',
-          }
-        }, { default: () => '新版本 ' + (msg.version || '') + ' 下载完成，但自动替换文件需要管理员权限。请以管理员身份重启程序后再次检查更新。' })
-      },
-      duration: 15000,
-      action: () => {
-        return h(NButton, {
-          type: 'warning',
-          size: 'small',
-          onClick: () => {
-            RestartAsAdmin()
-          }
-        }, { default: () => '以管理员身份重启' })
-      }
-    })
   })
 
   EventsOn("warnMsg", async (msg) => {
@@ -681,8 +595,6 @@ onBeforeUnmount(() => {
   EventsOff("refreshFollowList")
   EventsOff("newChatStream")
   EventsOff("changeTab")
-  EventsOff("updateVersion")
-  EventsOff("updateNeedAdmin")
   EventsOff("warnMsg")
   EventsOff("loadingDone")
 
@@ -911,28 +823,11 @@ function onSelect(item) {
 function openCenteredWindow(url, width, height) {
   const left = (window.screen.width - width) / 2;
   const top = (window.screen.height - height) / 2;
-  Environment().then(env => {
-    switch (env.platform) {
-      case 'windows':
-        window.open(
-            url,
-            'centeredWindow',
-            `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,display=standalone`
-        )
-        break
-      default :
-        OpenURL(url)
-        break
-    }
-  })
-
-
-  //
-  // return window.open(
-  //     url,
-  //     'centeredWindow',
-  //     `width=${width},height=${height},left=${left},top=${top}`
-  // );
+  window.open(
+      url,
+      'centeredWindow',
+      `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,display=standalone`
+  )
 }
 
 function search(code, name) {
@@ -1802,11 +1697,8 @@ function updateCostPriceAndVolumeNew(code, price, volume, alarm, formModel) {
 }
 
 function fullscreen() {
-  if (data.fullscreen) {
-    WindowUnfullscreen()
-  } else {
-    WindowFullscreen()
-  }
+  if (document.fullscreenElement) document.exitFullscreen?.()
+  else document.documentElement.requestFullscreen?.()
   data.fullscreen = !data.fullscreen
 }
 
@@ -2177,26 +2069,13 @@ AI赋能股票分析：自选股行情获取，成本盈亏展示，涨跌报警
 `
   // landscape就是横着的，portrait是竖着的，默认是竖屏portrait。
   const blob = await asBlob(value, {orientation: 'portrait'})
-  const {platform} = await Environment()
-  switch (platform) {
-    case 'windows':
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${data.name}[${data.code}]-ai-analysis-result.docx`;
-      a.click()
-      // 下载后将标签移除
-      URL.revokeObjectURL(a.href);
-      a.remove()
-      break
-    default:
-      const arrayBuffer = await blob.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
-      const binary = uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-      const base64 = btoa(binary)
-      await SaveWordFile(`${data.name}[${data.code}]-ai-analysis-result.docx`, base64).then(result => {
-        message.success(result)
-      })
-  }
+  const arrayBuffer = await blob.arrayBuffer()
+  const uint8Array = new Uint8Array(arrayBuffer)
+  const binary = uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
+  const base64 = btoa(binary)
+  await SaveWordFile(`${data.name}[${data.code}]-ai-analysis-result.docx`, base64).then(result => {
+    message.success(result)
+  })
 }
 
 function share(code, name) {
@@ -2342,7 +2221,7 @@ watch(modalShow6, (newVal) => {
       </n-gradient-text>
     </template>
   </vue-danmaku>
-  <n-tabs type="card" style="--wails-draggable:no-drag" animated addable :data-currentGroupId="currentGroupId"
+  <n-tabs type="card" style="" animated addable :data-currentGroupId="currentGroupId"
           :value="String(currentGroupId)" @add="addTab" @update:value="updateTab" placement="top" @close="(key)=>{delTab(key)}">
 
     <n-tab-pane closable name="0" :tab="'全部'">

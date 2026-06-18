@@ -14,15 +14,12 @@ import (
 type Settings struct {
 	gorm.Model
 	TushareToken           string `json:"tushareToken"`
-	LocalPushEnable        bool   `json:"localPushEnable"`
 	DingPushEnable         bool   `json:"dingPushEnable"`
 	DingRobot              string `json:"dingRobot"`
 	UpdateBasicInfoOnStart bool   `json:"updateBasicInfoOnStart"`
 	RefreshInterval        int64  `json:"refreshInterval"`
 	OpenAiEnable           bool   `json:"openAiEnable"`
 	Prompt                 string `json:"prompt"`
-	CheckUpdate            bool   `json:"checkUpdate"`
-	UpdateChannel          string `json:"updateChannel"`
 	QuestionTemplate       string `json:"questionTemplate"`
 	CrawlTimeOut           int64  `json:"crawlTimeOut"`
 	KDays                  int64  `json:"kDays"`
@@ -41,8 +38,6 @@ type Settings struct {
 	QgqpBId                string `json:"qgqpBId" gorm:"column:qgqp_b_id"`
 	IwencaiApiKey          string `json:"iwencaiApiKey" gorm:"column:iwencai_api_key"`
 	EmApiKey               string `json:"emApiKey" gorm:"column:em_api_key"`
-	WindowWidth            int    `json:"windowWidth"`
-	WindowHeight           int    `json:"windowHeight"`
 	PromptPlazaApiBase     string `json:"promptPlazaApiBase" gorm:"column:prompt_plaza_api_base"`
 }
 
@@ -111,7 +106,6 @@ func UpdateConfig(s *SettingConfig) string {
 	db.Dao.Model(&Settings{}).Count(&count)
 	if count > 0 {
 		result := db.Dao.Model(&Settings{}).Where("id=?", s.ID).Updates(map[string]any{
-			"local_push_enable":          s.LocalPushEnable,
 			"ding_push_enable":           s.DingPushEnable,
 			"ding_robot":                 s.DingRobot,
 			"update_basic_info_on_start": s.UpdateBasicInfoOnStart,
@@ -119,8 +113,6 @@ func UpdateConfig(s *SettingConfig) string {
 			"open_ai_enable":             s.OpenAiEnable,
 			"tushare_token":              s.TushareToken,
 			"prompt":                     s.Prompt,
-			"check_update":               s.CheckUpdate,
-			"update_channel":             s.UpdateChannel,
 			"question_template":          s.QuestionTemplate,
 			"crawl_time_out":             s.CrawlTimeOut,
 			"k_days":                     s.KDays,
@@ -138,8 +130,6 @@ func UpdateConfig(s *SettingConfig) string {
 			"qgqp_b_id":                  s.QgqpBId,
 			"iwencai_api_key":            s.IwencaiApiKey,
 			"em_api_key":                 s.EmApiKey,
-			"window_width":               s.WindowWidth,
-			"window_height":              s.WindowHeight,
 			"prompt_plaza_api_base":      s.PromptPlazaApiBase,
 		})
 		if result.Error != nil {

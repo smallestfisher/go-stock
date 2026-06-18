@@ -881,15 +881,12 @@ export namespace data {
 	    // Go type: gorm
 	    DeletedAt: any;
 	    tushareToken: string;
-	    localPushEnable: boolean;
 	    dingPushEnable: boolean;
 	    dingRobot: string;
 	    updateBasicInfoOnStart: boolean;
 	    refreshInterval: number;
 	    openAiEnable: boolean;
 	    prompt: string;
-	    checkUpdate: boolean;
-	    updateChannel: string;
 	    questionTemplate: string;
 	    crawlTimeOut: number;
 	    kDays: number;
@@ -908,8 +905,6 @@ export namespace data {
 	    qgqpBId: string;
 	    iwencaiApiKey: string;
 	    emApiKey: string;
-	    windowWidth: number;
-	    windowHeight: number;
 	    promptPlazaApiBase: string;
 	    aiConfigs: AIConfig[];
 	
@@ -924,15 +919,12 @@ export namespace data {
 	        this.UpdatedAt = this.convertValues(source["UpdatedAt"], null);
 	        this.DeletedAt = this.convertValues(source["DeletedAt"], null);
 	        this.tushareToken = source["tushareToken"];
-	        this.localPushEnable = source["localPushEnable"];
 	        this.dingPushEnable = source["dingPushEnable"];
 	        this.dingRobot = source["dingRobot"];
 	        this.updateBasicInfoOnStart = source["updateBasicInfoOnStart"];
 	        this.refreshInterval = source["refreshInterval"];
 	        this.openAiEnable = source["openAiEnable"];
 	        this.prompt = source["prompt"];
-	        this.checkUpdate = source["checkUpdate"];
-	        this.updateChannel = source["updateChannel"];
 	        this.questionTemplate = source["questionTemplate"];
 	        this.crawlTimeOut = source["crawlTimeOut"];
 	        this.kDays = source["kDays"];
@@ -951,8 +943,6 @@ export namespace data {
 	        this.qgqpBId = source["qgqpBId"];
 	        this.iwencaiApiKey = source["iwencaiApiKey"];
 	        this.emApiKey = source["emApiKey"];
-	        this.windowWidth = source["windowWidth"];
-	        this.windowHeight = source["windowHeight"];
 	        this.promptPlazaApiBase = source["promptPlazaApiBase"];
 	        this.aiConfigs = this.convertValues(source["aiConfigs"], AIConfig);
 	    }
@@ -3237,4 +3227,3 @@ export namespace models {
 	}
 
 }
-

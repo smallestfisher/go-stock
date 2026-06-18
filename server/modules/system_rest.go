@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	// GetSponsorInfo：桌面端返回启动时缓存的赞助信息；Web 版直接返回当前有效赞助等级。
+	// GetSponsorInfo：返回启动时缓存的赞助信息；Web 版直接返回当前有效赞助等级。
 	server.Register("GetSponsorInfo", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
 		level, active := data.EffectiveSponsorVipLevel()
 		return map[string]any{
@@ -24,7 +24,7 @@ func init() {
 		}, nil
 	})
 
-	// CheckSponsorCode：AES-ECB 解密校验赞助码并持久化（与桌面端 app.go 一致）。
+	// CheckSponsorCode：AES-ECB 解密校验赞助码并持久化。
 	server.Register("CheckSponsorCode", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
 		sponsorCode := strings.TrimSpace(server.ArgString(args, 0))
 		if sponsorCode == "" {
@@ -81,8 +81,4 @@ func init() {
 		return result, nil
 	})
 
-	// CheckUpdate：服务端更新由部署方自行管理（systemd/docker），此处置为 no-op。
-	server.Register("CheckUpdate", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
-		return nil, nil
-	})
 }

@@ -134,7 +134,7 @@ func init() {
 	})
 }
 
-// cronKey 定时任务在 core 中的注册键（与桌面端 convertor.ToString(id)+"_"+name 一致）。
+// cronKey 定时任务在 core 中的注册键（与 convertor.ToString(id)+"_"+name 一致）。
 func cronKey(id uint, name string) string {
 	return strconv.FormatUint(uint64(id), 10) + "_" + name
 }
@@ -154,8 +154,8 @@ func scheduleCronTask(core *server.Core, task *models.CronTask) error {
 	return nil
 }
 
-// aiAnalysisJob 构造单只股票定时 AI 分析的执行体（复刻 app.go AddCronTask）。
-// 与桌面端的区别：用事件总线 hub 推送 warnMsg（桌面端用 runtime.EventsEmit）。
+// aiAnalysisJob 构造单只股票定时 AI 分析的执行体（
+// 与的区别：用事件总线 hub 推送 warnMsg（用 runtime.EventsEmit）。
 func aiAnalysisJob(core *server.Core, follow data.FollowedStock) func() {
 	return func() {
 		core.Events.Emit("warnMsg", "开始自动分析"+follow.Name+"_"+follow.StockCode)
@@ -185,7 +185,7 @@ func aiAnalysisJob(core *server.Core, follow data.FollowedStock) func() {
 }
 
 // InitCronTasks 在服务启动时重建所有已启用的通用定时任务（含自动创建"异动数据保存"任务）。
-// 由 cmd/server 在 NewCore 之后调用。对应桌面端 app.go 的 InitCronTasks。
+// 由 cmd/server 在 NewCore 之后调用。
 func InitCronTasks(core *server.Core) {
 	cronApi := agent.NewCronTaskApi()
 	if !cronApi.ExistsByTaskType("stock_change_save") {

@@ -1,5 +1,5 @@
 <script setup>
-import { GetStockEastMoneyKLine, GetStockEastMoneyKLinePage, GetStockKLineWithFallback, GetStockKLinePageWithFallback } from '../../wailsjs/go/main/App'
+import { GetStockEastMoneyKLine, GetStockEastMoneyKLinePage, GetStockKLineWithFallback, GetStockKLinePageWithFallback } from '../api/app'
 import {
   CandlestickSeries,
   createChart,
@@ -143,7 +143,7 @@ let mergedRawRows = []
 const mergedRawRowsVersion = ref(0)
 const hasMoreOlder = ref(true)
 let loadOlderDebounceTimer = null
-/** Wails/WebView 下可见区回调偶发不触发，用轻量轮询兜底 */
+/** 浏览器可见区回调偶发不触发，用轻量轮询兜底 */
 let historyVisiblePollTimer = null
 let logicalRangeHandler = null
 let visibleTimeRangeHandler = null
@@ -4469,7 +4469,7 @@ watch(showLongPosition, (newVal) => {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  --wails-draggable: no-drag;
+
 }
 .lw-kline-body {
   display: flex;

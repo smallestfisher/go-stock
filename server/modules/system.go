@@ -23,7 +23,7 @@ func init() {
 		return machineid.GetMachineId(), nil
 	})
 
-	// GetVersionInfo：桌面端会附带图标/收款码 base64，Web 模式暂返回版本信息（图标等 Phase 3 补）。
+	// GetVersionInfo：会附带图标/收款码 base64，Web 模式暂返回版本信息（图标等 Phase 3 补）。
 	server.Register("GetVersionInfo", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
 		return map[string]any{
 			"Version":           server.Version,
@@ -46,13 +46,9 @@ func init() {
 		return string(b), nil
 	})
 
-	// ExportConfig：桌面端弹保存对话框写文件；Web 模式直接返回配置 JSON 文本，由前端触发下载。
+	// ExportConfig：弹保存对话框写文件；Web 模式直接返回配置 JSON 文本，由前端触发下载。
 	server.Register("ExportConfig", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
 		return data.NewSettingsApi().Export(), nil
 	})
 
-	// OpenURL：Web 模式应由前端 window.open；这里回显 url，前端桩会自行打开新标签。
-	server.Register("OpenURL", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
-		return server.ArgString(args, 0), nil
-	})
 }

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import {h, onBeforeMount, onMounted, onUnmounted, ref, reactive, computed} from 'vue'
-import {SearchStock, GetHotStrategy, OpenURL, Follow, GetFollowList, GetAllCustomStrategies, SaveCustomStrategy, DeleteCustomStrategy, GetEffectiveSponsorVip, GetConfig} from "../../wailsjs/go/main/App";
+import {SearchStock, GetHotStrategy, OpenURL, Follow, GetFollowList, GetAllCustomStrategies, SaveCustomStrategy, DeleteCustomStrategy, GetEffectiveSponsorVip, GetConfig} from "../api/app";
 import {useMessage, NText, NTag, NButton, NPopconfirm} from 'naive-ui'
-import {Environment} from "../../wailsjs/runtime"
 import {BookmarkOutline, TrashOutline, CreateOutline, AddOutline} from "@vicons/ionicons5";
-import {EventsEmit} from "../../wailsjs/runtime";
+import {EventsEmit} from "../api/runtime";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 
 const message = useMessage()
@@ -297,19 +296,11 @@ function handleDeleteStrategy(id) {
 function openCenteredWindow(url, width, height) {
   const left = (window.screen.width - width) / 2;
   const top = (window.screen.height - height) / 2;
-  Environment().then(env => {
-    switch (env.platform) {
-      case 'windows':
-        window.open(
-            url,
-            'centeredWindow',
-            `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,display=standalone`
-        )
-        break
-      default:
-        OpenURL(url)
-    }
-  })
+  window.open(
+      url,
+      'centeredWindow',
+      `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,display=standalone`
+  )
 }
 </script>
 
@@ -385,7 +376,7 @@ function openCenteredWindow(url, width, height) {
       </div>
     </n-gi>
     <n-gi :span="20">
-      <div style="--wails-draggable:no-drag">
+      <div style="">
         <n-input-group style="text-align: left">
           <n-input :rows="1" clearable v-model:value="search" placeholder="请输入选股指标或者要求" @keyup.enter="Search"/>
           <n-button type="primary" @click="Search">搜索A股</n-button>
@@ -395,7 +386,7 @@ function openCenteredWindow(url, width, height) {
           </n-button>
         </n-input-group>
       </div>
-      <div v-if="traceInfo" style="margin: 5px 0; --wails-draggable:no-drag">
+      <div v-if="traceInfo" style="margin: 5px 0">
         <n-ellipsis line-clamp="1" :tooltip="true">
           <n-text type="info" :bordered="false">选股条件：</n-text>
           <n-text type="warning" :bordered="true">{{ traceInfo }}</n-text>

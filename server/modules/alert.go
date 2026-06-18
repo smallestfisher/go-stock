@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	// SendDingDingMessage：5 分钟内同一股票去重后发送钉钉消息（与桌面端一致）。
+	// SendDingDingMessage：5 分钟内同一股票去重后发送钉钉消息（与一致）。
 	server.Register("SendDingDingMessage", func(_ context.Context, core *server.Core, args server.Args) (any, error) {
 		message := server.ArgString(args, 0)
 		stockCode := server.ArgString(args, 1)
@@ -26,7 +26,7 @@ func init() {
 	})
 
 	// SendDingDingMessageByType：按报警类型(1 涨跌/2 股价/3 成本)去重发送，并经事件总线推送 newsPush。
-	// 说明：相比桌面端，Web 版省略了本地系统通知(桌面专属)，newsPush 内容直接用传入 message。
+	// 说明：相比，Web 版省略了本地系统通知()，newsPush 内容直接用传入 message。
 	server.Register("SendDingDingMessageByType", func(_ context.Context, core *server.Core, args server.Args) (any, error) {
 		message := server.ArgString(args, 0)
 		stockCode := server.ArgString(args, 1)

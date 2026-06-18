@@ -334,8 +334,8 @@ import {
   AbortChatWithAgent,
   SaveAIResponseResult,
   SaveImage
-} from '../../wailsjs/go/main/App'
-import { EventsOff, EventsOn } from '../../wailsjs/runtime'
+} from '../api/app'
+import { EventsOff, EventsOn } from '../api/runtime'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import html2canvas from 'html2canvas'

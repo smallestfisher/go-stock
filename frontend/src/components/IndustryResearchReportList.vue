@@ -1,10 +1,10 @@
 <script setup>
 import {onBeforeMount, ref} from 'vue'
-import {GetStockList, IndustryResearchReport,EMDictCode} from "../../wailsjs/go/main/App";
+import {GetStockList, IndustryResearchReport,EMDictCode} from "../api/app";
 import {ArrowDownOutline, CaretDown, CaretUp, PulseOutline, Refresh, RefreshCircleSharp,} from "@vicons/ionicons5";
 
 import {useMessage} from "naive-ui";
-import {BrowserOpenURL} from "../../wailsjs/runtime";
+import {BrowserOpenURL} from "../api/runtime";
 
 const message=useMessage()
 const list  = ref([])

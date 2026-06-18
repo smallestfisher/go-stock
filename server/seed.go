@@ -19,7 +19,7 @@ const (
 )
 
 // SeedStockBasic 在首次启动时把内置的 A股/港股/美股基础数据导入本地库（幂等：仅插入缺失项）。
-// 桌面端把这些数据 //go:embed 进二进制（main.go 的 initStockData 系列）；
+// 把这些数据 //go:embed 进二进制（main.go 的 initStockData 系列）；
 // 服务端改为从仓库 build/*.json 读取——部署时需随二进制带上这几个文件。
 func SeedStockBasic() {
 	seedAStock()

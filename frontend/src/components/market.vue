@@ -17,8 +17,8 @@ import {
   ShareAnalysis,
   SummaryStockNews,
   GetAiConfigs,
-} from "../../wailsjs/go/main/App";
-import {EventsOff, EventsOn} from "../../wailsjs/runtime";
+} from "../api/app";
+import {EventsOff, EventsOn} from "../api/runtime";
 import NewsList from "./newsList.vue";
 import KLineChart from "./KLineChart.vue";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
@@ -414,7 +414,7 @@ function ReFlesh(source) {
 
 <template>
   <n-card>
-    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="--wails-draggable:no-drag">
+    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="市场快讯" tab="市场快讯">
         <n-grid :cols="1" :y-gap="0">
           <n-gi>

@@ -2,8 +2,7 @@
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/preview.css';
 import {h, computed, nextTick, onBeforeUnmount, onMounted, ref} from 'vue';
-import {CheckUpdate, GetConfig, GetVersionInfo,GetSponsorInfo,GetUserManual,OpenURL,RestartAsAdmin} from "../../wailsjs/go/main/App";
-import {EventsOff, EventsOn,Environment} from "../../wailsjs/runtime";
+import {GetConfig, GetVersionInfo,GetSponsorInfo,GetUserManual} from "../api/app";
 import {NAvatar, NButton, NTree, useNotification,NText} from "naive-ui";
 import { addMonths, format ,parse} from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -136,96 +135,12 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   notify.destroyAll()
-  EventsOff("updateVersion")
-  EventsOff("updateNeedAdmin")
-})
-
-EventsOn("updateVersion",async (msg) => {
-  const githubTimeStr = msg.published_at;
-  const utcDate = new Date(githubTimeStr);
-  const date = new Date(utcDate.getTime());
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
-  notify.info({
-    avatar: () =>
-        h(NAvatar, {
-          size: 'small',
-          round: false,
-          src: icon.value
-        }),
-    title: '发现新版本: ' + msg.tag_name,
-    content: () => {
-      return h('div', {
-        style: {
-          'text-align': 'left',
-          'font-size': '14px',
-        }
-      }, { default: () => msg.commit?.message })
-    },
-    duration: 5000,
-    meta: "发布时间:"+formattedDate,
-    action: () => {
-      return h(NButton, {
-        type: 'primary',
-        size: 'small',
-        onClick: () => {
-          Environment().then(env => {
-            switch (env.platform) {
-              case 'windows':
-                window.open(msg.html_url)
-                break
-              default :
-                OpenURL(msg.html_url)
-                break
-            }
-          })
-        }
-      }, { default: () => '查看' })
-    }
-  })
-})
-
-EventsOn("updateNeedAdmin", (msg) => {
-  notify.warning({
-    avatar: () =>
-        h(NAvatar, {
-          size: 'small',
-          round: false,
-          src: icon.value
-        }),
-    title: '更新需要管理员权限',
-    content: () => {
-      return h('div', {
-        style: {
-          'text-align': 'left',
-          'font-size': '14px',
-        }
-      }, { default: () => '新版本 ' + (msg.version || '') + ' 下载完成，但自动替换文件需要管理员权限。请以管理员身份重启程序后再次检查更新。' })
-    },
-    duration: 15000,
-    action: () => {
-      return h(NButton, {
-        type: 'warning',
-        size: 'small',
-        onClick: () => {
-          RestartAsAdmin()
-        }
-      }, { default: () => '以管理员身份重启' })
-    }
-  })
 })
 
 </script>
 
 <template>
-      <n-space vertical size="large"  style="--wails-draggable:no-drag">
+      <n-space vertical size="large"  style="">
         <!-- 软件描述 -->
         <n-card size="large">
           <n-divider title-placement="center">关于软件</n-divider>
@@ -241,11 +156,10 @@ EventsOn("updateNeedAdmin", (msg) => {
             </h1>
             <n-gradient-text  :type="expired?'error':'warning'" v-if="vipLevel" >vip到期时间：{{vipEndTime}}</n-gradient-text>
             <n-flex justify="center">
-              <n-button size="tiny" @click="CheckUpdate(1)"  type="info" tertiary >检查更新</n-button>
               <n-button size="tiny" @click="openManual" type="success" tertiary >查看用户手册</n-button>
             </n-flex>
             <div style="justify-self: center;text-align: left" >
-              <p>自选股行情实时监控，基于Wails和NaiveUI构建的AI赋能股票分析工具</p>
+              <p>自选股行情实时监控，基于 Go 服务端、Vue 和 NaiveUI 构建的 AI 赋能股票分析工具</p>
               <p>目前已支持A股，港股，美股，未来计划加入基金，ETF等支持</p>
               <p>支持DeepSeek，OpenAI， Ollama，LMStudio，AnythingLLM，<a href="https://cloud.siliconflow.cn/i/foufCerk" target="_blank">硅基流动</a>，<a href="https://www.volcengine.com/experience/ark?utm_term=202502dsinvite&ac=DSASUQY5&rc=IJSE43PZ" target="_blank">火山方舟</a>，阿里云百炼等平台或模型</p>
               <p>
@@ -318,7 +232,7 @@ EventsOn("updateNeedAdmin", (msg) => {
             </p>
             <p>
               感谢以下开源项目：
-              <a href="https://github.com/wailsapp/wails" target="_blank">Wails</a><n-divider vertical />
+              <a href="https://go.dev/" target="_blank">Go</a><n-divider vertical />
               <a href="https://github.com/vuejs" target="_blank">Vue</a><n-divider vertical />
               <a href="https://github.com/tusen-ai/naive-ui" target="_blank">NaiveUI</a><n-divider vertical />
             </p>
@@ -331,7 +245,7 @@ EventsOn("updateNeedAdmin", (msg) => {
             </p>
             <n-divider/>
             <p>
-              本软件基于开源技术构建，使用Wails、NaiveUI、Vue等开源项目。技术上如有问题，可以先向对应的开源社区请求帮助。
+              本软件基于开源技术构建，使用 Go、NaiveUI、Vue 等开源项目。技术上如有问题，可以先向对应的开源社区请求帮助。
             </p>
             <p>
               开源不易，本人精力和时间有限，如确实需要一对一技术支持，<i style="color: crimson">请先赞助！</i>联系微信(备注 技术支持)：ArvinLovegood

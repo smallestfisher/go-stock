@@ -1,7 +1,6 @@
 // @ts-check
-import { rpc } from "../../../src/api/transport.js";
-// Cynhyrchwyd y ffeil hon yn awtomatig. PEIDIWCH Â MODIWL
-// HTTP 桩：由 server/cmd/genshim 从 Wails 绑定转换而来（可重复执行；勿手改）
+import { downloadBase64File, openURL, rpc } from "./transport.js";
+// HTTP RPC bindings for the Web client.
 
 export function AbortChatWithAgent() {
   return rpc("AbortChatWithAgent", []);
@@ -81,10 +80,6 @@ export function CheckSponsorCode(arg1) {
 
 export function CheckStockBaseInfo(arg1) {
   return rpc("CheckStockBaseInfo", [arg1]);
-}
-
-export function CheckUpdate(arg1) {
-  return rpc("CheckUpdate", [arg1]);
 }
 
 export function ClsCalendar() {
@@ -567,10 +562,6 @@ export function Greet(arg1) {
   return rpc("Greet", [arg1]);
 }
 
-export function HideToTray() {
-  return rpc("HideToTray", []);
-}
-
 export function HotEvent(arg1) {
   return rpc("HotEvent", [arg1]);
 }
@@ -628,11 +619,8 @@ export function NewsPush(arg1) {
 }
 
 export function OpenURL(arg1) {
-  return rpc("OpenURL", [arg1]);
-}
-
-export function QuitApp() {
-  return rpc("QuitApp", []);
+  openURL(arg1);
+  return Promise.resolve(arg1);
 }
 
 export function ReFleshTelegraphList(arg1) {
@@ -645,10 +633,6 @@ export function RemoveGroup(arg1) {
 
 export function RemoveStockGroup(arg1, arg2, arg3) {
   return rpc("RemoveStockGroup", [arg1, arg2, arg3]);
-}
-
-export function RestartAsAdmin() {
-  return rpc("RestartAsAdmin", []);
 }
 
 export function SaveAIResponseResult(arg1, arg2, arg3, arg4, arg5, arg6) {
@@ -668,7 +652,8 @@ export function SaveCustomStrategy(arg1) {
 }
 
 export function SaveImage(arg1, arg2) {
-  return rpc("SaveImage", [arg1, arg2]);
+  const filename = String(arg1 || "go-stock-image").toLowerCase().endsWith(".png") ? String(arg1) : String(arg1 || "go-stock-image") + ".png";
+  return Promise.resolve(downloadBase64File(filename, arg2, "image/png"));
 }
 
 export function SaveStockChangesToHistory(arg1) {
@@ -676,7 +661,8 @@ export function SaveStockChangesToHistory(arg1) {
 }
 
 export function SaveWordFile(arg1, arg2) {
-  return rpc("SaveWordFile", [arg1, arg2]);
+  const filename = String(arg1 || "go-stock-report.docx").toLowerCase().endsWith(".docx") ? String(arg1) : String(arg1 || "go-stock-report") + ".docx";
+  return Promise.resolve(downloadBase64File(filename, arg2, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 }
 
 export function SearchCronTasks(arg1) {
@@ -725,10 +711,6 @@ export function ShareAnalysis(arg1, arg2) {
 
 export function ShareText(arg1, arg2) {
   return rpc("ShareText", [arg1, arg2]);
-}
-
-export function ShowFromTray() {
-  return rpc("ShowFromTray", []);
 }
 
 export function StockNotice(arg1) {

@@ -54,7 +54,7 @@ func init() {
 		return resp.String(), nil
 	})
 
-	// SaveAsMarkdown：桌面端弹保存框写文件；Web 版直接返回 markdown 内容，
+	// SaveAsMarkdown：弹保存框写文件；Web 版直接返回 markdown 内容，
 	// 由前端桩/组件触发浏览器下载（前端需把返回字符串作为 Blob 下载）。
 	server.Register("SaveAsMarkdown", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
 		stockCode := server.ArgString(args, 0)

@@ -1,6 +1,6 @@
 # go-stock 帮助问答手册
 
-> 基于大语言模型的AI赋能股票分析桌面工具 — 常见问题与解答
+> 基于大语言模型的AI赋能股票分析 Web 工具 — 常见问题与解答
 > 本手册最后更新于 2026.05
 
 ---
@@ -9,7 +9,7 @@
 
 ### Q: go-stock 是什么项目？
 
-**A:** go-stock 是一款基于大语言模型的 AI 赋能股票分析桌面工具，采用 Wails + Vue3 + NaiveUI 技术栈构建，支持 A股、港股、美股的行情数据获取与智能分析。它集成了 16 家 AI 大模型平台，提供智能诊股、AI 智能体对话、浮动AI助手、实时行情监控、市场资讯聚合、社区化提示词分享等功能。
+**A:** go-stock 是一款基于大语言模型的 AI 赋能股票分析 Web 工具，采用 Go 服务端 + Vue3 + NaiveUI 技术栈构建，支持 A股、港股、美股的行情数据获取与智能分析。它集成了 16 家 AI 大模型平台，提供智能诊股、AI 智能体对话、浮动AI助手、实时行情监控、市场资讯聚合、社区化提示词分享等功能。
 
 ---
 
@@ -532,7 +532,7 @@
 
 ### Q: go-stock 使用什么技术栈？
 
-**A:** 前端使用 Vue3 + NaiveUI + ECharts + TradingView Lightweight Charts + vue3-danmaku + md-editor-v3；后端使用 Go 语言 + Wails 框架；数据库使用 SQLite + GORM ORM；AI 框架使用 cloudwego eino。
+**A:** 前端使用 Vue3 + NaiveUI + ECharts + TradingView Lightweight Charts + vue3-danmaku + md-editor-v3；后端使用 Go HTTP 服务；数据库使用 SQLite + GORM ORM；AI 框架使用 cloudwego eino。
 
 ---
 

@@ -2,12 +2,8 @@
 import {
   EventsEmit,
   EventsOff,
-  EventsOn,
-  Quit,Hide ,
-  WindowFullscreen,
-  WindowUnfullscreen,
-  WindowSetTitle
-} from '../wailsjs/runtime'
+  EventsOn
+} from './api/runtime'
 import {h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
 import {RouterLink, useRouter} from 'vue-router'
 import {createDiscreteApi,darkTheme,lightTheme , NIcon, NText,NButton,dateZhCN,zhCN} from 'naive-ui'
@@ -29,7 +25,7 @@ import {
   StatsChartOutline,
   Wallet, WarningOutline, TimeOutline, SearchOutline,
 } from '@vicons/ionicons5'
-import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "../wailsjs/go/main/App";
+import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "./api/app";
 import FloatingAiAssistant from "./components/FloatingAiAssistant.vue";
 import FloatingAgentAssistant from "./components/FloatingAgentAssistant.vue";
 import {Dragon, Fire, FirefoxBrowser, Gripfire, Robot} from "@vicons/fa";
@@ -99,7 +95,7 @@ function updateMarketStatus() {
     parts.push(hk ? '港股交易中' : '港股休市')
     parts.push(us ? '美股交易中' : '美股休市')
     marketStatus.value = parts.join(' | ')
-    WindowSetTitle("go-stock " + marketStatus.value + " " + officialStatement.value + "  「" + currentMotto.value + "」  [数据来源于网络，仅供参考；投资有风险，入市需谨慎]")
+    document.title = "go-stock " + marketStatus.value
   })
 }
 const menuOptions = ref([
@@ -938,22 +934,6 @@ const menuOptions = ref([
   //   key: 'move',
   //   icon: renderIcon(MoveOutline),
   // },
-  {
-    label: () => h("a", {
-      href: '#',
-      onClick: Hide,
-    }, {default: () => '隐藏至托盘区'}),
-    key: 'hide',
-    icon: renderIcon(SlideHide24Filled),
-  },
-  {
-    label: () => h("a", {
-      href: '#',
-      onClick: Quit,
-    }, {default: () => '退出程序'}),
-    key: 'exit',
-    icon: renderIcon(PowerOutline),
-  },
 ])
 
 function renderIcon(icon) {
@@ -962,33 +942,14 @@ function renderIcon(icon) {
 
 function toggleFullscreen(e) {
   activeKey.value = 'full'
-  //console.log(e)
-  if (isFullscreen.value) {
-    WindowUnfullscreen()
-    //e.target.innerHTML = '全屏'
-  } else {
-    WindowFullscreen()
-    // e.target.innerHTML = '取消全屏'
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.()
+    isFullscreen.value = false
+    return
   }
-  isFullscreen.value = !isFullscreen.value
+  document.documentElement.requestFullscreen?.()
+  isFullscreen.value = true
 }
-
-// const drag = ref(false)
-// const lastPos= ref({x:0,y:0})
-// function toggleStartMoveWindow(e) {
-//   drag.value=!drag.value
-//   lastPos.value={x:e.clientX,y:e.clientY}
-// }
-// function dragstart(e) {
-//   if (drag.value) {
-//     let x=e.clientX-lastPos.value.x
-//     let y=e.clientY-lastPos.value.y
-//     WindowGetPosition().then((pos) => {
-//       WindowSetPosition(pos.x+x,pos.y+y)
-//     })
-//   }
-// }
-// window.addEventListener('mousemove', dragstart)
 
 EventsOn("realtime_profit", (data) => {
   realtimeProfit.value = data
@@ -1212,7 +1173,7 @@ onMounted(() => {
                     </n-spin>
                   </n-gi>
                   <n-gi style="position: fixed;bottom:0;z-index: 9;width: 100%;">
-                    <n-card size="small" style="--wails-draggable:no-drag">
+                    <n-card size="small" style="">
                       <n-menu style="font-size: 18px;"
                               v-model:value="activeKey"
                               mode="horizontal"

@@ -1,6 +1,6 @@
 <script setup>
-import { GetStockList, GetConfig, GetEffectiveSponsorVip } from '../../wailsjs/go/main/App'
-import { EventsOn } from '../../wailsjs/runtime'
+import { GetStockList, GetConfig, GetEffectiveSponsorVip } from '../api/app'
+import { EventsOn } from '../api/runtime'
 import StockLightweightKlineChart from './StockLightweightKlineChart.vue'
 import { NAutoComplete, NButton, NFlex, NText, NInputGroup, NModal, NCard } from 'naive-ui'
 import { useMessage } from 'naive-ui'
@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 4px 8px;
   box-sizing: border-box;
-  --wails-draggable: no-drag;
+
   position: relative;
 }
 .kline-analysis-page--dark {

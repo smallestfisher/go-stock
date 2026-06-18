@@ -10,7 +10,7 @@ import {
   GetAllStockInfoList,
   GetStockRealTimePrice,
   GetConfig
-} from '../../wailsjs/go/main/App'
+} from '../api/app'
 import {
   NButton,
   NDataTable,
@@ -34,7 +34,7 @@ import {
 } from 'naive-ui'
 import sparkLine from "./stockSparkLine.vue";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
-import { GetEffectiveSponsorVip } from '../../wailsjs/go/main/App'
+import { GetEffectiveSponsorVip } from '../api/app'
 
 const message = useMessage()
 const notify = useNotification()
@@ -277,7 +277,7 @@ function formatRowTradingTime(row) {
   return `${utc8Time.getFullYear()}-${pad(utc8Time.getMonth() + 1)}-${pad(utc8Time.getDate())} ${pad(utc8Time.getHours())}:${pad(utc8Time.getMinutes())}:${pad(utc8Time.getSeconds())}`
 }
 
-/** 统一列表行字段（Wails/JSON 可能为 PascalCase），供表格渲染与刷新使用 */
+/** 统一列表行字段（JSON 可能为 PascalCase），供表格渲染与刷新使用 */
 function normalizeTradingRecordRow(row) {
   if (!row || typeof row !== 'object') return row
   const closePrice = Number(row.closePrice ?? row.ClosePrice ?? 0)

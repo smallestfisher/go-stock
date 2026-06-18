@@ -1,5 +1,5 @@
 <script setup>
-import {ReFleshTelegraphList} from "../../wailsjs/go/main/App";
+import {ReFleshTelegraphList} from "../api/app";
 import {RefreshCircle, RefreshCircleSharp, RefreshOutline} from "@vicons/ionicons5";
 import {computed, h, onBeforeMount, onBeforeUnmount, onMounted,onUnmounted, ref} from 'vue'
 

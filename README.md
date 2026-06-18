@@ -43,11 +43,12 @@
 
 
 ###  ✨ 简介
-- 本项目基于Wails和NaiveUI开发，结合AI大模型构建的股票分析工具。
+- 本项目为纯服务端 + Web 浏览器访问模式；服务端部署见 [server/DEPLOY.md](server/DEPLOY.md)。
+- 后端使用 Go，前端使用 Vue 和 NaiveUI，结合 AI 大模型构建股票分析工具。
 - 目前已支持A股，港股，美股，未来计划加入基金，ETF等支持。
 - 支持市场整体/个股情绪分析，K线技术指标分析等功能。
 - 本项目仅供娱乐，不喜勿喷，AI分析股票结果仅供学习研究，投资有风险，请谨慎使用。
-- 开发环境主要基于Windows10+，其他平台未测试或功能受限。
+- 推荐部署在 Linux 服务器或容器环境，使用浏览器访问。
 
 ### 📃 使用手册
 [go-stock使用手册](docs/go-stock使用手册.md)
@@ -192,7 +193,6 @@
 
 ## 💕 感谢以下项目
 - [NaiveUI](https://www.naiveui.com/)
-- [Wails](https://wails.io/)
 - [Vue](https://vuejs.org/)
 - [Vite](https://vitejs.dev/)
 - [Tushare](https://tushare.pro/register?reg=701944)
@@ -205,7 +205,7 @@
 ![Alt](https://repobeats.axiom.co/api/embed/40b07d415a42c2264a18c4fe1b6f182ff1470687.svg "Repobeats analytics image")
 
 ## 🐳 关于技术支持申明
-- 本软件基于开源技术构建，使用Wails、NaiveUI、Vue、AI大模型等开源项目。 技术上如有问题，可以先向对应的开源社区请求帮助。
+- 本软件基于开源技术构建，使用 Go、NaiveUI、Vue、AI 大模型等开源项目。技术上如有问题，可以先向对应的开源社区请求帮助。
 - 开源不易，本人精力和时间有限，如需一对一技术支持，请先赞助。联系QQ(备注 技术支持)：506808970
 
 [//]: # (<img src="./build/wx.jpg" width="301px" height="402px" alt="ArvinLovegood">)
@@ -220,4 +220,3 @@
 
 ## License
 [GNU GPLv3](LICENSE)
-

@@ -1,6 +1,6 @@
 <script setup>
 import {ref, onBeforeUnmount} from "vue";
-import {EventsOn, EventsOff} from "../../wailsjs/runtime";
+import {EventsOn, EventsOff} from "../api/runtime";
 import {useRoute} from 'vue-router'
 import FundFollow from "./FundFollow.vue";
 import FundRanking from "./FundRanking.vue";
@@ -21,7 +21,7 @@ onBeforeUnmount(() => {
 
 <template>
   <n-card>
-    <n-tabs type="line" animated v-model:value="nowTab" style="--wails-draggable:no-drag">
+    <n-tabs type="line" animated v-model:value="nowTab" style="">
       <n-tab-pane name="基金自选" display-directive="show">
         <FundFollow/>
       </n-tab-pane>

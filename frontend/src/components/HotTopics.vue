@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {onBeforeMount, onUnmounted, ref} from 'vue'
-import {HotTopic, OpenURL} from "../../wailsjs/go/main/App";
-import {Environment} from "../../wailsjs/runtime";
+import {HotTopic, OpenURL} from "../api/app";
 const list  = ref([])
 const task =ref()
 
@@ -19,20 +18,11 @@ function openCenteredWindow(url, width, height) {
   const left = (window.screen.width - width) / 2;
   const top = (window.screen.height - height) / 2;
 
-  Environment().then(env => {
-    switch (env.platform) {
-      case 'windows':
-        window.open(
-            url,
-            'centeredWindow',
-            `width=${width},height=${height},left=${left},top=${top}`
-        )
-        break
-      default:
-        OpenURL(url)
-        break
-    }
-  })
+  window.open(
+      url,
+      'centeredWindow',
+      `width=${width},height=${height},left=${left},top=${top}`
+  )
 }
 function showPage(htid) {
   openCenteredWindow(`https://gubatopic.eastmoney.com/topic_v3.html?htid=${htid}`, 1000, 600)

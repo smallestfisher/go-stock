@@ -1,6 +1,6 @@
 <script setup>
 
-import {AnalyzeSentimentWithFreqWeight,GlobalStockIndexes,GetTodayMarketStatistic,GetRecentDaysMarketStatistic,GetDailyChangeStats,GetChangeTypeDailyStats,GetChangeRank,GetDailyDimensionStats,GetTypeStatsByDate,IsTradingTime} from "../../wailsjs/go/main/App";
+import {AnalyzeSentimentWithFreqWeight,GlobalStockIndexes,GetTodayMarketStatistic,GetRecentDaysMarketStatistic,GetDailyChangeStats,GetChangeTypeDailyStats,GetChangeRank,GetDailyDimensionStats,GetTypeStatsByDate,IsTradingTime} from "../api/app";
 import * as echarts from "echarts";
 import {onMounted,onUnmounted, ref, watch, nextTick} from "vue";
 import _ from "lodash";
@@ -1924,13 +1924,13 @@ function handleTreemap() {
       </n-flex>
       <n-grid :cols="24" :y-gap="0">
         <n-gi span="8">
-          <div ref="chartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+          <div ref="chartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
         </n-gi>
         <n-gi span="8">
-          <div ref="limitChartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+          <div ref="limitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
         </n-gi>
         <n-gi span="8">
-          <div ref="changeRankConceptRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+          <div ref="changeRankConceptRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
         </n-gi>
       </n-grid>
       <n-flex justify="center" style="margin: 8px 0" :wrap="false">
@@ -1955,35 +1955,35 @@ function handleTreemap() {
         </n-button>
       </n-flex>
       <n-collapse-transition :show="showTreemap">
-        <div ref="treemapRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+        <div ref="treemapRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
       </n-collapse-transition>
       <n-collapse-transition :show="showDailyChart">
         <n-grid :cols="24" :y-gap="0">
           <n-gi span="12">
-            <div ref="dailyUpDownChartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="dailyUpDownChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="12">
-            <div ref="dailyLimitChartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="dailyLimitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
         </n-grid>
       </n-collapse-transition>
       <n-collapse-transition :show="showChangeStats">
         <n-grid :cols="24" :y-gap="0">
           <n-gi span="12">
-            <div ref="changeStatsChartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="changeStatsChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="12">
-            <div ref="changeTypeChartRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="changeTypeChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
         </n-grid>
       </n-collapse-transition>
       <n-collapse-transition :show="showChangeRank">
         <n-grid :cols="24" :y-gap="0">
           <n-gi span="12">
-            <div ref="changeRankStockRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="changeRankStockRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="12">
-            <div ref="changeRankIndustryRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="changeRankIndustryRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
         </n-grid>
       </n-collapse-transition>
@@ -1999,31 +1999,31 @@ function handleTreemap() {
         </n-flex>
         <n-grid :cols="24" :y-gap="0">
           <n-gi span="8">
-            <div ref="bullBearStockUpRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearStockUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="8">
-            <div ref="bullBearIndustryUpRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearIndustryUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="8">
-            <div ref="bullBearConceptUpRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearConceptUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
         </n-grid>
         <n-grid :cols="24" :y-gap="0">
           <n-gi span="8">
-            <div ref="bullBearStockDownRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearStockDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="8">
-            <div ref="bullBearIndustryDownRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearIndustryDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
           <n-gi span="8">
-            <div ref="bullBearConceptDownRef" style="width: 100%;height: auto;--wails-draggable:no-drag" :style="{height:chartHeight+'px'}" ></div>
+            <div ref="bullBearConceptDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
           </n-gi>
         </n-grid>
       </n-collapse-transition>
     </n-collapse-item>
   </n-collapse>
   <n-modal v-model:show="showDimensionModal" preset="card" :title="dimensionModalTitle" style="width: 800px;max-width: calc(100vw - 32px);" :mask-closable="true">
-    <div ref="dimensionDetailChartRef" style="width: 100%;height: 450px;--wails-draggable:no-drag"></div>
+    <div ref="dimensionDetailChartRef" style="width: 100%;height: 450px"></div>
   </n-modal>
 </template>
 

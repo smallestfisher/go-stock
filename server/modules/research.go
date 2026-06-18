@@ -29,7 +29,7 @@ func init() {
 		return data.NewMarketNewsApi().IndustryResearchReport(server.ArgString(args, 0), 7), nil
 	})
 
-	// EMDictCode 用 core.Cache 做板块字典缓存（桌面端用 a.cache）。
+	// EMDictCode 用 core.Cache 做板块字典缓存（用 a.cache）。
 	server.Register("EMDictCode", func(_ context.Context, core *server.Core, args server.Args) (any, error) {
 		return data.NewMarketNewsApi().EMDictCode(server.ArgString(args, 0), core.Cache), nil
 	})

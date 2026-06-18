@@ -1,11 +1,11 @@
 <script setup>
 import {computed, h, onBeforeMount, onMounted, ref, reactive} from 'vue'
-import {GetConfig, GetSponsorInfo, GetMachineId, CheckDeviceBinding, QuitApp, GetEffectiveSponsorVip, AddPromptTemplate} from "../../wailsjs/go/main/App";
+import {GetConfig, GetSponsorInfo, GetMachineId, CheckDeviceBinding, GetEffectiveSponsorVip, AddPromptTemplate} from "../api/app";
 import {useMessage, useDialog} from "naive-ui";
 import {MdPreview, MdEditor} from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import 'md-editor-v3/lib/style.css'
-import {EventsEmit} from '../../wailsjs/runtime'
+import {EventsEmit} from '../api/runtime'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -230,27 +230,16 @@ async function checkDeviceLimit() {
   try {
     const result = await CheckDeviceBinding(token.value, apiBase.value)
     if (!result.bound && result.deviceCount >= result.maxDevices) {
-      let countdown = 30
-      const d = dialog.warning({
+      token.value = ''
+      currentUser.value = null
+      localStorage.removeItem('promptPlazaToken')
+      dialog.warning({
         title: '设备绑定超限',
-        content: `您已绑定 ${result.deviceCount} 台设备，已达上限，当前设备未授权。程序将在 ${countdown} 秒后自动关闭。`,
-        positiveText: '立即关闭',
-        onPositiveClick: () => {
-          QuitApp()
-        },
+        content: `您已绑定 ${result.deviceCount} 台设备，已达上限，当前浏览器未授权。请在已授权设备中解绑后重新登录。`,
+        positiveText: '我知道了',
         onMaskClick: () => {},
         onEsc: () => {}
       })
-      const timer = setInterval(() => {
-        countdown--
-        if (countdown <= 0) {
-          clearInterval(timer)
-          d.destroy()
-          QuitApp()
-        } else {
-          d.content = `您已绑定 ${result.deviceCount} 台设备，已达上限，当前设备未授权。程序将在 ${countdown} 秒后自动关闭。`
-        }
-      }, 1000)
     }
   } catch (e) {
     console.warn('设备绑定检查失败', e)

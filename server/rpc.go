@@ -17,6 +17,10 @@ type Handler func(ctx context.Context, core *Core, args Args) (any, error)
 
 var rpcHandlers = map[string]Handler{}
 
+const clientIDHeader = "X-Go-Stock-Client-Id"
+
+type clientIDContextKey struct{}
+
 // Register 把一个方法注册到 RPC 注册表（由各模块在 init() 中调用）。
 func Register(name string, h Handler) {
 	rpcHandlers[name] = h
@@ -29,7 +33,7 @@ func lookupHandler(name string) (Handler, bool) {
 
 // RPCDispatcher 返回 /api/rpc/{Method} 的处理函数。
 //   - 请求体: {"args": [位置参数...]}
-//   - 成功: 200，响应体即结果的 JSON（与 Wails 直接返回 Go 值的语义一致）
+//   - 成功: 200，响应体即结果的 JSON
 //   - 失败: 非 2xx，响应体 {"error":"..."}，前端桩据此 reject
 func RPCDispatcher(core *Core) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -49,13 +53,37 @@ func RPCDispatcher(core *Core) http.HandlerFunc {
 		if r.Body != nil {
 			_ = json.NewDecoder(r.Body).Decode(&body)
 		}
-		result, err := h(r.Context(), core, body.Args)
+		ctx := ContextWithClientID(r.Context(), RequestClientID(r))
+		result, err := h(ctx, core, body.Args)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, result)
 	}
+}
+
+func RequestClientID(r *http.Request) string {
+	clientID := strings.TrimSpace(r.Header.Get(clientIDHeader))
+	if clientID == "" {
+		clientID = strings.TrimSpace(r.URL.Query().Get("clientId"))
+	}
+	return clientID
+}
+
+func ContextWithClientID(ctx context.Context, clientID string) context.Context {
+	if clientID == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, clientIDContextKey{}, clientID)
+}
+
+func ClientIDFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	clientID, _ := ctx.Value(clientIDContextKey{}).(string)
+	return clientID
 }
 
 // --- 位置参数解析辅助（i 为下标，越界/类型不符返回零值，保证健壮）---

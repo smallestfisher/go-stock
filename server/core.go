@@ -11,8 +11,8 @@ import (
 	"go-stock/server/events"
 )
 
-// Core 持有进程级的运行时状态，对应桌面端 App 结构体(app.go:39)里那些与 Wails 无关的字段：
-// 缓存、定时任务、AI 工具集、AI 流式取消句柄、告警状态等。HTTP handler 通过它访问共享状态。
+// Core 持有进程级的运行时状态：缓存、定时任务、AI 工具集、AI 流式取消句柄、告警状态等。
+// HTTP handler 通过它访问共享状态。
 type Core struct {
 	Cache   *freecache.Cache
 	Cron    *cron.Cron
@@ -22,11 +22,11 @@ type Core struct {
 	cronEntrys   map[string]cron.EntryID
 	cronEntrysMu sync.Mutex
 
-	// AI 流式任务的取消句柄（对应 App.summaryCancel / agentCancel）
-	summaryMu     sync.Mutex
-	summaryCancel context.CancelFunc
-	agentMu       sync.Mutex
-	agentCancel   context.CancelFunc
+	// AI 流式任务的取消句柄
+	summaryMu      sync.Mutex
+	summaryCancels map[string]context.CancelFunc
+	agentMu        sync.Mutex
+	agentCancels   map[string]context.CancelFunc
 
 	// 股价告警去重状态
 	stockAlertMu       sync.Mutex
@@ -34,7 +34,7 @@ type Core struct {
 	priceAtAlertReset  map[string]float64
 }
 
-// NewCore 构造并启动 Core（cron 在此启动），等价于桌面端 NewApp()。
+// NewCore 构造并启动 Core（cron 在此启动）。
 func NewCore() *Core {
 	cache := freecache.NewCache(512 * 1024)
 	c := cron.New(cron.WithSeconds(), cron.WithChain(cron.Recover(cron.DefaultLogger)))
@@ -46,6 +46,8 @@ func NewCore() *Core {
 		AiTools:            tools,
 		Events:             events.NewHub(),
 		cronEntrys:         make(map[string]cron.EntryID),
+		summaryCancels:     make(map[string]context.CancelFunc),
+		agentCancels:       make(map[string]context.CancelFunc),
 		stockAlertLastSent: make(map[string]time.Time),
 		priceAtAlertReset:  make(map[string]float64),
 	}
@@ -74,32 +76,65 @@ func (c *Core) RemoveCronEntry(key string) {
 
 // --- AI 流式任务取消句柄（Phase 2 的 SSE 端点使用）---
 
-func (c *Core) SetSummaryCancel(cf context.CancelFunc) {
-	c.summaryMu.Lock()
-	c.summaryCancel = cf
-	c.summaryMu.Unlock()
+func streamScope(scope string) string {
+	if scope == "" {
+		return "__default__"
+	}
+	return scope
 }
 
-func (c *Core) CancelSummary() {
+func (c *Core) SetSummaryCancel(scope string, cf context.CancelFunc) {
+	scope = streamScope(scope)
 	c.summaryMu.Lock()
-	cf := c.summaryCancel
-	c.summaryCancel = nil
+	if c.summaryCancels == nil {
+		c.summaryCancels = make(map[string]context.CancelFunc)
+	}
+	old := c.summaryCancels[scope]
+	if cf == nil {
+		delete(c.summaryCancels, scope)
+	} else {
+		c.summaryCancels[scope] = cf
+	}
+	c.summaryMu.Unlock()
+	if old != nil && cf != nil {
+		old()
+	}
+}
+
+func (c *Core) CancelSummary(scope string) {
+	scope = streamScope(scope)
+	c.summaryMu.Lock()
+	cf := c.summaryCancels[scope]
+	delete(c.summaryCancels, scope)
 	c.summaryMu.Unlock()
 	if cf != nil {
 		cf()
 	}
 }
 
-func (c *Core) SetAgentCancel(cf context.CancelFunc) {
+func (c *Core) SetAgentCancel(scope string, cf context.CancelFunc) {
+	scope = streamScope(scope)
 	c.agentMu.Lock()
-	c.agentCancel = cf
+	if c.agentCancels == nil {
+		c.agentCancels = make(map[string]context.CancelFunc)
+	}
+	old := c.agentCancels[scope]
+	if cf == nil {
+		delete(c.agentCancels, scope)
+	} else {
+		c.agentCancels[scope] = cf
+	}
 	c.agentMu.Unlock()
+	if old != nil && cf != nil {
+		old()
+	}
 }
 
-func (c *Core) CancelAgent() {
+func (c *Core) CancelAgent(scope string) {
+	scope = streamScope(scope)
 	c.agentMu.Lock()
-	cf := c.agentCancel
-	c.agentCancel = nil
+	cf := c.agentCancels[scope]
+	delete(c.agentCancels, scope)
 	c.agentMu.Unlock()
 	if cf != nil {
 		cf()

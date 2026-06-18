@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref, watch, computed} from "vue";
-import {GetBKFundFlowListByDate, GetBKFundFlowTopListByDate, GetAllBKCodes} from "../../wailsjs/go/main/App";
+import {GetBKFundFlowListByDate, GetBKFundFlowTopListByDate, GetAllBKCodes} from "../api/app";
 import * as echarts from "echarts";
 
 const props = defineProps({

@@ -316,8 +316,8 @@ import {
   ShareSocialOutline,
   ImageOutline
 } from '@vicons/ionicons5'
-import { AbortSummaryStockNews, GetAiAssistantSession, GetAiConfigs, GetConfig, GetPromptTemplates, GetSponsorInfo, GetVersionInfo, SaveAiAssistantSession, ShareText, SummaryStockNews } from '../../wailsjs/go/main/App'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime'
+import { AbortSummaryStockNews, GetAiAssistantSession, GetAiConfigs, GetConfig, GetPromptTemplates, GetSponsorInfo, GetVersionInfo, SaveAiAssistantSession, ShareText, SummaryStockNews } from '../api/app'
+import { EventsOn, EventsOff } from '../api/runtime'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import html2canvas from 'html2canvas'

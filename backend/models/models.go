@@ -592,7 +592,6 @@ type PMIResp struct {
 type OldSettings struct {
 	gorm.Model
 	TushareToken           string `json:"tushareToken"`
-	LocalPushEnable        bool   `json:"localPushEnable"`
 	DingPushEnable         bool   `json:"dingPushEnable"`
 	DingRobot              string `json:"dingRobot"`
 	UpdateBasicInfoOnStart bool   `json:"updateBasicInfoOnStart"`
@@ -606,7 +605,6 @@ type OldSettings struct {
 	OpenAiTemperature float64 `json:"openAiTemperature"`
 	OpenAiApiTimeOut  int     `json:"openAiApiTimeOut"`
 	Prompt            string  `json:"prompt"`
-	CheckUpdate       bool    `json:"checkUpdate"`
 	QuestionTemplate  string  `json:"questionTemplate"`
 	CrawlTimeOut      int64   `json:"crawlTimeOut"`
 	KDays             int64   `json:"kDays"`

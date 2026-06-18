@@ -522,7 +522,7 @@ import {
   CalculateNextRunTime,
   CalculateNextRunTimes,
   GetPromptTemplates
-} from '../../wailsjs/go/main/App'
+} from '../api/app'
 
 const message = useMessage()
 

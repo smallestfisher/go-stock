@@ -1,6 +1,6 @@
 <script setup>
 import {computed, h, onBeforeMount, onBeforeUnmount, onMounted,onUnmounted, ref,reactive} from 'vue'
-import {GetAIResponseResultList} from "../../wailsjs/go/main/App";
+import {GetAIResponseResultList} from "../api/app";
 import {NButton, NEllipsis, NText} from "naive-ui";
 import ResearchReport from "./researchReport.vue";
 import AiRecommendStocksList from "./aiRecommendStocksList.vue";
@@ -16,7 +16,7 @@ import UplimitLadder from "./uplimitLadder.vue";
 import PromptPlaza from "./promptPlaza.vue";
 import PromptQa from "./promptQa.vue";
 import SelectStock from "./SelectStock.vue";
-import {EventsOff, EventsOn} from "../../wailsjs/runtime";
+import {EventsOff, EventsOn} from "../api/runtime";
 import {useRoute} from 'vue-router'
 
 
@@ -45,7 +45,7 @@ function updateTab(name) {
 
 <template>
   <n-card>
-    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="--wails-draggable:no-drag">
+    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="AI分析报告">
         <ResearchReport/>
       </n-tab-pane>

@@ -51,7 +51,7 @@ func init() {
 	})
 }
 
-// eastMoneyKLinePage 复刻 app.go GetStockEastMoneyKLinePage 的归一化与调用逻辑。
+// eastMoneyKLinePage 归一化参数并调用东方财富分页 K 线接口。
 func eastMoneyKLinePage(stockCode, klt string, limit int, end string) *[]data.KLineData {
 	if limit <= 0 {
 		limit = 500
@@ -68,7 +68,7 @@ func eastMoneyKLinePage(stockCode, klt string, limit int, end string) *[]data.KL
 	return api.GetKLineDataBefore(stockCode, klt, "", limit, end)
 }
 
-// kLineWithFallback 复刻 app.go GetStockKLineWithFallback 的归一化与调用逻辑（东财→新浪自动切换）。
+// kLineWithFallback 归一化参数并在东方财富失败时自动切换到新浪。
 func kLineWithFallback(stockCode, stockName, klt string, limit int, end string) *data.KLineSourceResult {
 	if limit <= 0 {
 		limit = 500
@@ -84,7 +84,7 @@ func kLineWithFallback(stockCode, stockName, klt string, limit int, end string) 
 	return data.FetchKLineWithFallback(stockCode, stockName, klt, limit, end)
 }
 
-// chipDistribution 复刻 app.go GetChipDistribution。
+// chipDistribution 
 func chipDistribution(stockCode string, days int, bins int, adjustFlag string) (*data.ChipDistributionResult, error) {
 	stockCode = strings.TrimSpace(stockCode)
 	if stockCode == "" {

@@ -47,7 +47,7 @@ func init() {
 		return nil, nil
 	})
 
-	// FetchAndSaveMarketStatistic：交易时间内采集并保存当日市场统计。复刻 app.go:3140。
+	// FetchAndSaveMarketStatistic：交易时间内采集并保存当日市场统计。
 	server.Register("FetchAndSaveMarketStatistic", func(_ context.Context, _ *server.Core, _ server.Args) (any, error) {
 		if !isATradingSession(time.Now().In(shanghaiLoc)) {
 			return nil, nil

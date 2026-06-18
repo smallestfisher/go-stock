@@ -11,10 +11,10 @@ import {
   CheckSponsorCode,
   FetchAiModels,
   FetchAiModelInfo
-} from "../../wailsjs/go/main/App";
+} from "../api/app";
 import {NTag, NTooltip, NIcon, useMessage} from "naive-ui";
-import {data, models} from "../../wailsjs/go/models";
-import {EventsEmit} from "../../wailsjs/runtime";
+import {data, models} from "../api/models";
+import {EventsEmit} from "../api/runtime";
 import {HelpCircleFilledIcon, HelpIcon} from "tdesign-icons-vue-next";
 
 const message = useMessage()
@@ -28,9 +28,6 @@ const formValue = ref({
   dingPush: {
     enable: false,
     dingRobot: ''
-  },
-  localPush: {
-    enable: true,
   },
   updateBasicInfoOnStart: false,
   refreshInterval: 1,
@@ -56,7 +53,6 @@ const formValue = ref({
   httpProxyEnabled:false,
   enableAgent: false,
   qgqpBId: '',
-  updateChannel: 'release',
   promptPlazaApiBase: '',
 })
 
@@ -82,12 +78,6 @@ function removeAiConfig(index) {
   // 使用filter创建新数组确保响应式更新
   formValue.value.openAI.aiConfigs = formValue.value.openAI.aiConfigs.filter((_, i) => i !== index);
 }
-
-const updateChannelOptions = [
-  { label: 'Release（稳定版）', value: 'release' },
-  { label: 'Pre-release（预发布版）', value: 'pre' },
-  { label: 'Dev（开发版）', value: 'dev' },
-]
 
 async function fetchAiModels(aiConfig) {
   if (!aiConfig.baseUrl || !aiConfig.apiKey) {
@@ -206,9 +196,6 @@ onMounted(() => {
       enable: res.dingPushEnable,
       dingRobot: res.dingRobot
     }
-    formValue.value.localPush = {
-      enable: res.localPushEnable,
-    }
     formValue.value.updateBasicInfoOnStart = res.updateBasicInfoOnStart
     formValue.value.refreshInterval = res.refreshInterval
     // 加载AI配置
@@ -236,7 +223,6 @@ onMounted(() => {
     formValue.value.httpProxyEnabled=res.httpProxyEnabled;
     formValue.value.enableAgent = res.enableAgent;
     formValue.value.qgqpBId = res.qgqpBId;
-    formValue.value.updateChannel = res.updateChannel || 'release';
     formValue.value.promptPlazaApiBase = res.promptPlazaApiBase || '';
 
   })
@@ -256,7 +242,6 @@ function saveConfig() {
     ID: formValue.value.ID,
     dingPushEnable: formValue.value.dingPush.enable,
     dingRobot: formValue.value.dingPush.dingRobot,
-    localPushEnable: formValue.value.localPush.enable,
     updateBasicInfoOnStart: formValue.value.updateBasicInfoOnStart,
     refreshInterval: formValue.value.refreshInterval,
     openAiEnable: formValue.value.openAI.enable,
@@ -281,7 +266,6 @@ function saveConfig() {
     httpProxyEnabled:formValue.value.httpProxyEnabled,
     enableAgent: formValue.value.enableAgent,
     qgqpBId: formValue.value.qgqpBId,
-    updateChannel: formValue.value.updateChannel,
     promptPlazaApiBase: formValue.value.promptPlazaApiBase,
   })
 
@@ -349,9 +333,6 @@ function importConfig() {
         enable: config.dingPushEnable,
         dingRobot: config.dingRobot
       }
-      formValue.value.localPush = {
-        enable: config.localPushEnable,
-      }
       formValue.value.updateBasicInfoOnStart = config.updateBasicInfoOnStart
       formValue.value.refreshInterval = config.refreshInterval
       // 导入AI配置
@@ -375,7 +356,6 @@ function importConfig() {
       formValue.value.httpProxyEnabled=config.httpProxyEnabled
       formValue.value.enableAgent = config.enableAgent
       formValue.value.qgqpBId = config.qgqpBId
-      formValue.value.updateChannel = config.updateChannel || 'release'
     };
     reader.readAsText(file);
   };
@@ -441,7 +421,7 @@ function deletePrompt(ID) {
 </script>
 
 <template>
-  <n-flex justify="left" style="text-align: left; --wails-draggable:no-drag">
+  <n-flex justify="left" style="text-align: left">
     <n-form ref="formRef" :label-placement="'left'" :label-align="'left'">
       <n-space vertical size="large">
         <n-card :title="() => h(NTag, { type: 'primary', bordered: false }, () => '基础设置')" size="small">
@@ -460,28 +440,8 @@ function deletePrompt(ID) {
             <n-form-item-gi :span="6" label="暗黑主题：" path="darkTheme">
               <n-switch v-model:value="formValue.darkTheme"/>
             </n-form-item-gi>
-            <n-form-item-gi :span="8" label="更新通道：" path="updateChannel">
-              <n-select v-model:value="formValue.updateChannel" :options="updateChannelOptions" />
-              <n-tooltip placement="top">
-                <template #trigger>
-                  <n-icon color="#0e7a0d" size="20">
-                    <HelpCircleFilledIcon />
-                  </n-icon>
-                </template>
-                <template #default>
-                  <n-gradient-text :type="'warning'">
-                  <div style="max-width: 400px;text-align: left">
-                    更新通道说明：<br>
-                    <b>Release（稳定版）</b>：仅接收正式发布版本，稳定性最高<br>
-                    <b>Pre-release（预发布版）</b>：包含预发布版本，可提前体验新功能<br>
-                    <b>Dev（开发版）</b>：包含所有可用版本，获取最新开发进度
-                  </div>
-                  </n-gradient-text>
-                </template>
-              </n-tooltip>
-            </n-form-item-gi>
-            <n-form-item-gi :span="10" label="浏览器安装路径：" path="browserPath">
-              <n-input type="text" placeholder="浏览器安装路径" v-model:value="formValue.browserPath" clearable/>
+            <n-form-item-gi :span="10" label="服务端 Chromium 路径：" path="browserPath">
+              <n-input type="text" placeholder="留空则服务端自动检测 Chromium/Chrome/Edge" v-model:value="formValue.browserPath" clearable/>
             </n-form-item-gi>
            <n-form-item-gi :span="3" label="指数基金：" path="enableFund">
               <n-switch v-model:value="formValue.enableFund"/>
@@ -603,9 +563,6 @@ function deletePrompt(ID) {
           <n-grid :cols="24" :x-gap="24" style="text-align: left">
             <n-form-item-gi :span="3" label="钉钉推送：" path="dingPush.enable">
               <n-switch v-model:value="formValue.dingPush.enable"/>
-            </n-form-item-gi>
-            <n-form-item-gi :span="3" label="本地推送：" path="localPush.enable">
-              <n-switch v-model:value="formValue.localPush.enable"/>
             </n-form-item-gi>
             <n-form-item-gi :span="3" label="弹幕功能：" path="enableDanmu">
               <n-switch v-model:value="formValue.enableDanmu"/>

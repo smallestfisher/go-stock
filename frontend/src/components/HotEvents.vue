@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onBeforeMount, onUnmounted, ref} from 'vue'
-import {HotEvent} from "../../wailsjs/go/main/App";
+import {HotEvent} from "../api/app";
 const list  = ref([])
 
 const task =ref()

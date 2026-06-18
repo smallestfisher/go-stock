@@ -10,8 +10,7 @@ import {
   GetFundTop10Holdings,
   OpenURL,
   SearchFundCodes
-} from "../../wailsjs/go/main/App";
-import {Environment} from "../../wailsjs/runtime";
+} from "../api/app";
 import {useMessage} from "naive-ui";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 import StockSparkLine from "./stockSparkLine.vue";
@@ -283,15 +282,7 @@ function loadFollowList() {
 
 function search(code) {
   setTimeout(() => {
-    Environment().then(env => {
-      switch (env.platform) {
-        case 'windows':
-          window.open("https://fund.eastmoney.com/" + code + ".html", "_blank", "noreferrer,width=1000,top=100,left=100,status=no,toolbar=no,location=no,scrollbars=no")
-          break
-        default:
-          OpenURL("https://fund.eastmoney.com/" + code + ".html")
-      }
-    })
+    window.open("https://fund.eastmoney.com/" + code + ".html", "_blank", "noreferrer,width=1000,top=100,left=100,status=no,toolbar=no,location=no,scrollbars=no")
   }, 300)
 }
 
