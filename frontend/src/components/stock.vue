@@ -1,6 +1,5 @@
 <script setup>
 import {computed, defineAsyncComponent, h, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
-import * as echarts from 'echarts';
 import {
   AddGroup,
   AddStockGroup,
@@ -54,25 +53,31 @@ import {
   EventsOn
 } from '../api/runtime'
 import {Add, ChatboxOutline,} from '@vicons/ionicons5'
-import {MdEditor, MdPreview} from 'md-editor-v3';
-// preview.css相比style.css少了编辑器那部分样式
-//import 'md-editor-v3/lib/preview.css';
-import 'md-editor-v3/lib/style.css';
 
 import vueDanmaku from 'vue3-danmaku'
 import {keys, padStart} from "lodash";
 import {useRoute, useRouter} from 'vue-router'
-import MoneyTrend from "./moneyTrend.vue";
-import StockSparkLine from "./stockSparkLine.vue";
-import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 
 const route = useRoute()
 const router = useRouter()
+const MdEditor = defineAsyncComponent(async () => {
+  await import('md-editor-v3/lib/style.css')
+  const mod = await import('md-editor-v3')
+  return mod.MdEditor
+})
+const MdPreview = defineAsyncComponent(async () => {
+  await import('md-editor-v3/lib/style.css')
+  const mod = await import('md-editor-v3')
+  return mod.MdPreview
+})
 const ExportPDF = defineAsyncComponent(async () => {
   await import('@vavt/v3-extension/lib/asset/ExportPDF.css')
   const mod = await import('@vavt/v3-extension')
   return mod.ExportPDF
 })
+const MoneyTrend = defineAsyncComponent(() => import('./moneyTrend.vue'))
+const StockSparkLine = defineAsyncComponent(() => import('./stockSparkLine.vue'))
+const StockLightweightKlineChart = defineAsyncComponent(() => import('./StockLightweightKlineChart.vue'))
 
 const danmus = ref([])
 const ws = ref(null)
@@ -932,9 +937,10 @@ function clearFeishi() {
   clearInterval(feishiInterval.value)
 }
 
-function showFsChart(code, name) {
+async function showFsChart(code, name) {
   data.name = name
   data.code = code
+  const echarts = await import('echarts')
   const chart = echarts.init(kLineChartRef2.value);
   GetStockMinutePriceLineData(code, name).then(result => {
     // console.log("GetStockMinutePriceLineData", result)
@@ -1200,7 +1206,10 @@ function calculateMA(dayCount, values) {
 }
 
 function handleKLine() {
-  GetStockKLine(data.code, data.name, 365).then(result => {
+  Promise.all([
+    import('echarts'),
+    GetStockKLine(data.code, data.name, 365)
+  ]).then(([echarts, result]) => {
     //console.log("GetStockKLine",result)
     const chart = echarts.init(kLineChartRef.value);
     const categoryData = [];
@@ -2687,14 +2696,14 @@ watch(modalShow6, (newVal) => {
   <n-modal transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
            :title="'['+data.name+']AI分析'">
     <n-spin size="small" :show="data.loading && !data.airesult">
-      <MdEditor v-if="enableEditor" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
+      <MdEditor v-if="modalShow4 && enableEditor" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
                 :modelValue="data.airesult" :theme="theme">
         <template #defToolbars>
           <ExportPDF :file-name="data.name+'['+data.code+']AI分析报告'" style="text-align: left"
                      :modelValue="data.airesult" @onProgress="handleProgress"/>
         </template>
       </MdEditor>
-      <div v-if="!enableEditor" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
+      <div v-if="modalShow4 && !enableEditor" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
         <MdPreview ref="mdPreviewRef" :modelValue="data.airesult" :theme="theme"/>
       </div>
     </n-spin>
@@ -2761,7 +2770,7 @@ watch(modalShow6, (newVal) => {
     </template>
   </n-modal>
   <n-modal v-model:show="modalShow5" :title="data.name+'资金趋势'" style="width: 1000px;max-width: calc(100vw - 32px);" :preset="'card'">
-    <money-trend :code="data.code" :name="data.name" :days="360" :dark-theme="data.darkTheme"
+    <money-trend v-if="modalShow5" :code="data.code" :name="data.name" :days="360" :dark-theme="data.darkTheme"
                  :chart-height="500"></money-trend>
   </n-modal>
   <n-modal
