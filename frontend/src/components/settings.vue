@@ -67,6 +67,8 @@ function addAiConfig() {
     httpProxy:"",
     httpProxyEnabled:false,
     thinking: true,
+    clientProfile: '',
+    clientVersion: '',
   }));
 }
 
@@ -87,7 +89,7 @@ async function fetchAiModels(aiConfig) {
   }
   aiConfig._loadingModels = true
   try {
-    const list = await FetchAiModels(aiConfig.baseUrl, aiConfig.apiKey)
+    const list = await FetchAiModels(aiConfig.baseUrl, aiConfig.apiKey, aiConfig.clientProfile || '', aiConfig.clientVersion || '')
     const options = (list || []).map(id => ({ label: id, value: id }))
     aiConfig._modelOptions = options
     if (!aiConfig.modelName && options.length > 0) {
@@ -128,6 +130,31 @@ const aiPlatformOptions = [
   { label: 'OpenRouter (https://openrouter.ai/api/v1)', value: 'https://openrouter.ai/api/v1' },
   { label:'Ollama (http://localhost:11434/v1)', value: 'http://localhost:11434/v1' },
 ]
+
+const aiClientProfileOptions = [
+  { label: '默认', value: '' },
+  { label: 'Claude', value: 'claude' },
+  { label: 'Codex', value: 'codex' },
+]
+
+function normalizeAiConfigs(aiConfigs) {
+  return (aiConfigs || []).map(item => {
+    const cfg = new data.AIConfig(item)
+    cfg.clientProfile = cfg.clientProfile || ''
+    cfg.clientVersion = cfg.clientVersion || ''
+    return cfg
+  })
+}
+
+function onClientProfileChange(aiConfig, profile) {
+  if (!profile) {
+    aiConfig.clientVersion = ''
+  } else if (profile === 'claude' && !aiConfig.clientVersion) {
+    aiConfig.clientVersion = '2023-06-01'
+  } else if (profile === 'codex' && !aiConfig.clientVersion) {
+    aiConfig.clientVersion = '0.0.0'
+  }
+}
 
 function getPlatformName(baseUrl) {
   if (!baseUrl) return ''
@@ -173,7 +200,13 @@ function onModelNameChange(aiConfig, newModelName) {
 async function fetchModelInfo(aiConfig, modelName) {
   if (!modelName || !aiConfig.baseUrl) return
   try {
-    const info = await FetchAiModelInfo(aiConfig.baseUrl, aiConfig.apiKey || '', modelName)
+    const info = await FetchAiModelInfo(
+      aiConfig.baseUrl,
+      aiConfig.apiKey || '',
+      modelName,
+      aiConfig.clientProfile || '',
+      aiConfig.clientVersion || '',
+    )
     if (info && info.maxTokens > 0) {
       aiConfig.maxTokens = info.maxTokens
       const sourceLabel = info.source === 'api' ? 'API' : '内置数据'
@@ -199,7 +232,7 @@ onMounted(() => {
     // 加载AI配置
     formValue.value.openAI = {
       enable: res.openAiEnable,
-      aiConfigs: res.aiConfigs || [],
+      aiConfigs: normalizeAiConfigs(res.aiConfigs),
       prompt: res.prompt,
       questionTemplate: res.questionTemplate ? res.questionTemplate : '{{stockName}}分析和总结',
       crawlTimeOut: res.crawlTimeOut,
@@ -326,7 +359,7 @@ function importConfig() {
       // 导入AI配置
       formValue.value.openAI = {
         enable: config.openAiEnable,
-        aiConfigs: config.aiConfigs || [],
+        aiConfigs: normalizeAiConfigs(config.aiConfigs),
         prompt: config.prompt,
         questionTemplate: config.questionTemplate,
         crawlTimeOut: config.crawlTimeOut,
@@ -623,6 +656,17 @@ function deletePrompt(ID) {
                       <n-form-item-gi :span="12" label="令牌(apiKey)" :path="`openAI.aiConfigs[${index}].apiKey`">
                         <n-input type="password" placeholder="apiKey" v-model:value="aiConfig.apiKey" clearable
                                  show-password-on="click"/>
+                      </n-form-item-gi>
+                      <n-form-item-gi :span="6" label="模拟客户端" :path="`openAI.aiConfigs[${index}].clientProfile`">
+                        <n-select
+                          v-model:value="aiConfig.clientProfile"
+                          :options="aiClientProfileOptions"
+                          placeholder="默认"
+                          @update:value="(val) => onClientProfileChange(aiConfig, val)"
+                        />
+                      </n-form-item-gi>
+                      <n-form-item-gi :span="6" v-if="aiConfig.clientProfile" label="客户端版本" :path="`openAI.aiConfigs[${index}].clientVersion`">
+                        <n-input type="text" placeholder="客户端版本" v-model:value="aiConfig.clientVersion" clearable/>
                       </n-form-item-gi>
                       <n-form-item-gi :span="8" label="模型名称" :path="`openAI.aiConfigs[${index}].modelName`">
                         <n-select

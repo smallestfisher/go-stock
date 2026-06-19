@@ -683,7 +683,7 @@ MCP（Model Context Protocol）服务器管理：
 | 数据刷新间隔 | 数字输入 | 单位：秒 |
 | 暗黑主题 | 开关 | 切换深色/浅色主题 |
 | 更新通道 | 下拉选择 | Release（稳定版）/ Pre-release（预发布版）/ Dev（开发版） |
-| 浏览器安装路径 | 文本输入 | Chrome/Edge 浏览器路径，用于抓取新闻 |
+| 服务端 Chromium 路径 | 文本输入 | 部署 go-stock 的服务器/容器内 Chrome/Edge/Chromium 路径，用于抓取依赖 cookie 的新闻、当前热门等数据；留空自动检测 |
 | 东财唯一标识 | 文本输入 | qgqp_b_id，通过浏览器 F12 开发者工具 → Cookie 获取 |
 | 问财API密钥 | 密码输入 | 同花顺问财开放平台 API Key，配置后可使用问财智能选股、行情查询、研报搜索等功能 |
 | 东财AI密钥 | 密码输入 | 东方财富妙想AI平台 API Key，配置后可使用个股业绩点评功能 |

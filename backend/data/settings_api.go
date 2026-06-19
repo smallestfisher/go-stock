@@ -60,6 +60,8 @@ type AIConfig struct {
 	HttpProxyEnabled bool    `json:"httpProxyEnabled"`
 	SessionId        string  `json:"sessionId" gorm:"index;size:64"`
 	Thinking         bool    `json:"thinking"`
+	ClientProfile    string  `json:"clientProfile" gorm:"column:client_profile"`
+	ClientVersion    string  `json:"clientVersion" gorm:"column:client_version"`
 }
 
 func (AIConfig) TableName() string {
@@ -209,6 +211,8 @@ func updateAiConfigs(aiConfigs []*AIConfig) error {
 				"http_proxy_enabled": item.HttpProxyEnabled,
 				"session_id":         item.SessionId,
 				"thinking":           item.Thinking,
+				"client_profile":     item.ClientProfile,
+				"client_version":     item.ClientVersion,
 			}).Error
 			if e != nil {
 				return

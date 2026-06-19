@@ -36,6 +36,8 @@ func init() {
 	server.Register("FetchAiModels", func(_ context.Context, _ *server.Core, args server.Args) (any, error) {
 		baseUrl := strings.TrimSpace(server.ArgString(args, 0))
 		apiKey := strings.TrimSpace(server.ArgString(args, 1))
+		clientProfile := strings.TrimSpace(server.ArgString(args, 2))
+		clientVersion := strings.TrimSpace(server.ArgString(args, 3))
 		if baseUrl == "" || apiKey == "" {
 			return []string{}, nil
 		}
@@ -47,11 +49,12 @@ func init() {
 		}
 		client := data.SharedHTTPClient
 		client.SetBaseURL(baseUrl)
-		resp, err := client.R().
+		req := client.R().
 			SetHeader("Authorization", "Bearer "+apiKey).
 			SetHeader("Content-Type", "application/json").
-			SetResult(&respData).
-			Get("/models")
+			SetResult(&respData)
+		req = data.ApplyAIClientProfileHeaders(req, clientProfile, clientVersion)
+		resp, err := req.Get("/models")
 		if err != nil {
 			log.SugaredLogger.Errorf("FetchAiModels error: %v", err)
 			return []string{}, nil

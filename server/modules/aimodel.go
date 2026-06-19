@@ -21,6 +21,8 @@ func init() {
 		baseUrl := strings.TrimSpace(server.ArgString(args, 0))
 		apiKey := strings.TrimSpace(server.ArgString(args, 1))
 		modelName := strings.TrimSpace(server.ArgString(args, 2))
+		clientProfile := strings.TrimSpace(server.ArgString(args, 3))
+		clientVersion := strings.TrimSpace(server.ArgString(args, 4))
 		if baseUrl == "" || modelName == "" {
 			return nil, nil
 		}
@@ -37,11 +39,12 @@ func init() {
 			var detail modelDetail
 			client := data.SharedHTTPClient
 			client.SetBaseURL(baseUrl)
-			resp, err := client.R().
+			req := client.R().
 				SetHeader("Authorization", "Bearer "+apiKey).
 				SetHeader("Content-Type", "application/json").
-				SetResult(&detail).
-				Get("/models/" + modelName)
+				SetResult(&detail)
+			req = data.ApplyAIClientProfileHeaders(req, clientProfile, clientVersion)
+			resp, err := req.Get("/models/" + modelName)
 			if err == nil && !resp.IsError() && detail.ID != "" {
 				switch {
 				case detail.MaxContextLen > 0:
@@ -78,11 +81,11 @@ func getBuiltinModelMaxTokens(modelName string) int {
 		"claude-3-5-sonnet": 8192, "claude-3-5-haiku": 8192,
 		"claude-3-opus": 4096, "claude-3-sonnet": 4096, "claude-3-haiku": 4096,
 		"glm-4": 8192, "glm-4-plus": 4096, "glm-4-air": 4096, "glm-4-flash": 4096, "glm-4-long": 4096,
-		"chatglm-turbo": 4096,
+		"chatglm-turbo":  4096,
 		"moonshot-v1-8k": 8192, "moonshot-v1-32k": 32768, "moonshot-v1-128k": 131072,
 		"qwen-turbo": 8192, "qwen-plus": 131072, "qwen-max": 8192, "qwen-long": 65536,
 		"qwen2.5-72b-instruct": 32768,
-		"hunyuan-lite": 4096, "hunyuan-standard": 4096, "hunyuan-pro": 4096, "hunyuan-turbo": 4096,
+		"hunyuan-lite":         4096, "hunyuan-standard": 4096, "hunyuan-pro": 4096, "hunyuan-turbo": 4096,
 		"spark-lite": 4096, "spark-pro": 4096, "spark-max": 4096, "spark-4.0-ultra": 4096,
 		"yi-light": 16384, "yi-large": 16384, "yi-medium": 16384, "yi-spark": 16384, "yi-vision": 16384,
 		"abab6.5-chat": 8192, "abab6.5s-chat": 8192, "abab5.5-chat": 4096,

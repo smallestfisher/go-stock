@@ -166,12 +166,12 @@ export function ExportConfig() {
   return rpc("ExportConfig", []);
 }
 
-export function FetchAiModelInfo(arg1, arg2, arg3) {
-  return rpc("FetchAiModelInfo", [arg1, arg2, arg3]);
+export function FetchAiModelInfo(arg1, arg2, arg3, arg4, arg5) {
+  return rpc("FetchAiModelInfo", [arg1, arg2, arg3, arg4, arg5]);
 }
 
-export function FetchAiModels(arg1, arg2) {
-  return rpc("FetchAiModels", [arg1, arg2]);
+export function FetchAiModels(arg1, arg2, arg3, arg4) {
+  return rpc("FetchAiModels", [arg1, arg2, arg3, arg4]);
 }
 
 export function FetchAndSaveMarketStatistic() {

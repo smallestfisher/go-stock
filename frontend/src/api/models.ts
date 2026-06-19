@@ -17,6 +17,8 @@ export namespace data {
 	    httpProxyEnabled: boolean;
 	    sessionId: string;
 	    thinking: boolean;
+	    clientProfile: string;
+	    clientVersion: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AIConfig(source);
@@ -38,6 +40,8 @@ export namespace data {
 	        this.httpProxyEnabled = source["httpProxyEnabled"];
 	        this.sessionId = source["sessionId"];
 	        this.thinking = source["thinking"];
+	        this.clientProfile = source["clientProfile"];
+	        this.clientVersion = source["clientVersion"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

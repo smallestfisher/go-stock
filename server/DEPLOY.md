@@ -15,9 +15,11 @@
 
 - Go 1.26+
 - Node.js（建议 18+，构建前端）
-- **无头 Chromium**（chromedp 依赖）：抓东方财富 cookie、雪球等数据源需要。
+- **服务端无头 Chromium**（chromedp 依赖）：抓东方财富 cookie、雪球当前热门等数据源需要。
   - Linux：`apt install chromium-browser` 或 `google-chrome`（启动日志会打印检测到的路径）
-  - 无 Chromium 时，这两个数据源会降级，其余功能不受影响。
+  - 设置页里的“服务端 Chromium 路径”指部署 go-stock 的服务器/容器内浏览器可执行文件路径，不是访问 Web 页面那台电脑的浏览器。
+  - 该路径留空时服务端会自动检测 Edge/Chrome/Chromium；容器部署建议把 Chromium 安装进镜像。
+  - 无 Chromium 时，依赖 cookie 的“当前热门”等数据源会降级，其余功能不受影响。
 
 ## 构建
 
