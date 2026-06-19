@@ -34,17 +34,31 @@ func AIClientProfileHeaders(profile, version string) map[string]string {
 	switch profile {
 	case AIClientProfileClaude:
 		if version == "" {
-			version = "2023-06-01"
+			version = "2.1.178"
 		}
-		headers["anthropic-version"] = version
-		headers["user-agent"] = "claude-cli/" + version
-		headers["x-go-stock-client-version"] = version
+		headers = map[string]string{
+			"accept":                                    "application/json",
+			"x-app":                                     "cli",
+			"user-agent":                                fmt.Sprintf("claude-cli/%s (external, cli)", version),
+			"anthropic-beta":                            "claude-code-20250219,interleaved-thinking-2025-05-14,redact-thinking-2026-02-12,context-management-2025-06-27,prompt-caching-scope-2026-01-05,mid-conversation-system-2026-04-07,effort-2025-11-24",
+			"anthropic-version":                         "2023-06-01",
+			"x-stainless-os":                            "Linux",
+			"x-stainless-arch":                          "x64",
+			"x-stainless-lang":                          "js",
+			"x-stainless-runtime":                       "node",
+			"x-stainless-timeout":                       "600",
+			"x-stainless-retry-count":                   "0",
+			"x-stainless-package-version":               "0.94.0",
+			"x-stainless-runtime-version":               "v24.3.0",
+			"x-claude-code-session-id":                  newClientProfileID(),
+			"anthropic-dangerous-direct-browser-access": "true",
+		}
 	case AIClientProfileCodex:
 		if version == "" {
 			version = "0.139.0"
 		}
-		sessionID := newCodexLikeID()
-		turnID := newCodexLikeID()
+		sessionID := newClientProfileID()
+		turnID := newClientProfileID()
 		windowID := sessionID + ":0"
 		headers = map[string]string{
 			"accept":                "application/json",
@@ -74,7 +88,7 @@ func AIClientProfileHeaders(profile, version string) map[string]string {
 	return headers
 }
 
-func newCodexLikeID() string {
+func newClientProfileID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		now := time.Now().UnixNano()

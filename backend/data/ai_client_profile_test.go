@@ -14,19 +14,52 @@ func TestAIClientProfileHeadersDefaultIsEmpty(t *testing.T) {
 }
 
 func TestAIClientProfileHeadersClaude(t *testing.T) {
-	headers := AIClientProfileHeaders("claude", "2023-06-01")
+	headers := AIClientProfileHeaders("claude", "2.1.178")
 
+	if got := headers["accept"]; got != "application/json" {
+		t.Fatalf("accept = %q, want %q", got, "application/json")
+	}
+	if got := headers["x-app"]; got != "cli" {
+		t.Fatalf("x-app = %q, want %q", got, "cli")
+	}
 	if got := headers["anthropic-version"]; got != "2023-06-01" {
 		t.Fatalf("anthropic-version = %q, want %q", got, "2023-06-01")
 	}
-	if got := headers["user-agent"]; got != "claude-cli/2023-06-01" {
-		t.Fatalf("user-agent = %q, want %q", got, "claude-cli/2023-06-01")
+	if got := headers["anthropic-beta"]; !strings.Contains(got, "claude-code-20250219") || !strings.Contains(got, "interleaved-thinking-2025-05-14") {
+		t.Fatalf("anthropic-beta = %q", got)
 	}
-	if got := headers["x-go-stock-client-profile"]; got != "claude" {
-		t.Fatalf("x-go-stock-client-profile = %q, want %q", got, "claude")
+	if got := headers["user-agent"]; got != "claude-cli/2.1.178 (external, cli)" {
+		t.Fatalf("user-agent = %q, want %q", got, "claude-cli/2.1.178 (external, cli)")
 	}
-	if got := headers["x-go-stock-client-version"]; got != "2023-06-01" {
-		t.Fatalf("x-go-stock-client-version = %q, want %q", got, "2023-06-01")
+	if got := headers["x-stainless-os"]; got != "Linux" {
+		t.Fatalf("x-stainless-os = %q", got)
+	}
+	if got := headers["x-stainless-arch"]; got != "x64" {
+		t.Fatalf("x-stainless-arch = %q", got)
+	}
+	if got := headers["x-stainless-lang"]; got != "js" {
+		t.Fatalf("x-stainless-lang = %q", got)
+	}
+	if got := headers["x-stainless-runtime"]; got != "node" {
+		t.Fatalf("x-stainless-runtime = %q", got)
+	}
+	if got := headers["x-stainless-timeout"]; got != "600" {
+		t.Fatalf("x-stainless-timeout = %q", got)
+	}
+	if got := headers["x-stainless-retry-count"]; got != "0" {
+		t.Fatalf("x-stainless-retry-count = %q", got)
+	}
+	if got := headers["x-stainless-package-version"]; got != "0.94.0" {
+		t.Fatalf("x-stainless-package-version = %q", got)
+	}
+	if got := headers["x-stainless-runtime-version"]; got != "v24.3.0" {
+		t.Fatalf("x-stainless-runtime-version = %q", got)
+	}
+	if got := headers["anthropic-dangerous-direct-browser-access"]; got != "true" {
+		t.Fatalf("anthropic-dangerous-direct-browser-access = %q", got)
+	}
+	if got := headers["x-claude-code-session-id"]; got == "" {
+		t.Fatalf("x-claude-code-session-id should be set")
 	}
 }
 

@@ -150,7 +150,7 @@ function onClientProfileChange(aiConfig, profile) {
   if (!profile) {
     aiConfig.clientVersion = ''
   } else if (profile === 'claude' && !aiConfig.clientVersion) {
-    aiConfig.clientVersion = '2023-06-01'
+    aiConfig.clientVersion = '2.1.178'
   } else if (profile === 'codex' && !aiConfig.clientVersion) {
     aiConfig.clientVersion = '0.139.0'
   }
