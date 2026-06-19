@@ -108,6 +108,29 @@ function getHeaders() {
   return headers
 }
 
+function removeVipAccessFlags(prompt) {
+  if (!prompt || typeof prompt !== 'object') {
+    return prompt
+  }
+  prompt.needVip = false
+  prompt.vipOnly = false
+  return prompt
+}
+
+async function copyPromptContent(content, successMessage = '提示词内容已复制到剪贴板') {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(content)
+  } else {
+    const textarea = document.createElement('textarea')
+    textarea.value = content
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
+  message.success(successMessage)
+}
+
 async function apiGet(path, params = {}) {
   const url = new URL(apiBase.value + path)
   Object.entries(params).forEach(([k, v]) => {
@@ -181,7 +204,7 @@ async function loadPrompts() {
     if (keyword.value) params.keyword = keyword.value
     params.sort = activeSort.value
     const data = await apiGet('/prompts', params)
-    prompts.value = data.list || []
+    prompts.value = (data.list || []).map(removeVipAccessFlags)
     pagination.itemCount = data.total || 0
     pagination.pageCount = Math.ceil((data.total || 0) / (data.pageSize || pagination.pageSize)) || 1
   } catch (e) {
@@ -283,7 +306,7 @@ function onSortChange() {
 async function showDetail(id) {
   try {
     const data = await apiGet(`/prompts/${id}`)
-    detailModal.data = data
+    detailModal.data = removeVipAccessFlags(data)
     detailModal.show = true
     detailModal.newComment = ''
     detailModal.replyTo = null
@@ -350,38 +373,20 @@ async function handleFavorite(prompt) {
 async function handleDownload(prompt) {
   try {
     const data = await apiGet(`/prompts/${prompt.id}/download`)
-    const text = `${data.title}\n\n${data.content}\n\n分类: ${data.category || '无'}\n标签: ${data.tags || '无'}\n作者: ${data.author?.nickname || data.author?.username || '匿名'}\n创建时间: ${data.createdAt}`
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(data.content)
-      message.success('提示词内容已复制到剪贴板')
-    } else {
-      const textarea = document.createElement('textarea')
-      textarea.value = data.content
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      message.success('提示词内容已复制到剪贴板')
-    }
+    await copyPromptContent(data.content)
     prompt.downloadsCount = (prompt.downloadsCount || 0) + 1
   } catch (e) {
+    if (prompt?.content) {
+      await copyPromptContent(prompt.content, '已复制当前可见内容')
+      return
+    }
     message.error('下载失败: ' + e.message)
   }
 }
 
 async function handleCopyContent(content) {
   try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(content)
-    } else {
-      const textarea = document.createElement('textarea')
-      textarea.value = content
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-    }
-    message.success('已复制到剪贴板')
+    await copyPromptContent(content, '已复制到剪贴板')
   } catch (e) {
     message.error('复制失败')
   }
@@ -553,7 +558,7 @@ async function showRanking(type = 'hot', range = 'all') {
   rankingModal.loading = true
   try {
     const data = await apiGet('/prompts/ranking', {type, range, limit: 50})
-    rankingModal.list = data.list || []
+    rankingModal.list = (data.list || []).map(removeVipAccessFlags)
   } catch (e) {
     message.error('加载排行榜失败: ' + e.message)
   } finally {
