@@ -65,6 +65,179 @@ GO_STOCK_TOKEN=请改成你自己的强随机令牌 \
 - SSE 经反代时需关闭缓冲：Nginx 加 `proxy_buffering off;`（代码已设 `X-Accel-Buffering: no`）。
 - 数据目录 `data/`（含 `stock.db`）与 `logs/` 需持久化（挂载卷）。
 
+## 生产部署推荐流程
+
+生产环境建议把 go-stock 放在固定目录，用 systemd 守护进程，并通过 Nginx/Caddy 提供 HTTPS。
+
+### 1. 准备目录和依赖
+
+示例目录使用 `/opt/go-stock`，也可以按实际运维规范调整：
+
+```bash
+sudo mkdir -p /opt/go-stock
+sudo chown -R $USER:$USER /opt/go-stock
+
+sudo apt update
+sudo apt install -y git build-essential chromium-browser
+```
+
+安装 Go 1.26+ 和 Node.js 18+。如果服务器内存不足，前端可以在本地或 CI 构建好 `frontend/dist` 后上传到服务器。
+
+### 2. 拉取代码并构建
+
+```bash
+cd /opt/go-stock
+git clone <你的仓库地址> .
+
+# 前端构建；内存紧张时建议放到 CI 或其他机器构建
+cd frontend
+npm install --registry=https://registry.npmmirror.com
+NODE_OPTIONS="--max-old-space-size=8192" npm run build
+cd ..
+
+# 服务端构建
+GOPROXY=https://goproxy.cn,direct go build -o bin/go-stock-server ./server/cmd/server
+```
+
+运行目录内需要保留仓库自带的 `build/` 和 `docs/`，首次启动会用它们导入基础数据和读取使用手册。
+
+### 3. 配置环境文件
+
+创建 `/etc/go-stock.env`：
+
+```bash
+GO_STOCK_ADDR=127.0.0.1:18888
+GO_STOCK_TOKEN=请改成强随机访问令牌
+```
+
+生产环境建议只监听 `127.0.0.1:18888`，由反向代理对外暴露 HTTPS。不要把 `GO_STOCK_TOKEN` 留空。
+
+### 4. 配置 systemd
+
+创建 `/etc/systemd/system/go-stock.service`：
+
+```ini
+[Unit]
+Description=go-stock web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/go-stock
+EnvironmentFile=/etc/go-stock.env
+ExecStart=/opt/go-stock/bin/go-stock-server
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启动并设置开机自启：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now go-stock
+sudo systemctl status go-stock
+```
+
+查看日志：
+
+```bash
+journalctl -u go-stock -f
+```
+
+### 5. 配置 Nginx HTTPS 反代
+
+Nginx 示例：
+
+```nginx
+server {
+    listen 80;
+    server_name your.domain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your.domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/your.domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your.domain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:18888;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE 流式输出需要关闭缓冲
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+```
+
+证书可以用 Certbot 或 Caddy 自动签发。使用 Caddy 时直接反代到 `127.0.0.1:18888` 即可。
+
+### 6. 数据持久化和备份
+
+必须持久化并定期备份：
+
+```text
+data/
+logs/
+frontend/dist/
+```
+
+其中 `data/stock.db` 保存自选股、分组、AI 配置、提示词、定时任务等数据。升级和重新部署时不要删除 `data/`。
+
+备份示例：
+
+```bash
+mkdir -p /opt/backups/go-stock
+tar czf /opt/backups/go-stock/go-stock-data-$(date +%F-%H%M%S).tar.gz data logs
+```
+
+### 7. 升级发布
+
+```bash
+cd /opt/go-stock
+git pull
+
+# 如前端有变化，重新构建 frontend/dist
+cd frontend
+npm install --registry=https://registry.npmmirror.com
+NODE_OPTIONS="--max-old-space-size=8192" npm run build
+cd ..
+
+GOPROXY=https://goproxy.cn,direct go build -o bin/go-stock-server ./server/cmd/server
+sudo systemctl restart go-stock
+journalctl -u go-stock -n 100 --no-pager
+```
+
+升级前建议先备份 `data/`。如果使用 CI 构建前端，把新的 `frontend/dist` 和服务端二进制同步到生产目录后重启服务。
+
+### 8. Chromium 配置
+
+“服务端 Chromium 路径”是部署 go-stock 的服务器/容器内浏览器可执行文件路径，不是访问 Web 页面那台电脑的浏览器。留空时服务端会自动检测。
+
+常见路径：
+
+```text
+/usr/bin/chromium-browser
+/usr/bin/chromium
+/usr/bin/google-chrome
+```
+
+如果“当前热门”、雪球或依赖 cookie 的数据源异常，先检查服务器是否安装 Chromium，并在设置页填入实际路径。
+
 ## 复用已有数据
 
 把旧部署的 `data/stock.db`（及 `data/` 下其余文件）直接拷到服务端工作目录的 `data/`，
