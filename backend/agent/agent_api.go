@@ -1168,7 +1168,15 @@ func fallbackWithOpenAI(ctx context.Context, ch chan *schema.Message, messages [
 		if item == nil {
 			continue
 		}
-		code, _ := item["code"].(float64)
+		code := 0
+		switch v := item["code"].(type) {
+		case int:
+			code = v
+		case int64:
+			code = int(v)
+		case float64:
+			code = int(v)
+		}
 		if code == 0 {
 			content, _ := item["content"].(string)
 			if content != "" {

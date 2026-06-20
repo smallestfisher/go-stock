@@ -49,7 +49,9 @@ function findStockList(val) {
   const q = val.trim().toLowerCase()
   const filtered = stockList.value.filter(item =>
     item.name.toLowerCase().includes(q) ||
-    item.ts_code.toLowerCase().includes(q)
+    item.ts_code.toLowerCase().includes(q) ||
+    String(item.symbol || '').toLowerCase().includes(q) ||
+    String(item.cnspell || '').toLowerCase().includes(q)
   ).slice(0, 30)
   options.value = filtered.map(item => ({
     label: item.name + ' - ' + item.ts_code,
@@ -57,17 +59,50 @@ function findStockList(val) {
   }))
 }
 
-function handleSearch(value) {
-  const emCode = toEastMoneyCode(value)
+function normalizeSearchValue(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const parts = raw.split(' - ')
+  return parts.length > 1 ? parts[parts.length - 1].trim() : raw
+}
+
+function findStockByQuery(value) {
+  const raw = normalizeSearchValue(value)
+  if (!raw) return null
+  const q = raw.toLowerCase()
+  return stockList.value.find(item =>
+    String(item.ts_code || '').toLowerCase() === q ||
+    String(item.name || '').toLowerCase() === q ||
+    String(item.symbol || '').toLowerCase() === q ||
+    String(item.cnspell || '').toLowerCase() === q
+  ) || stockList.value.find(item =>
+    String(item.ts_code || '').toLowerCase().startsWith(q + '.') ||
+    String(item.ts_code || '').toLowerCase().startsWith(q)
+  ) || null
+}
+
+function applySearch(value) {
+  const raw = normalizeSearchValue(value)
+  const found = findStockByQuery(raw)
+  const code = found ? found.ts_code : raw
+  const emCode = toEastMoneyCode(code)
   if (!emCode) {
     unsupportedCode.value = true
     return
   }
   unsupportedCode.value = false
   selectedCode.value = emCode
-  const found = stockList.value.find(item => item.ts_code === value)
   selectedName.value = found ? found.name : ''
-  addToRecent(value, selectedName.value)
+  addToRecent(code, selectedName.value)
+  searchQuery.value = found ? `${found.name} - ${found.ts_code}` : code
+}
+
+function handleSearch(value) {
+  applySearch(value)
+}
+
+function submitSearch() {
+  applySearch(searchQuery.value)
 }
 
 function addToRecent(code, name) {
@@ -162,8 +197,9 @@ onBeforeUnmount(() => {
           clearable
           :on-select="handleSearch"
           @update:value="findStockList"
+          @keydown.enter.prevent="submitSearch"
         />
-        <n-button type="primary">
+        <n-button type="primary" @click="submitSearch">
           🔍
         </n-button>
       </n-input-group>

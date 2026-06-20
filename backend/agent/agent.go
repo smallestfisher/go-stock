@@ -95,7 +95,7 @@ func classifyComplexity(question string) AgentMode {
 }
 
 func GetStockAiAgent(ctx *context.Context, aiConfig data.AIConfig, question string, agentMode string) *AgentInstance {
-	logger.SugaredLogger.Infof("GetStockAiAgent aiConfig: %v", aiConfig)
+	logger.SugaredLogger.Infof("GetStockAiAgent aiConfig: %s", aiConfigLogString(aiConfig))
 	toolableChatModel, err := createChatModel(*ctx, aiConfig)
 	if err != nil {
 		logger.SugaredLogger.Error(err.Error())
@@ -123,6 +123,22 @@ func GetStockAiAgent(ctx *context.Context, aiConfig data.AIConfig, question stri
 	default:
 		return createReactAgent(*ctx, toolableChatModel, allTools, aiConfig)
 	}
+}
+
+func aiConfigLogString(aiConfig data.AIConfig) string {
+	return fmt.Sprintf(
+		"AIConfig{ID:%d Name:%q BaseUrl:%q ModelName:%q MaxTokens:%d Temperature:%.2f TimeOut:%d HttpProxyEnabled:%t Thinking:%t ClientProfile:%q}",
+		aiConfig.ID,
+		aiConfig.Name,
+		aiConfig.BaseUrl,
+		aiConfig.ModelName,
+		aiConfig.MaxTokens,
+		aiConfig.Temperature,
+		aiConfig.TimeOut,
+		aiConfig.HttpProxyEnabled,
+		aiConfig.Thinking,
+		aiConfig.ClientProfile,
+	)
 }
 
 func createReactAgent(ctx context.Context, chatModel model.ToolCallingChatModel, allTools []tool.BaseTool, aiConfig data.AIConfig) *AgentInstance {

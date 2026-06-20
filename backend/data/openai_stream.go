@@ -72,81 +72,7 @@ func (o *OpenAi) NewSummaryStockNewsStreamWithTools(userQuestion string, sysProm
 			"reasoning_content": "使用工具查询",
 			"content":           "当前本地时间是:" + time.Now().Format("2006-01-02 15:04:05"),
 		})
-		wg := &sync.WaitGroup{}
 
-		//wg.Go(func() {
-		//	datas := NewMarketNewsApi().InteractiveAnswer(1, 100, "")
-		//	content := util.MarkdownTableWithTitle("当前最新投资者互动数据", datas.Results)
-		//	msg = append(msg, map[string]interface{}{
-		//		"role":    "user",
-		//		"content": "投资者互动数据",
-		//	})
-		//	msg = append(msg, map[string]interface{}{
-		//		"role":              "assistant",
-		//		"reasoning_content": "使用工具查询",
-		//		"content":           content,
-		//	})
-		//})
-
-		wg.Go(func() {
-			var market strings.Builder
-			res := NewMarketNewsApi().GetGDP()
-			md := util.MarkdownTableWithTitle("国内生产总值(GDP)", res.GDPResult.Data)
-			market.WriteString(md)
-			res2 := NewMarketNewsApi().GetCPI()
-			md2 := util.MarkdownTableWithTitle("居民消费价格指数(CPI)", res2.CPIResult.Data)
-			market.WriteString(md2)
-			res3 := NewMarketNewsApi().GetPPI()
-			md3 := util.MarkdownTableWithTitle("工业品出厂价格指数(PPI)", res3.PPIResult.Data)
-			market.WriteString(md3)
-			res4 := NewMarketNewsApi().GetPMI()
-			md4 := util.MarkdownTableWithTitle("采购经理人指数(PMI)", res4.PMIResult.Data)
-			market.WriteString(md4)
-
-			msg = append(msg, map[string]interface{}{
-				"role":    "user",
-				"content": "国内宏观经济数据",
-			})
-			msg = append(msg, map[string]interface{}{
-				"role":              "assistant",
-				"reasoning_content": "使用工具查询",
-				"content":           "\n# 国内宏观经济数据：\n" + market.String(),
-			})
-		})
-
-		wg.Go(func() {
-			md := strings.Builder{}
-			res := NewMarketNewsApi().ClsCalendar()
-			for _, a := range res {
-				bytes, err := json.Marshal(a)
-				if err != nil {
-					continue
-				}
-				date := gjson.Get(string(bytes), "calendar_day")
-				md.WriteString("\n### 事件/会议日期：" + date.String())
-				list := gjson.Get(string(bytes), "items")
-				list.ForEach(func(key, value gjson.Result) bool {
-					//logger.SugaredLogger.Debugf("key: %+v,value: %+v", key.String(), gjson.Get(value.String(), "title"))
-					md.WriteString("\n- " + gjson.Get(value.String(), "title").String())
-					return true
-				})
-			}
-			msg = append(msg, map[string]interface{}{
-				"role":    "user",
-				"content": "近期重大事件/会议",
-			})
-			msg = append(msg, map[string]interface{}{
-				"role":              "assistant",
-				"reasoning_content": "使用工具查询",
-				"content":           "近期重大事件/会议如下：\n" + md.String(),
-			})
-		})
-
-		wg.Wait()
-
-		//for _, m := range TrimAiAssistantHistoryForAPI(history) {
-		//	msg = append(msg, m)
-		//}
 		if userQuestion == "" {
 			userQuestion = "请根据当前时间，总结和分析股票市场新闻中的投资机会"
 		}
@@ -185,7 +111,6 @@ func (o *OpenAi) NewSummaryStockNewsStream(userQuestion string, sysPromptId *int
 		if sysPrompt == "" {
 			sysPrompt = o.Prompt
 		}
-
 		msg := []map[string]interface{}{
 			{
 				"role":    "system",
@@ -301,6 +226,43 @@ func (o *OpenAi) NewSummaryStockNewsStream(userQuestion string, sysPromptId *int
 	return ch
 }
 
+func buildStockAnalysisContext(stock, stockCode string, followedStock FollowedStock) string {
+	stock = RemoveAllBlankChar(stock)
+	stockCode = RemoveAllBlankChar(stockCode)
+
+	var context strings.Builder
+	context.WriteString("本次AI诊股的股票上下文如下，后续所有分析都必须围绕该股票展开：\n")
+	if stock != "" {
+		context.WriteString("- 股票名称：" + stock + "\n")
+	}
+	if stockCode != "" {
+		context.WriteString("- 股票代码：" + stockCode + "\n")
+	}
+	if followedStock.Name != "" && followedStock.Name != stock {
+		context.WriteString("- 自选股名称：" + followedStock.Name + "\n")
+	}
+	if followedStock.StockCode != "" && followedStock.StockCode != stockCode {
+		context.WriteString("- 自选股代码：" + followedStock.StockCode + "\n")
+	}
+	if followedStock.CostPrice > 0 {
+		context.WriteString(fmt.Sprintf("- 用户持仓成本价：%.4f\n", followedStock.CostPrice))
+	}
+	if followedStock.Volume > 0 {
+		context.WriteString(fmt.Sprintf("- 用户持仓数量：%d\n", followedStock.Volume))
+	}
+	if followedStock.EntryPrice > 0 {
+		context.WriteString(fmt.Sprintf("- 开仓价：%.4f\n", followedStock.EntryPrice))
+	}
+	if followedStock.TakeProfitPrice > 0 {
+		context.WriteString(fmt.Sprintf("- 止盈价：%.4f\n", followedStock.TakeProfitPrice))
+	}
+	if followedStock.StopLossPrice > 0 {
+		context.WriteString(fmt.Sprintf("- 止损价：%.4f\n", followedStock.StopLossPrice))
+	}
+	context.WriteString("如果用户只提到成本价、持仓、后续操作等问题，默认都是针对上述股票；不要反问用户是哪只股票。实时行情、K线、财务、新闻、公告等数据必须优先通过工具获取。")
+	return context.String()
+}
+
 func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptId *int, tools []Tool, thinking bool) <-chan map[string]any {
 	ch := make(chan map[string]any, 512)
 
@@ -328,6 +290,11 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 		if sysPrompt == "" {
 			sysPrompt = o.Prompt
 		}
+		if len(tools) > 0 {
+			sysPrompt += `
+
+【实时数据规则】分析具体股票时，必须优先通过工具获取实时行情、K线、财务、新闻、公告等数据；如工具未能获取到数据，必须明确说明数据缺失，不能凭记忆编造具体数字。`
+		}
 
 		msg := []map[string]interface{}{
 			{
@@ -354,17 +321,6 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 			"stockCode":     RemoveAllBlankChar(stockCode),
 		}
 		followedStock := NewStockDataApi().GetFollowedStockByStockCode(stockCode)
-		stockData, err := NewStockDataApi().GetStockCodeRealTimeData(stockCode)
-		if err == nil && len(*stockData) > 0 {
-			msg = append(msg, map[string]interface{}{
-				"role":    "user",
-				"content": fmt.Sprintf("当前%s[%s]价格是多少？", stock, stockCode),
-			})
-			msg = append(msg, map[string]interface{}{
-				"role":    "assistant",
-				"content": fmt.Sprintf("截止到%s,当前%s[%s]价格是%s", (*stockData)[0].Date+" "+(*stockData)[0].Time, stock, stockCode, (*stockData)[0].Price),
-			})
-		}
 		if followedStock.CostPrice > 0 {
 			replaceTemplates["{{costPrice}}"] = convertor.ToString(followedStock.CostPrice)
 			replaceTemplates["{costPrice}"] = convertor.ToString(followedStock.CostPrice)
@@ -376,6 +332,31 @@ func (o *OpenAi) NewChatStream(stock, stockCode, userQuestion string, sysPromptI
 			question = strutil.ReplaceWithMap(o.QuestionTemplate, replaceTemplates)
 		} else {
 			question = strutil.ReplaceWithMap(userQuestion, replaceTemplates)
+		}
+
+		if len(tools) > 0 {
+			msg = append(msg, map[string]interface{}{
+				"role":    "user",
+				"content": buildStockAnalysisContext(stock, stockCode, followedStock),
+			})
+			msg = append(msg, map[string]interface{}{
+				"role":    "user",
+				"content": question,
+			})
+			AskAiWithTools(o, errors.New(""), msg, ch, question, tools, thinking)
+			return
+		}
+
+		stockData, err := NewStockDataApi().GetStockCodeRealTimeData(stockCode)
+		if err == nil && len(*stockData) > 0 {
+			msg = append(msg, map[string]interface{}{
+				"role":    "user",
+				"content": fmt.Sprintf("当前%s[%s]价格是多少？", stock, stockCode),
+			})
+			msg = append(msg, map[string]interface{}{
+				"role":    "assistant",
+				"content": fmt.Sprintf("截止到%s,当前%s[%s]价格是%s", (*stockData)[0].Date+" "+(*stockData)[0].Time, stock, stockCode, (*stockData)[0].Price),
+			})
 		}
 
 		wg := &sync.WaitGroup{}
