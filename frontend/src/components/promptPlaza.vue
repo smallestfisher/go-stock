@@ -1,18 +1,18 @@
 <script setup>
-import {computed, h, onBeforeMount, onMounted, ref, reactive} from 'vue'
+import {computed, onMounted, ref, reactive} from 'vue'
 import {GetConfig, AddPromptTemplate} from "../api/app";
 import {useMessage, useDialog} from "naive-ui";
 import {MdPreview, MdEditor} from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import 'md-editor-v3/lib/style.css'
 import {EventsEmit} from '../api/runtime'
+import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../api/promptPlaza";
 
 const message = useMessage()
 const dialog = useDialog()
 
 const darkTheme = ref(false)
 const editorTheme = ref('light')
-const apiBase = ref('http://go-stock.sparkmemory.top:1918/api')
 const token = ref(localStorage.getItem('promptPlazaToken') || '')
 const currentUser = ref(null)
 const categories = ref([])
@@ -80,19 +80,20 @@ const editModal = reactive({
 
 const isLoggedIn = computed(() => !!token.value)
 
-onBeforeMount(() => {
-  GetConfig().then(result => {
+async function loadConfig() {
+  try {
+    const result = await GetConfig()
     if (result.darkTheme) {
       darkTheme.value = true
       editorTheme.value = 'dark'
     }
-    if (result.promptPlazaApiBase) {
-      apiBase.value = result.promptPlazaApiBase
-    }
-  })
-})
+  } catch (e) {
+    console.warn('加载配置失败', e)
+  }
+}
 
-onMounted(() => {
+onMounted(async () => {
+  await loadConfig()
   loadCategories()
   loadPrompts()
   if (token.value) {
@@ -101,11 +102,7 @@ onMounted(() => {
 })
 
 function getHeaders() {
-  const headers = {'Content-Type': 'application/json'}
-  if (token.value) {
-    headers['Authorization'] = `Bearer ${token.value}`
-  }
-  return headers
+  return promptPlazaHeaders(token.value)
 }
 
 function removeVipAccessFlags(prompt) {
@@ -132,56 +129,34 @@ async function copyPromptContent(content, successMessage = '提示词内容已�
 }
 
 async function apiGet(path, params = {}) {
-  const url = new URL(apiBase.value + path)
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== null && v !== undefined && v !== '') {
-      url.searchParams.set(k, v)
-    }
-  })
-  const resp = await fetch(url.toString(), {headers: getHeaders()})
-  const json = await resp.json()
-  if (json.code !== 0) {
-    throw new Error(json.message || '请求失败')
-  }
-  return json.data
+  const resp = await fetch(promptPlazaURL(path, params), {headers: getHeaders()})
+  return parsePromptPlazaResponse(resp)
 }
 
 async function apiPost(path, body = null) {
-  const resp = await fetch(apiBase.value + path, {
+  const resp = await fetch(promptPlazaURL(path), {
     method: 'POST',
     headers: getHeaders(),
     body: body ? JSON.stringify(body) : null
   })
-  const json = await resp.json()
-  if (json.code !== 0) {
-    throw new Error(json.message || '请求失败')
-  }
-  return json.data
+  return parsePromptPlazaResponse(resp)
 }
 
 async function apiPut(path, body) {
-  const resp = await fetch(apiBase.value + path, {
+  const resp = await fetch(promptPlazaURL(path), {
     method: 'PUT',
     headers: getHeaders(),
     body: JSON.stringify(body)
   })
-  const json = await resp.json()
-  if (json.code !== 0) {
-    throw new Error(json.message || '请求失败')
-  }
-  return json.data
+  return parsePromptPlazaResponse(resp)
 }
 
 async function apiDelete(path) {
-  const resp = await fetch(apiBase.value + path, {
+  const resp = await fetch(promptPlazaURL(path), {
     method: 'DELETE',
     headers: getHeaders()
   })
-  const json = await resp.json()
-  if (json.code !== 0) {
-    throw new Error(json.message || '请求失败')
-  }
-  return json.data
+  return parsePromptPlazaResponse(resp)
 }
 
 async function loadCategories() {

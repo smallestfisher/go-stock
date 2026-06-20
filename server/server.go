@@ -29,6 +29,9 @@ func Start(core *Core, addr string) error {
 	// SSE 事件总线：前端订阅它接收后端推送(行情、资讯、AI 流式等)
 	api.HandleFunc("/api/events", core.Events.ServeSSE)
 
+	api.HandleFunc("/api/prompt-plaza", promptPlazaProxyHandler)
+	api.HandleFunc("/api/prompt-plaza/", promptPlazaProxyHandler)
+
 	// 统一 RPC 桥：前端桩 POST /api/rpc/{Method}，由各功能模块注册的 handler 处理。
 	api.HandleFunc("/api/rpc/", RPCDispatcher(core))
 
@@ -96,8 +99,8 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Go-Stock-Client-Id")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Go-Stock-Client-Id, X-Go-Stock-Token")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

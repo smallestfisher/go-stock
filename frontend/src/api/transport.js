@@ -19,6 +19,11 @@ export function getToken() {
   }
 }
 
+export function serverURL(path) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  return new URL(BASE_URL + path, origin).toString();
+}
+
 export function setToken(token) {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);

@@ -1,16 +1,16 @@
 <script setup>
-import {computed, onBeforeMount, onMounted, ref, reactive} from 'vue'
+import {computed, onMounted, ref, reactive} from 'vue'
 import {GetConfig} from "../api/app";
 import {useMessage, useDialog} from "naive-ui"
 import {MdPreview} from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
+import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../api/promptPlaza";
 
 const message = useMessage()
 const dialog = useDialog()
 
 const darkTheme = ref(false)
 const editorTheme = ref('light')
-const apiBase = ref('http://go-stock.sparkmemory.top:1918/api')
 const token = ref(localStorage.getItem('promptPlazaToken') || '')
 const currentUser = ref(null)
 const keyword = ref('')
@@ -41,19 +41,20 @@ const askModal = reactive({
 
 const isLoggedIn = computed(() => !!token.value)
 
-onBeforeMount(() => {
-  GetConfig().then(result => {
+async function loadConfig() {
+  try {
+    const result = await GetConfig()
     if (result.darkTheme) {
       darkTheme.value = true
       editorTheme.value = 'dark'
     }
-    if (result.promptPlazaApiBase) {
-      apiBase.value = result.promptPlazaApiBase
-    }
-  })
-})
+  } catch (e) {
+    console.warn('加载配置失败', e)
+  }
+}
 
-onMounted(() => {
+onMounted(async () => {
+  await loadConfig()
   loadQuestions()
   if (token.value) {
     fetchCurrentUser()
@@ -61,51 +62,29 @@ onMounted(() => {
 })
 
 function getHeaders() {
-  const headers = {'Content-Type': 'application/json'}
-  if (token.value) {
-    headers['Authorization'] = `Bearer ${token.value}`
-  }
-  return headers
+  return promptPlazaHeaders(token.value)
 }
 
 async function apiGet(path, params = {}) {
-  const url = new URL(apiBase.value + path)
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== null && v !== undefined && v !== '') {
-      url.searchParams.set(k, v)
-    }
-  })
-  const resp = await fetch(url.toString(), {headers: getHeaders()})
-  const text = await resp.text()
-  let json
-  try {
-    json = JSON.parse(text)
-  } catch (e) {
-    throw new Error(`接口返回非JSON (HTTP ${resp.status}): ${text.substring(0, 200)}`)
-  }
-  if (json.code !== 0) throw new Error(json.message || '请求失败')
-  return json.data
+  const resp = await fetch(promptPlazaURL(path, params), {headers: getHeaders()})
+  return parsePromptPlazaResponse(resp)
 }
 
 async function apiPost(path, body = null) {
-  const resp = await fetch(apiBase.value + path, {
+  const resp = await fetch(promptPlazaURL(path), {
     method: 'POST',
     headers: getHeaders(),
     body: body ? JSON.stringify(body) : null
   })
-  const json = await resp.json()
-  if (json.code !== 0) throw new Error(json.message || '请求失败')
-  return json.data
+  return parsePromptPlazaResponse(resp)
 }
 
 async function apiDelete(path) {
-  const resp = await fetch(apiBase.value + path, {
+  const resp = await fetch(promptPlazaURL(path), {
     method: 'DELETE',
     headers: getHeaders()
   })
-  const json = await resp.json()
-  if (json.code !== 0) throw new Error(json.message || '请求失败')
-  return json.data
+  return parsePromptPlazaResponse(resp)
 }
 
 async function fetchCurrentUser() {

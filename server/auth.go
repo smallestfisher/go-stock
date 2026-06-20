@@ -15,8 +15,9 @@ func configuredToken() string {
 }
 
 // authMiddleware 在配置了令牌时，对 /api/* 强制校验。
-// 令牌可通过两种方式提供：
+// 令牌可通过三种方式提供：
 //   - 标准 HTTP 请求头 Authorization: Bearer <token>（fetch/axios）
+//   - X-Go-Stock-Token 请求头（用于需要把 Authorization 转发给上游服务的代理接口）
 //   - 查询参数 ?token=<token>（EventSource 无法自定义请求头，SSE 走这条）
 func authMiddleware(next http.Handler) http.Handler {
 	token := configuredToken()
@@ -25,7 +26,10 @@ func authMiddleware(next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		provided := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		provided := strings.TrimSpace(r.Header.Get("X-Go-Stock-Token"))
+		if provided == "" {
+			provided = strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		}
 		if provided == "" {
 			provided = strings.TrimSpace(r.URL.Query().Get("token"))
 		}

@@ -8,6 +8,7 @@ import {
   UpdatePromptTemplate
 } from "../api/app";
 import { EventsEmit } from "../api/runtime";
+import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../api/promptPlaza";
 import {NButton, NInput, NTag, NText, NSwitch, useMessage, useNotification,useDialog, NModal, NCard, NForm, NFormItem, NSpace, NPopover} from "naive-ui";
 import { MdEditor, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
@@ -176,8 +177,6 @@ const shareDataRef = reactive({
   loading: false
 })
 
-const promptPlazaApiBase = ref('http://go-stock.sparkmemory.top:1918/api')
-
 function query({ page, pageSize = 10, name = "", type = "", content = "" }) {
   return new Promise((resolve) => {
     GetPromptTemplateList({
@@ -304,11 +303,6 @@ async function showShareModal(row) {
   shareDataRef.tags = ''
   shareDataRef.isPublic = true
   shareDataRef.visible = true
-  await GetConfig().then(result => {
-    if (result.promptPlazaApiBase) {
-      promptPlazaApiBase.value = result.promptPlazaApiBase
-    }
-  })
 }
 
 async function handleShare() {
@@ -323,12 +317,9 @@ async function handleShare() {
   }
   shareDataRef.loading = true
   try {
-    const resp = await fetch(promptPlazaApiBase.value + '/prompts', {
+    const resp = await fetch(promptPlazaURL('/prompts'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: promptPlazaHeaders(token),
       body: JSON.stringify({
         title: shareDataRef.title,
         content: shareDataRef.content,
@@ -338,15 +329,7 @@ async function handleShare() {
         isPublic: shareDataRef.isPublic
       })
     })
-    const json = await resp.json()
-    if (json.code !== 0) {
-      if (json.code === 401) {
-        message.error('登录已过期，请先在"提示词广场"重新登录')
-      } else {
-        message.error('分享失败: ' + (json.message || '未知错误'))
-      }
-      return
-    }
+    await parsePromptPlazaResponse(resp)
     message.success('分享成功！')
     shareDataRef.visible = false
   } catch (e) {
