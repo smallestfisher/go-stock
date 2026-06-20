@@ -134,6 +134,7 @@ func (a *CronTaskApi) GetTaskTypes() []lo.Tuple2[string, string] {
 		{A: "stock_analysis", B: "股票分析"},
 		{A: "market_analysis", B: "市场分析"},
 		{A: "global_stock_index_cache", B: "全球指数缓存"},
+		{A: "market_statistic_save", B: "市场统计保存"},
 		{A: "stock_change_save", B: "异动数据保存"},
 	}
 }
@@ -206,6 +207,8 @@ func (a *CronTaskApi) executeTaskByType(ctx context.Context, task *models.CronTa
 		return a.executeMarketAnalysis(ctx, task)
 	case "global_stock_index_cache":
 		return a.executeGlobalStockIndexCache(ctx, task)
+	case "market_statistic_save":
+		return a.executeMarketStatisticSave(ctx, task)
 	case "fund_analysis":
 		return a.executeFundAnalysis(ctx, task)
 	case "news_fetch":
@@ -383,6 +386,15 @@ func (a *CronTaskApi) executeGlobalStockIndexCache(ctx context.Context, task *mo
 		params.CrawlTimeOut = 30
 	}
 	return data.NewMarketNewsApi().CacheGlobalStockIndexes(params.CrawlTimeOut)
+}
+
+func (a *CronTaskApi) executeMarketStatisticSave(ctx context.Context, task *models.CronTask) error {
+	logger.SugaredLogger.Infof("执行市场统计保存任务：%s", task.Name)
+	if !isTradingTime() {
+		logger.SugaredLogger.Info("当前不在A股交易时间，跳过市场统计保存")
+		return nil
+	}
+	return data.NewMarketStatisticApi().FetchAndSave()
 }
 
 func (a *CronTaskApi) executeStockChangeSave(ctx context.Context, task *models.CronTask) error {

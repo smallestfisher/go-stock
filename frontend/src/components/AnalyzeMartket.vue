@@ -47,6 +47,10 @@ const showChangeRank = ref(false);
 const changeRankDays = ref(1);
 const showBullBearRank = ref(false);
 const bullBearDays = ref(1);
+const marketStatisticLoading = ref(true);
+const hasMarketStatistic = ref(false);
+const changeRankLoading = ref(true);
+const hasChangeRankConcept = ref(false);
 const bullBearStockUpRef = ref(null);
 const bullBearStockDownRef = ref(null);
 const bullBearIndustryUpRef = ref(null);
@@ -160,14 +164,22 @@ function getIndex() {
 }
 
 async function handleChart(){
+  marketStatisticLoading.value = true
   try {
     const data = await GetTodayMarketStatistic()
     if (data && data.length > 0) {
+      hasMarketStatistic.value = true
+      await nextTick()
       renderUpDownChart(data)
       renderLimitChart(data)
+    } else {
+      hasMarketStatistic.value = false
     }
   } catch (error) {
+    hasMarketStatistic.value = false
     console.error('获取市场统计数据失败:', error)
+  } finally {
+    marketStatisticLoading.value = false
   }
 }
 
@@ -1451,6 +1463,7 @@ function renderDateTypeChart(data) {
 }
 
 async function handleChangeRank() {
+  changeRankLoading.value = true
   try {
     const days = changeRankDays.value
     const result = await GetChangeRank(days, 20)
@@ -1473,11 +1486,20 @@ async function handleChangeRank() {
         renderRankChart(changeRankIndustryRef, `${periodLabel}异动次数最多的行业`, result.topIndustries, 'industry')
       }
       if (result.topConcepts && result.topConcepts.length > 0) {
+        hasChangeRankConcept.value = true
+        await nextTick()
         renderRankChart(changeRankConceptRef, `${periodLabel}异动次数最多的概念`, result.topConcepts, 'concept')
+      } else {
+        hasChangeRankConcept.value = false
       }
+    } else {
+      hasChangeRankConcept.value = false
     }
   } catch (error) {
+    hasChangeRankConcept.value = false
     console.error('获取异动排行数据失败:', error)
+  } finally {
+    changeRankLoading.value = false
   }
 }
 
@@ -1924,13 +1946,22 @@ function handleTreemap() {
       </n-flex>
       <n-grid :cols="24" :y-gap="0">
         <n-gi span="8">
-          <div ref="chartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-if="hasMarketStatistic" ref="chartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
+            <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
+          </div>
         </n-gi>
         <n-gi span="8">
-          <div ref="limitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-if="hasMarketStatistic" ref="limitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
+            <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
+          </div>
         </n-gi>
         <n-gi span="8">
-          <div ref="changeRankConceptRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-if="hasChangeRankConcept" ref="changeRankConceptRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
+            <n-empty size="small" :description="changeRankLoading ? '加载异动排行中' : '暂无异动排行数据'" />
+          </div>
         </n-gi>
       </n-grid>
       <n-flex justify="center" style="margin: 8px 0" :wrap="false">
@@ -2028,5 +2059,10 @@ function handleTreemap() {
 </template>
 
 <style scoped>
-
+.market-chart-empty {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
 </style>

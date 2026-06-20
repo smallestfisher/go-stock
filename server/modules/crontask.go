@@ -203,6 +203,21 @@ func InitCronTasks(core *server.Core) {
 			log.SugaredLogger.Info("已自动创建异动数据保存定时任务")
 		}
 	}
+	if !cronApi.ExistsByTaskType("market_statistic_save") {
+		task := &models.CronTask{
+			Name:        "市场统计保存",
+			CronExpr:    "0 */1 * * * *",
+			TaskType:    "market_statistic_save",
+			Enable:      true,
+			Status:      "active",
+			Description: "每分钟自动保存A股涨跌家数和涨跌停统计，交易时间外自动跳过",
+		}
+		if err := cronApi.Create(task); err != nil {
+			log.SugaredLogger.Errorf("自动创建市场统计保存任务失败：%v", err)
+		} else {
+			log.SugaredLogger.Info("已自动创建市场统计保存定时任务")
+		}
+	}
 	tasks := cronApi.GetAll()
 	for _, t := range tasks {
 		taskCopy := t
