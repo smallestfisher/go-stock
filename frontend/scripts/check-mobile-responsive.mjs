@@ -64,6 +64,7 @@ const checks = [
     file: "frontend/src/components/StockLightweightKlineChart.vue",
     expectations: [
       ["lw-kline-top-controls", "mobile compact K-line top controls"],
+      ["lw-kline-mobile-indicators", "mobile K-line indicator controls"],
       ["lw-kline-mobile-compact", "mobile compact K-line rules"],
     ],
   },

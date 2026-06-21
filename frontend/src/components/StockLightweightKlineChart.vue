@@ -3854,7 +3854,7 @@ watch(showLongPosition, (newVal) => {
 <template>
   <div class="lw-kline-root lw-kline-mobile-compact" :class="{ 'lw-kline--dark': darkTheme }">
     <div class="lw-kline-body">
-      <div class="lw-kline-sidebar">
+      <div class="lw-kline-sidebar lw-kline-mobile-indicators">
         <div class="lw-kline-sidebar__inner">
           <NFlex vertical :size="6">
             <div class="lw-kline-sidebar__section">
@@ -4709,11 +4709,49 @@ watch(showLongPosition, (newVal) => {
     display: block;
   }
 
-  .lw-kline-sidebar,
   .lw-kline-crosshair-strip,
   .lw-kline-signal-summary,
   .lw-kline-hint-row {
     display: none !important;
+  }
+
+  .lw-kline-sidebar.lw-kline-mobile-indicators {
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+    max-height: 150px;
+    margin-bottom: 6px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    box-sizing: border-box;
+    padding: 6px;
+    scrollbar-width: thin;
+  }
+
+  .lw-kline--dark .lw-kline-sidebar.lw-kline-mobile-indicators {
+    border-color: #3f3f46;
+  }
+
+  .lw-kline-sidebar__inner {
+    position: static;
+  }
+
+  .lw-kline-sidebar__section {
+    margin-bottom: 8px;
+  }
+
+  .lw-kline-sidebar__section:last-child {
+    margin-bottom: 0;
+  }
+
+  .lw-kline-sidebar__section :deep(.n-flex) {
+    gap: 6px !important;
+  }
+
+  .lw-kline-sidebar__section :deep(.n-button) {
+    min-width: 54px;
   }
 
   .lw-kline-main {
