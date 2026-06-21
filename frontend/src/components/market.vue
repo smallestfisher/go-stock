@@ -413,7 +413,7 @@ function ReFlesh(source) {
 </script>
 
 <template>
-  <n-card>
+  <n-card class="market-page-shell">
     <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="市场快讯" tab="市场快讯">
         <n-grid :cols="1" :y-gap="0">
@@ -421,7 +421,7 @@ function ReFlesh(source) {
             <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
           </n-gi>
           <n-gi>
-            <n-grid :cols="foreignNewsList.length?3:2" :y-gap="0">
+            <n-grid class="market-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
               <n-gi>
                 <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
               </n-gi>
@@ -440,7 +440,7 @@ function ReFlesh(source) {
       <n-tab-pane name="全球股指" tab="全球股指">
         <n-tabs type="segment" animated>
           <n-tab-pane name="全球指数" tab="全球指数">
-            <n-grid :cols="5" :y-gap="0">
+            <n-grid class="market-mobile-scroll" :cols="5" :y-gap="0">
               <n-gi v-for="(val, key) in globalStockIndexes" :key="key">
                 <n-list bordered>
                   <template #header>
@@ -835,7 +835,7 @@ function ReFlesh(source) {
     </template>
   </n-modal>
 
-  <div style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
+  <div class="market-summary-fab" style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
     <n-input-group>
       <n-button type="primary" @click="getAiSummary">
         <n-icon :component="PulseOutline"/> &nbsp;AI总结
@@ -847,4 +847,45 @@ function ReFlesh(source) {
 
 </template>
 <style scoped>
+@media (max-width: 768px) {
+  .market-page-shell {
+    margin: 0 6px 86px;
+    text-align: left;
+  }
+
+  :deep(.market-page-shell > .n-card__content) {
+    padding: 8px;
+  }
+
+  :deep(.market-page-shell .n-tabs-nav-scroll-content) {
+    min-width: max-content;
+  }
+
+  .market-news-grid {
+    display: block !important;
+  }
+
+  .market-news-grid :deep(.n-grid-item) {
+    margin-bottom: 8px;
+  }
+
+  .market-mobile-scroll {
+    display: grid !important;
+    grid-auto-columns: minmax(260px, 82vw);
+    grid-auto-flow: column;
+    grid-template-columns: none !important;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .market-mobile-scroll :deep(.n-grid-item) {
+    scroll-snap-align: start;
+  }
+
+  .market-summary-fab {
+    bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom)) !important;
+    right: 10px !important;
+  }
+}
 </style>

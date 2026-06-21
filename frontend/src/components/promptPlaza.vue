@@ -560,10 +560,10 @@ function timeAgo(timeStr) {
 </script>
 
 <template>
-  <div style="padding: 0">
+  <div class="prompt-plaza-page" style="padding: 0">
     <n-space vertical :size="12">
-      <n-space justify="space-between" align="center">
-        <n-space align="center">
+      <n-space class="prompt-plaza-toolbar" justify="space-between" align="center">
+        <n-space class="prompt-plaza-toolbar__search" align="center">
           <n-input
             v-model:value="keyword"
             placeholder="搜索提示词..."
@@ -588,7 +588,7 @@ function timeAgo(timeStr) {
         </n-space>
       </n-space>
 
-      <n-space align="center" :size="8">
+      <n-space class="prompt-plaza-filters" align="center" :size="8">
         <n-text depth="3" style="font-size: 13px">分类:</n-text>
         <n-radio-group v-model:value="activeCategory" size="small" @update:value="handleCategoryFilter">
           <n-radio-button :value="null">全部</n-radio-button>
@@ -607,7 +607,7 @@ function timeAgo(timeStr) {
       </n-space>
 
       <n-spin :show="loading">
-        <n-grid :cols="3" :x-gap="12" :y-gap="12" responsive="screen">
+        <n-grid class="prompt-plaza-grid" cols="1 s:1 m:2 l:3" :x-gap="12" :y-gap="12" responsive="screen">
           <n-gi v-for="item in prompts" :key="item.id">
             <n-card
               hoverable
@@ -945,5 +945,52 @@ function timeAgo(timeStr) {
 :deep(.md-editor-content pre),
 :deep(.md-editor-content div) {
   text-align: left;
+}
+
+@media (max-width: 768px) {
+  .prompt-plaza-page {
+    box-sizing: border-box;
+    padding: 6px 6px 88px !important;
+    text-align: left;
+  }
+
+  .prompt-plaza-toolbar,
+  .prompt-plaza-toolbar__search {
+    align-items: stretch !important;
+    width: 100%;
+  }
+
+  .prompt-plaza-toolbar :deep(.n-space) {
+    flex-wrap: wrap !important;
+  }
+
+  .prompt-plaza-toolbar__search :deep(.n-input) {
+    width: 100% !important;
+  }
+
+  .prompt-plaza-filters {
+    align-items: flex-start !important;
+    display: block !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    white-space: nowrap;
+  }
+
+  .prompt-plaza-filters :deep(.n-radio-group) {
+    display: inline-flex;
+  }
+
+  .prompt-plaza-grid {
+    width: 100%;
+  }
+
+  :deep(.n-modal) {
+    max-width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.n-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
 }
 </style>

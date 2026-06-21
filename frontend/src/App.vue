@@ -54,6 +54,16 @@ const groupList = ref([])
 const officialStatement= ref("")
 const marketStatus = ref('')
 let marketStatusTimer = null
+const isMobile = ref(false)
+const mobileMenuVisible = ref(false)
+
+const mobileBottomNavItems = [
+  { key: 'stock', label: '自选', icon: StarOutline, route: { name: 'stock', query: { groupName: '全部', groupId: 0 } } },
+  { key: 'market', label: '市场', icon: NewspaperOutline, route: { name: 'market', query: { name: '市场快讯' } } },
+  { key: 'klineAnalysis', label: 'K线', icon: AnalyticsOutline, route: { name: 'klineAnalysis' } },
+  { key: 'promptPlaza', label: '提示词', icon: GlobeOutline, route: { name: 'research', query: { name: '提示词广场' } } },
+  { key: 'more', label: '更多', icon: ReorderTwoOutline },
+]
 
 const investmentMottos = [
   "投资有风险，入市需谨慎",
@@ -96,6 +106,38 @@ function updateMarketStatus() {
     marketStatus.value = parts.join(' | ')
     document.title = "go-stock " + marketStatus.value
   })
+}
+
+function updateMobileViewport() {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+  contentStyle.value = isMobile.value
+      ? "height: calc(100dvh - var(--mobile-bottom-nav-height) - env(safe-area-inset-bottom));overflow: auto"
+      : "max-height: calc(92vh);overflow: hidden"
+}
+
+function handleMobileNav(item) {
+  if (item.key === 'more') {
+    mobileMenuVisible.value = true
+    return
+  }
+  activeKey.value = item.key === 'promptPlaza' ? 'research' : item.key
+  if (item.key === 'stock') {
+    EventsEmit("changeTab", {ID: 0, name: '全部'})
+  }
+  if (item.key === 'market') {
+    EventsEmit("changeMarketTab", {ID: 0, name: '市场快讯'})
+  }
+  if (item.key === 'promptPlaza') {
+    setTimeout(() => {
+      EventsEmit("changeResearchTab", {ID: 10, name: '提示词广场'})
+    }, 100)
+  }
+  router.push(item.route)
+  mobileMenuVisible.value = false
+}
+
+function handleMobileDrawerSelect() {
+  mobileMenuVisible.value = false
 }
 const menuOptions = ref([
   {
@@ -981,6 +1023,7 @@ onBeforeUnmount(() => {
     clearInterval(marketStatusTimer)
     marketStatusTimer = null
   }
+  window.removeEventListener('resize', updateMobileViewport)
   EventsOff("realtime_profit")
   EventsOff("loadingMsg")
   EventsOff("telegraph")
@@ -1079,12 +1122,14 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
+  updateMobileViewport()
+  window.addEventListener('resize', updateMobileViewport)
   updateMarketStatus()
   marketStatusTimer = setInterval(() => {
     refreshMotto()
     updateMarketStatus()
   }, 60000)
-  contentStyle.value = "max-height: calc(92vh);overflow: hidden"
+  updateMobileViewport()
   GetConfig().then((res) => {
     if (res.enableNews) {
       enableNews.value = true
@@ -1152,8 +1197,8 @@ onMounted(() => {
             >
 <!--              <FloatingAiAssistant />-->
               <FloatingAgentAssistant />
-              <n-flex>
-                <n-grid x-gap="12" :cols="1">
+              <n-flex class="app-shell" :class="{ 'app-shell--mobile': isMobile }">
+                <n-grid x-gap="12" :cols="1" class="app-shell__grid">
                   <n-gi>
                     <n-spin :show="loading">
                       <template #description>
@@ -1165,13 +1210,13 @@ onMounted(() => {
                           {{ item }}
                         </n-tag>
                       </n-marquee>
-                      <n-scrollbar :style="contentStyle">
+                      <n-scrollbar :style="contentStyle" class="app-content-scroll">
                         <n-skeleton v-if="loading" height="calc(100vh)" />
                         <RouterView/>
                       </n-scrollbar>
                     </n-spin>
                   </n-gi>
-                  <n-gi style="position: fixed;bottom:0;z-index: 9;width: 100%;">
+                  <n-gi class="desktop-bottom-menu desktop-only" style="position: fixed;bottom:0;z-index: 9;width: 100%;">
                     <n-card size="small" style="">
                       <n-menu style="font-size: 18px;"
                               v-model:value="activeKey"
@@ -1183,6 +1228,36 @@ onMounted(() => {
                   </n-gi>
                 </n-grid>
               </n-flex>
+              <nav class="mobile-bottom-nav mobile-only" aria-label="移动端主导航">
+                <button
+                    v-for="item in mobileBottomNavItems"
+                    :key="item.key"
+                    class="mobile-bottom-nav__item"
+                    :class="{ 'mobile-bottom-nav__item--active': activeKey === item.key || (item.key === 'promptPlaza' && activeKey === 'research') }"
+                    type="button"
+                    @click="handleMobileNav(item)"
+                >
+                  <n-icon size="20">
+                    <component :is="item.icon" />
+                  </n-icon>
+                  <span>{{ item.label }}</span>
+                </button>
+              </nav>
+              <n-drawer
+                  v-model:show="mobileMenuVisible"
+                  class="mobile-menu-drawer"
+                  placement="bottom"
+                  height="82vh"
+              >
+                <n-drawer-content title="全部功能" closable>
+                  <n-menu
+                      v-model:value="activeKey"
+                      :options="menuOptions"
+                      accordion
+                      @update:value="handleMobileDrawerSelect"
+                  />
+                </n-drawer-content>
+              </n-drawer>
             </n-watermark>
           </n-dialog-provider>
         </n-modal-provider>

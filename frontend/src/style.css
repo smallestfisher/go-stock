@@ -2,6 +2,7 @@ html {
     /*background-color: rgba(27, 38, 54, 1);*/
     text-align: center;
     /*color: white;*/
+    --mobile-bottom-nav-height: 64px;
 }
 
 body {
@@ -27,4 +28,112 @@ body {
 
 .md-editor-preview {
     padding: 0 8px !important;
+}
+
+.mobile-only {
+    display: none !important;
+}
+
+.desktop-only {
+    display: block !important;
+}
+
+.app-shell,
+.app-shell__grid {
+    width: 100%;
+}
+
+.mobile-bottom-nav {
+    align-items: center;
+    background: var(--n-color, #fff);
+    border-top: 1px solid var(--n-border-color, #efeff5);
+    bottom: 0;
+    box-sizing: border-box;
+    display: none;
+    gap: 2px;
+    height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    left: 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    z-index: 20;
+}
+
+.mobile-bottom-nav__item {
+    align-items: center;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--n-text-color-2, #666);
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    font: inherit;
+    gap: 2px;
+    height: 48px;
+    justify-content: center;
+    min-width: 0;
+    padding: 4px 0;
+}
+
+.mobile-bottom-nav__item span {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.mobile-bottom-nav__item--active {
+    background: rgba(24, 160, 88, 0.12);
+    color: var(--n-primary-color, #18a058);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    html,
+    body,
+    #app {
+        min-height: 100dvh;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    .app-shell--mobile {
+        box-sizing: border-box;
+        min-height: 100dvh;
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
+        width: 100%;
+    }
+
+    .app-content-scroll {
+        width: 100%;
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    .mobile-menu-drawer .n-drawer-content {
+        border-radius: 12px 12px 0 0;
+    }
+
+    .n-modal {
+        max-width: calc(100vw - 16px) !important;
+    }
+
+    .n-card {
+        border-radius: 6px;
+    }
+
+    .n-data-table {
+        text-align: left;
+    }
 }

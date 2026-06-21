@@ -2189,11 +2189,11 @@ function searchStockReport(stockCode) {
       </n-gradient-text>
     </template>
   </vue-danmaku>
-  <n-tabs type="card" style="" animated addable :data-currentGroupId="currentGroupId"
+  <n-tabs class="stock-page-shell" type="card" style="" animated addable :data-currentGroupId="currentGroupId"
           :value="String(currentGroupId)" @add="addTab" @update:value="updateTab" placement="top" @close="(key)=>{delTab(key)}">
 
     <n-tab-pane closable name="0" :tab="'全部'">
-      <n-grid :x-gap="8" :cols="3" :y-gap="8">
+      <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <n-gi :id="result['股票代码']+'_gi'" v-for="result in sortedResults" style="margin-left: 2px;">
           <n-card :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
                   :title="result['股票名称']" :closable="false"
@@ -2309,7 +2309,7 @@ function searchStockReport(stockCode) {
               </n-flex>
             </template>
             <template #action>
-              <n-flex justify="left">
+              <n-flex class="stock-mobile-actions" justify="left">
                 <n-button size="tiny" type="warning" @click="setStock(result['股票代码'],result['股票名称'])"> 成本
                 </n-button>
                 <n-button size="tiny" type="error"
@@ -2340,7 +2340,7 @@ function searchStockReport(stockCode) {
       </n-grid>
     </n-tab-pane>
     <n-tab-pane closable v-for="group in groupList" :group-id="group.ID" :name="String(group.ID)" :tab="group.name">
-      <n-grid :x-gap="8" :cols="3" :y-gap="8">
+      <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <n-gi :id="result['股票代码']+'_gi'" v-for="result in groupResults" style="margin-left: 2px;">
           <n-card :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
                   :title="result['股票名称']" :closable="false"
@@ -2463,7 +2463,7 @@ function searchStockReport(stockCode) {
               </n-flex>
             </template>
             <template #action>
-              <n-flex justify="left">
+              <n-flex class="stock-mobile-actions" justify="left">
                 <n-button size="tiny" type="warning" @click="setStock(result['股票代码'],result['股票名称'])"> 成本
                 </n-button>
                 <n-button size="tiny" type="error"
@@ -2495,7 +2495,7 @@ function searchStockReport(stockCode) {
     </n-tab-pane>
   </n-tabs>
 
-  <div style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
+  <div class="stock-floating-search" style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
     <!--    <n-card :bordered="false">-->
     <n-input-group>
       <!--        <n-button  type="error" @click="addBTN=!addBTN" > <n-icon :component="Search"/>&nbsp;<n-text  v-if="addBTN">隐藏</n-text></n-button>-->
@@ -2650,7 +2650,7 @@ function searchStockReport(stockCode) {
     <div ref="kLineChartRef" style="width: 100%; height: 500px;"></div>
   </n-modal>
 
-  <n-modal transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
+  <n-modal class="mobile-ai-modal" transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
            :title="'['+data.name+']AI分析'">
     <n-spin size="small" :show="data.loading && !data.airesult">
       <MdEditor v-if="modalShow4 && enableEditor" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
@@ -2677,7 +2677,7 @@ function searchStockReport(stockCode) {
       </n-flex>
     </template>
     <template #action>
-      <n-flex justify="left" style="margin-bottom: 10px">
+      <n-flex class="mobile-ai-modal__switches" justify="left" style="margin-bottom: 10px">
         <n-switch v-model:value="enableTools" :round="false">
           <template #checked>
             工具调用
@@ -2698,7 +2698,7 @@ function searchStockReport(stockCode) {
           *AI函数工具调用可以增强AI获取数据的能力,但会消耗更多tokens。
         </n-gradient-text>
       </n-flex>
-      <n-flex justify="space-between" style="margin-bottom: 10px">
+      <n-flex class="mobile-ai-modal__selectors" justify="space-between" style="margin-bottom: 10px">
         <n-select style="width: 31%" v-model:value="data.aiConfigId" label-field="name" value-field="ID"
                   :options="aiConfigs" placeholder="请选择AI模型服务配置"/>
         <n-select style="width: 31%" v-model:value="data.sysPromptId" label-field="name" value-field="ID"
@@ -2706,7 +2706,7 @@ function searchStockReport(stockCode) {
         <n-select style="width: 31%" v-model:value="data.question" label-field="name" value-field="content"
                   :options="userPromptOptions" placeholder="请选择用户提示词"/>
       </n-flex>
-      <n-flex justify="right">
+      <n-flex class="mobile-ai-modal__actions" justify="right">
         <n-input v-model:value="data.question" style="text-align: left" clearable
                  type="textarea"
                  :show-count="true"
@@ -2821,5 +2821,79 @@ function searchStockReport(stockCode) {
 
 .tab-dragging {
   opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .stock-page-shell {
+    box-sizing: border-box;
+    padding: 6px 6px 84px;
+    text-align: left;
+  }
+
+  .stock-card-grid {
+    width: 100%;
+  }
+
+  :deep(.stock-card-grid .n-card) {
+    overflow: hidden;
+  }
+
+  :deep(.stock-card-grid .n-card-header) {
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  :deep(.stock-card-grid .n-card-header__extra) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .stock-mobile-actions {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+
+  .stock-floating-search {
+    bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom)) !important;
+    left: 8px;
+    right: 8px !important;
+    width: auto !important;
+  }
+
+  :deep(.mobile-ai-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.mobile-ai-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+  }
+
+  :deep(.mobile-ai-modal .n-card__content) {
+    max-height: calc(100dvh - 260px);
+    overflow: auto;
+  }
+
+  .mobile-ai-modal__switches,
+  .mobile-ai-modal__selectors,
+  .mobile-ai-modal__actions {
+    align-items: stretch !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .mobile-ai-modal__selectors :deep(.n-select),
+  .mobile-ai-modal__actions :deep(.n-input) {
+    width: 100% !important;
+  }
+
+  .mobile-ai-modal__actions :deep(.n-button) {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 120px;
+  }
 }
 </style>

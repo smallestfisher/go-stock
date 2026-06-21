@@ -135,7 +135,10 @@ function selectRecent(code, name) {
 }
 
 function updateChartHeight() {
-  chartHeight.value = Math.max(400, window.innerHeight - 230)
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+  chartHeight.value = isMobile
+    ? Math.max(320, window.innerHeight - 190)
+    : Math.max(400, window.innerHeight - 230)
 }
 
 onBeforeMount(() => {
@@ -188,7 +191,7 @@ onBeforeUnmount(() => {
       :realtimeIntervalMs="60000"
     />
 
-    <div class="kline-search-bar">
+    <div class="kline-search-bar mobile-kline-search">
       <n-input-group>
         <n-auto-complete
           v-model:value="searchQuery"
@@ -250,5 +253,32 @@ onBeforeUnmount(() => {
   gap: 4px;
   margin-top: 4px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .kline-analysis-page {
+    min-height: calc(100dvh - var(--mobile-bottom-nav-height));
+    padding: 6px 6px 92px;
+  }
+
+  .kline-title-bar {
+    align-items: center;
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    min-height: 28px;
+  }
+
+  .mobile-kline-search {
+    bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+
+  .recent-stocks {
+    max-height: 64px;
+    overflow: auto;
+  }
 }
 </style>
