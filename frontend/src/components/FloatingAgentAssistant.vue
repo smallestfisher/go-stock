@@ -1881,6 +1881,43 @@ onBeforeUnmount(() => {
 .drawer-slide-leave-from .drawer-panel {
   transform: translateX(0);
 }
+
+@media (max-width: 768px) {
+  .edge-trigger {
+    top: auto;
+    right: 14px;
+    bottom: calc(var(--mobile-bottom-nav-height) + 64px + env(safe-area-inset-bottom));
+    transform: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    box-shadow: 0 8px 22px rgba(102, 126, 234, 0.32);
+  }
+
+  .edge-trigger:hover {
+    width: 48px;
+    box-shadow: 0 8px 22px rgba(102, 126, 234, 0.32);
+  }
+
+  .edge-trigger-inner {
+    flex-direction: row;
+  }
+
+  .edge-trigger-text {
+    display: none;
+  }
+
+  .edge-trigger-badge {
+    top: 5px;
+    left: 30px;
+  }
+
+  .drawer-panel {
+    width: 100vw;
+    min-width: 0;
+    max-width: 100vw;
+  }
+}
 </style>
 
 <style>

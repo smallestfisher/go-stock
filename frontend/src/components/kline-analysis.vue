@@ -139,8 +139,9 @@ function selectRecent(code, name) {
 
 function updateChartHeight() {
   const isMobile = window.matchMedia('(max-width: 768px)').matches
+  const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight)
   chartHeight.value = isMobile
-    ? Math.max(420, window.innerHeight - 128)
+    ? Math.max(390, Math.min(560, viewportHeight - 220))
     : Math.max(400, window.innerHeight - 230)
 }
 
@@ -167,6 +168,7 @@ onMounted(() => {
   loadRecentStocks()
   updateChartHeight()
   window.addEventListener('resize', updateChartHeight)
+  window.visualViewport?.addEventListener('resize', updateChartHeight)
 
   stockChangeHandler = (data) => {
     if (data && data.ts_code) {
@@ -186,6 +188,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateChartHeight)
+  window.visualViewport?.removeEventListener('resize', updateChartHeight)
 })
 </script>
 
@@ -319,7 +322,7 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .kline-analysis-page {
     min-height: calc(100dvh - var(--mobile-bottom-nav-height));
-    padding: 4px 4px 72px;
+    padding: 4px 4px calc(var(--mobile-bottom-nav-height) + 76px + env(safe-area-inset-bottom));
   }
 
   .kline-title-bar {
@@ -332,7 +335,7 @@ onBeforeUnmount(() => {
 
   .kline-mobile-chart-stage {
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .mobile-kline-search {

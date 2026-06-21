@@ -518,19 +518,33 @@ function openCenteredWindow(url, width, height) {
   .select-stock-layout {
     display: grid !important;
     gap: 10px;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
     max-height: none !important;
+    width: 100% !important;
   }
 
   .select-stock-sidebar,
   .select-stock-main {
-    grid-column: 1;
+    grid-column: 1 / -1 !important;
     max-width: 100%;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .select-stock-layout > :deep(.n-grid-item),
+  .select-stock-sidebar,
+  .select-stock-main {
+    grid-column-end: -1 !important;
+    grid-column-start: 1 !important;
   }
 
   .select-stock-sidebar :deep(.n-list) {
     max-height: 170px;
     overflow: auto;
+  }
+
+  .select-stock-sidebar :deep(.n-list-item) {
+    padding: 8px 10px;
   }
 
   .select-stock-sidebar :deep(.n-scrollbar) {

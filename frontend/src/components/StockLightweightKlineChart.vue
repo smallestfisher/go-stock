@@ -4196,101 +4196,108 @@ watch(showLongPosition, (newVal) => {
         </div>
       </div>
       <div class="lw-kline-main">
-        <NFlex :size="6" wrap class="lw-kline-top-controls" style="row-gap: 4px; align-items: center">
-          <NText depth="3" style="font-size: 12px; margin-right: 2px">周期</NText>
-          <NButton
-            v-for="it in INTERVALS"
-            :key="it.klt"
-            size="tiny"
-            :type="activeKlt === it.klt ? 'primary' : 'default'"
-            :secondary="activeKlt !== it.klt"
-            @click="onSelectKlt(it.klt)"
-          >
-            {{ it.label }}
-          </NButton>
-          <NButton
-            class="lw-kline-mobile-indicator-trigger"
-            size="tiny"
-            type="primary"
-            secondary
-            @click="mobileIndicatorPanelVisible = true"
-          >
-            指标
-          </NButton>
-          <span style="width: 12px" />
-          <NText depth="3" style="font-size: 12px; margin-right: 2px">多单</NText>
-          <NButton
-            size="tiny"
-            :type="showLongPosition ? 'primary' : 'default'"
-            :secondary="!showLongPosition"
-            @click="toggleLongPosition"
-          >
-            价位线
-          </NButton>
-          <NInput
-            v-model:value="longEntryStr"
-            size="tiny"
-            placeholder="开仓"
-            style="width: 80px"
-            clearable
-            @focus="onLongPriceInputFocus('entry')"
-            @blur="onLongPriceInputBlur"
-          />
-          <NInput
-            v-model:value="longStopStr"
-            size="tiny"
-            placeholder="止损"
-            style="width: 80px"
-            clearable
-            @focus="onLongPriceInputFocus('stop')"
-            @blur="onLongPriceInputBlur"
-          />
-          <NInput
-            v-model:value="longTakeProfitStr"
-            size="tiny"
-            placeholder="止盈"
-            style="width: 80px"
-            clearable
-            @focus="onLongPriceInputFocus('takeProfit')"
-            @blur="onLongPriceInputBlur"
-          />
-          <NButton size="tiny" secondary @click="fillLongEntryFromLatestClose">
-            最新收盘
-          </NButton>
-          <NButton
-            size="tiny"
-            :type="longClickPickEnabled ? 'primary' : 'default'"
-            :secondary="!longClickPickEnabled"
-            @click="toggleLongClickPick"
-          >
-            设置价位线
-          </NButton>
-          <NButton
-            v-if="longClickPickEnabled"
-            size="tiny"
-            quaternary
-            @click="resetLongClickSequence"
-          >
-            重置
-          </NButton>
-          <NText
-            v-if="longFocusChartHint"
-            depth="3"
-            class="lw-kline-longpos-focus-hint"
-          >
-            {{ longFocusChartHint }}
-          </NText>
-          <NText
-            v-if="longClickPickEnabled && showLongPosition"
-            depth="3"
-            class="lw-kline-longpos-click-hint"
-          >
-            点击K线设置{{ longClickNextLabel }}
-          </NText>
-          <NText v-if="longPositionHint" depth="3" class="lw-kline-longpos-hint">
-            {{ longPositionHint }}
-          </NText>
-        </NFlex>
+        <div class="lw-kline-top-controls">
+          <div class="lw-kline-period-row">
+            <NText depth="3" class="lw-kline-control-label">周期</NText>
+            <NButton
+              v-for="it in INTERVALS"
+              :key="it.klt"
+              class="lw-kline-period-button"
+              size="tiny"
+              :type="activeKlt === it.klt ? 'primary' : 'default'"
+              :secondary="activeKlt !== it.klt"
+              @click="onSelectKlt(it.klt)"
+            >
+              {{ it.label }}
+            </NButton>
+            <NButton
+              class="lw-kline-mobile-indicator-trigger"
+              size="tiny"
+              type="primary"
+              secondary
+              @click="mobileIndicatorPanelVisible = true"
+            >
+              指标
+            </NButton>
+          </div>
+          <div class="lw-kline-longpos-row">
+            <NText depth="3" class="lw-kline-control-label">多单</NText>
+            <NButton
+              size="tiny"
+              :type="showLongPosition ? 'primary' : 'default'"
+              :secondary="!showLongPosition"
+              @click="toggleLongPosition"
+            >
+              价位线
+            </NButton>
+            <NInput
+              v-model:value="longEntryStr"
+              class="lw-kline-longpos-input"
+              size="tiny"
+              placeholder="开仓"
+              style="width: 80px"
+              clearable
+              @focus="onLongPriceInputFocus('entry')"
+              @blur="onLongPriceInputBlur"
+            />
+            <NInput
+              v-model:value="longStopStr"
+              class="lw-kline-longpos-input"
+              size="tiny"
+              placeholder="止损"
+              style="width: 80px"
+              clearable
+              @focus="onLongPriceInputFocus('stop')"
+              @blur="onLongPriceInputBlur"
+            />
+            <NInput
+              v-model:value="longTakeProfitStr"
+              class="lw-kline-longpos-input"
+              size="tiny"
+              placeholder="止盈"
+              style="width: 80px"
+              clearable
+              @focus="onLongPriceInputFocus('takeProfit')"
+              @blur="onLongPriceInputBlur"
+            />
+            <NButton size="tiny" secondary @click="fillLongEntryFromLatestClose">
+              最新收盘
+            </NButton>
+            <NButton
+              size="tiny"
+              :type="longClickPickEnabled ? 'primary' : 'default'"
+              :secondary="!longClickPickEnabled"
+              @click="toggleLongClickPick"
+            >
+              设置价位线
+            </NButton>
+            <NButton
+              v-if="longClickPickEnabled"
+              size="tiny"
+              quaternary
+              @click="resetLongClickSequence"
+            >
+              重置
+            </NButton>
+            <NText
+              v-if="longFocusChartHint"
+              depth="3"
+              class="lw-kline-longpos-focus-hint"
+            >
+              {{ longFocusChartHint }}
+            </NText>
+            <NText
+              v-if="longClickPickEnabled && showLongPosition"
+              depth="3"
+              class="lw-kline-longpos-click-hint"
+            >
+              点击K线设置{{ longClickNextLabel }}
+            </NText>
+            <NText v-if="longPositionHint" depth="3" class="lw-kline-longpos-hint">
+              {{ longPositionHint }}
+            </NText>
+          </div>
+        </div>
         <div
           class="lw-kline-crosshair-strip"
           :class="{ 'lw-kline-crosshair-strip--dark': darkTheme }"
@@ -4526,6 +4533,30 @@ watch(showLongPosition, (newVal) => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.lw-kline-top-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.lw-kline-period-row,
+.lw-kline-longpos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.lw-kline-control-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  margin-right: 2px;
+}
+.lw-kline-period-button {
+  min-width: 48px;
 }
 .lw-kline-hint-row {
   min-width: 0;
@@ -4830,24 +4861,72 @@ watch(showLongPosition, (newVal) => {
   }
 
   .lw-kline-top-controls {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
+    display: grid !important;
+    gap: 4px !important;
     margin: 0 0 4px;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .lw-kline-period-row,
+  .lw-kline-longpos-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+    max-width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 0 2px 4px;
     scrollbar-width: none;
     white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .lw-kline-top-controls::-webkit-scrollbar {
+  .lw-kline-period-row::-webkit-scrollbar,
+  .lw-kline-longpos-row::-webkit-scrollbar {
     display: none;
   }
 
-  .lw-kline-top-controls :deep(.n-button),
-  .lw-kline-top-controls :deep(.n-input),
-  .lw-kline-top-controls :deep(.n-text) {
+  .lw-kline-period-row :deep(.n-button),
+  .lw-kline-period-row :deep(.n-text),
+  .lw-kline-longpos-row :deep(.n-button),
+  .lw-kline-longpos-row :deep(.n-input),
+  .lw-kline-longpos-row :deep(.n-text) {
     flex: 0 0 auto;
+  }
+
+  .lw-kline-top-controls :deep(.n-button) {
+    height: 32px;
+    padding: 0 12px;
+  }
+
+  .lw-kline-control-label {
+    font-size: 12px;
+    line-height: 32px;
+  }
+
+  .lw-kline-period-button {
+    min-width: 54px;
+  }
+
+  .lw-kline-longpos-row {
+    border-bottom: 1px solid #eef2f7;
+    padding-bottom: 6px;
+  }
+
+  .lw-kline--dark .lw-kline-longpos-row {
+    border-bottom-color: #27272a;
+  }
+
+  .lw-kline-longpos-input {
+    width: 72px !important;
+  }
+
+  .lw-kline-longpos-focus-hint,
+  .lw-kline-longpos-click-hint,
+  .lw-kline-longpos-hint {
+    flex: 0 0 auto;
+    max-width: 260px;
+    white-space: normal;
   }
 
   .lw-kline-chart-wrap {
@@ -4878,13 +4957,29 @@ watch(showLongPosition, (newVal) => {
     column-gap: 8px;
     row-gap: 4px;
     font-size: 10px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tags {
     gap: 4px;
     margin-top: 5px;
-    max-height: 48px;
-    overflow-y: auto;
+    flex-wrap: nowrap;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__legend::-webkit-scrollbar,
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__legend-item,
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tag {
+    flex: 0 0 auto;
   }
 
   .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tag {
