@@ -178,9 +178,22 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="kline-analysis-page" :class="{ 'kline-analysis-page--dark': darkTheme }">
-    <div class="kline-title-bar">
-      <NText :depth="darkTheme ? 1 : 3" style="font-size: 15px; font-weight: 700">{{ selectedName }}&nbsp;</NText>
-      <NText depth="3" style="font-size: 13px">{{ selectedCode }}</NText>
+    <div class="kline-title-bar kline-mobile-toolbar">
+      <div class="kline-mobile-toolbar__identity">
+        <NText :depth="darkTheme ? 1 : 3" style="font-size: 15px; font-weight: 700">{{ selectedName }}&nbsp;</NText>
+        <NText depth="3" style="font-size: 13px">{{ selectedCode }}</NText>
+      </div>
+      <div v-if="recentStocks.length" class="kline-mobile-recent-strip">
+        <n-button
+          v-for="s in recentStocks.slice(0, 6)"
+          :key="s.code"
+          size="tiny"
+          secondary
+          @click="selectRecent(s.code, s.name)"
+        >
+          {{ s.name || s.code }}
+        </n-button>
+      </div>
     </div>
     <StockLightweightKlineChart
       :key="selectedCode"
@@ -209,7 +222,7 @@ onBeforeUnmount(() => {
       <NFlex v-if="unsupportedCode" align="center" :size="6" style="margin-top: 4px">
         <NText type="warning" style="font-size: 12px">该股票暂不支持K线图</NText>
       </NFlex>
-      <div v-if="recentStocks.length && !selectedCode" class="recent-stocks">
+      <div v-if="recentStocks.length" class="recent-stocks">
         <NText depth="3" style="font-size: 11px; white-space: nowrap">最近:</NText>
         <n-button
           v-for="s in recentStocks.slice(0, 6)"
@@ -240,6 +253,9 @@ onBeforeUnmount(() => {
 .kline-title-bar {
   padding: 2px 0 4px 0;
 }
+.kline-mobile-recent-strip {
+  display: none;
+}
 .kline-search-bar {
   position: fixed;
   bottom: 18px;
@@ -262,23 +278,64 @@ onBeforeUnmount(() => {
   }
 
   .kline-title-bar {
-    align-items: center;
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: flex-start;
+    min-height: 44px;
+    text-align: left;
+  }
+
+  .kline-mobile-toolbar {
+    background: var(--n-color, #fff);
+    border-radius: 6px;
+    box-sizing: border-box;
+    padding: 8px;
+  }
+
+  .kline-analysis-page--dark .kline-mobile-toolbar {
+    background: #101014;
+  }
+
+  .kline-mobile-toolbar__identity {
+    align-items: baseline;
     display: flex;
     gap: 4px;
-    justify-content: center;
-    min-height: 28px;
+    min-width: 0;
+  }
+
+  .kline-mobile-recent-strip {
+    display: flex;
+    gap: 6px;
+    margin: 0 -2px;
+    overflow-x: auto;
+    padding: 0 2px 2px;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
+  .kline-mobile-recent-strip::-webkit-scrollbar {
+    display: none;
   }
 
   .mobile-kline-search {
+    background: var(--n-color, #fff);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
     bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom));
     left: 8px;
+    padding: 8px;
     right: 8px;
     width: auto;
   }
 
+  .kline-analysis-page--dark .mobile-kline-search {
+    background: #101014;
+  }
+
   .recent-stocks {
-    max-height: 64px;
-    overflow: auto;
+    display: none;
   }
 }
 </style>
