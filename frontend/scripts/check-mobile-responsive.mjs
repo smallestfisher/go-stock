@@ -68,6 +68,11 @@ const checks = [
     expectations: [
       ["market-page-shell", "market page shell class"],
       ["market-mobile-scroll", "market mobile scroll class"],
+      ["market-mobile-heat-panel", "mobile market heat panel"],
+      ["market-mobile-news-tabs", "mobile market news tabs"],
+      ["market-desktop-news-grid", "desktop market news grid"],
+      ["market-mobile-index-card", "mobile market index card"],
+      ["market-mobile-summary-action", "mobile market summary action"],
     ],
   },
   {

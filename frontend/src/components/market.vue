@@ -418,10 +418,28 @@ function ReFlesh(source) {
       <n-tab-pane name="市场快讯" tab="市场快讯">
         <n-grid :cols="1" :y-gap="0">
           <n-gi>
-            <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
+            <div class="market-desktop-heat-panel desktop-only">
+              <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
+            </div>
+            <n-collapse class="market-mobile-heat-panel mobile-only">
+              <n-collapse-item title="最近24小时热词" name="market-hot-words">
+                <AnalyzeMartket :dark-theme="darkTheme" :chart-height="220" :kDays="1" :name="'最近24小时热词'" />
+              </n-collapse-item>
+            </n-collapse>
           </n-gi>
           <n-gi>
-            <n-grid class="market-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
+            <n-tabs class="market-mobile-news-tabs mobile-only" type="segment" animated size="small">
+              <n-tab-pane name="财联社" tab="财联社">
+                <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
+              </n-tab-pane>
+              <n-tab-pane name="新浪" tab="新浪">
+                <news-list :newsList="sinaNewsList" :header-title="'新浪财经'" @update:message="ReFlesh"></news-list>
+              </n-tab-pane>
+              <n-tab-pane v-if="foreignNewsList.length>0" name="外媒" tab="外媒">
+                <news-list :newsList="foreignNewsList" :header-title="'外媒'" @update:message="ReFlesh"></news-list>
+              </n-tab-pane>
+            </n-tabs>
+            <n-grid class="market-news-grid market-desktop-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
               <n-gi>
                 <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
               </n-gi>
@@ -442,7 +460,7 @@ function ReFlesh(source) {
           <n-tab-pane name="全球指数" tab="全球指数">
             <n-grid class="market-mobile-scroll" :cols="5" :y-gap="0">
               <n-gi v-for="(val, key) in globalStockIndexes" :key="key">
-                <n-list bordered>
+                <n-list class="market-mobile-index-card" bordered>
                   <template #header>
                     {{ getAreaName(key) }}
                   </template>
@@ -770,7 +788,7 @@ function ReFlesh(source) {
       </n-tab-pane>
     </n-tabs>
   </n-card>
-  <n-modal transform-origin="center" v-model:show="summaryModal" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
+  <n-modal class="market-summary-modal" transform-origin="center" v-model:show="summaryModal" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
            :title="'AI市场资讯总结'">
     <n-spin size="small" :show="loading && !aiSummary">
       <div ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
@@ -788,7 +806,7 @@ function ReFlesh(source) {
       </n-flex>
     </template>
     <template #action>
-      <n-flex justify="left" style="margin-bottom: 10px">
+      <n-flex class="market-summary-modal__switches" justify="left" style="margin-bottom: 10px">
         <n-switch v-model:value="enableTools" :round="false">
           <template #checked>
             工具调用
@@ -809,7 +827,7 @@ function ReFlesh(source) {
 
         <n-gradient-text type="error" style="margin-left: 10px">*AI函数工具调用可以增强AI获取数据的能力,但会消耗更多tokens。</n-gradient-text>
       </n-flex>
-      <n-flex justify="space-between" style="margin-bottom: 10px">
+      <n-flex class="market-summary-modal__selectors" justify="space-between" style="margin-bottom: 10px">
         <n-select style="width: 32%" v-model:value="aiConfigId" label-field="name" value-field="ID"
                   :options="aiConfigs" placeholder="请选择AI模型服务配置"/>
         <n-select style="width: 32%" v-model:value="sysPromptId" label-field="name" value-field="ID"
@@ -817,7 +835,7 @@ function ReFlesh(source) {
         <n-select style="width: 32%" v-model:value="question" label-field="name" value-field="content"
                   :options="userPromptOptions" placeholder="请选择用户提示词"/>
       </n-flex>
-      <n-flex justify="right">
+      <n-flex class="market-summary-modal__actions" justify="right">
         <n-input v-model:value="question" style="text-align: left" clearable
                  type="textarea"
                  :show-count="true"
@@ -835,7 +853,7 @@ function ReFlesh(source) {
     </template>
   </n-modal>
 
-  <div class="market-summary-fab" style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
+  <div class="market-summary-fab market-mobile-summary-action" style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
     <n-input-group>
       <n-button type="primary" @click="getAiSummary">
         <n-icon :component="PulseOutline"/> &nbsp;AI总结
@@ -861,8 +879,36 @@ function ReFlesh(source) {
     min-width: max-content;
   }
 
+  .market-mobile-heat-panel,
+  .market-mobile-news-tabs {
+    display: block !important;
+    width: 100%;
+  }
+
+  .market-mobile-heat-panel {
+    margin-bottom: 8px;
+  }
+
+  .market-mobile-heat-panel :deep(.n-collapse-item__content-inner) {
+    padding: 6px 0 0;
+  }
+
+  .market-mobile-news-tabs :deep(.n-tabs-nav) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .market-mobile-news-tabs :deep(.n-tabs-pane-wrapper) {
+    margin-top: 8px;
+  }
+
   .market-news-grid {
     display: block !important;
+  }
+
+  .market-desktop-news-grid {
+    display: none !important;
   }
 
   .market-news-grid :deep(.n-grid-item) {
@@ -883,9 +929,58 @@ function ReFlesh(source) {
     scroll-snap-align: start;
   }
 
+  .market-mobile-index-card {
+    border-radius: 6px;
+    min-height: 100%;
+    overflow: hidden;
+  }
+
+  .market-mobile-index-card :deep(.n-list-item) {
+    padding: 8px 10px;
+  }
+
+  .market-mobile-index-card :deep(.n-grid) {
+    align-items: center;
+    grid-template-columns: minmax(108px, 1fr) minmax(82px, auto) 44px !important;
+  }
+
   .market-summary-fab {
     bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom)) !important;
     right: 10px !important;
+  }
+
+  .market-mobile-summary-action :deep(.n-button) {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    height: 40px;
+  }
+
+  :deep(.market-summary-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.market-summary-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  .market-summary-modal__switches,
+  .market-summary-modal__selectors,
+  .market-summary-modal__actions {
+    align-items: stretch !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .market-summary-modal__selectors :deep(.n-select),
+  .market-summary-modal__actions :deep(.n-input) {
+    width: 100% !important;
+  }
+
+  .market-summary-modal__actions :deep(.n-button) {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 120px;
   }
 }
 </style>
