@@ -65,6 +65,9 @@ const checks = [
     expectations: [
       ["lw-kline-top-controls", "mobile compact K-line top controls"],
       ["lw-kline-mobile-indicators", "mobile K-line indicator controls"],
+      ["lw-kline-mobile-indicator-trigger", "mobile K-line indicator trigger"],
+      ["lw-kline-mobile-indicator-panel", "mobile K-line indicator panel"],
+      ["lw-kline-mobile-signal-strip", "mobile K-line signal summary"],
       ["lw-kline-mobile-compact", "mobile compact K-line rules"],
     ],
   },

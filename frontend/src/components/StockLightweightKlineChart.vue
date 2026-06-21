@@ -111,6 +111,7 @@ const showSMI = ref(false)
 const showSignalRatio = ref(false)
 const showSMC = ref(false)
 const showChip = ref(false)
+const mobileIndicatorPanelVisible = ref(false)
 const chipBins = ref(80)
 const chipCanvasRef = ref(null)
 const chipItems = ref([])
@@ -3854,8 +3855,20 @@ watch(showLongPosition, (newVal) => {
 <template>
   <div class="lw-kline-root lw-kline-mobile-compact" :class="{ 'lw-kline--dark': darkTheme }">
     <div class="lw-kline-body">
-      <div class="lw-kline-sidebar lw-kline-mobile-indicators">
+      <div
+        v-if="mobileIndicatorPanelVisible"
+        class="lw-kline-mobile-indicator-backdrop"
+        @click="mobileIndicatorPanelVisible = false"
+      />
+      <div
+        class="lw-kline-sidebar lw-kline-mobile-indicators lw-kline-mobile-indicator-panel"
+        :class="{ 'lw-kline-mobile-indicator-panel--open': mobileIndicatorPanelVisible }"
+      >
         <div class="lw-kline-sidebar__inner">
+          <div class="lw-kline-mobile-indicator-header">
+            <span>指标</span>
+            <NButton size="tiny" quaternary @click="mobileIndicatorPanelVisible = false">关闭</NButton>
+          </div>
           <NFlex vertical :size="6">
             <div class="lw-kline-sidebar__section">
               <NText depth="3" style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px; padding: 2px 6px; background: rgba(239,68,68,0.08); border-radius: 4px; border-left: 3px solid #ef4444; color: #ef4444">📈趋势</NText>
@@ -4195,6 +4208,15 @@ watch(showLongPosition, (newVal) => {
           >
             {{ it.label }}
           </NButton>
+          <NButton
+            class="lw-kline-mobile-indicator-trigger"
+            size="tiny"
+            type="primary"
+            secondary
+            @click="mobileIndicatorPanelVisible = true"
+          >
+            指标
+          </NButton>
           <span style="width: 12px" />
           <NText depth="3" style="font-size: 12px; margin-right: 2px">多单</NText>
           <NButton
@@ -4368,9 +4390,42 @@ watch(showLongPosition, (newVal) => {
             {{ loading ? '加载中…' : '暂无 K 线数据' }}
           </NText>
         </div>
+        <NText v-if="errorText" type="error" style="font-size: 12px">{{ errorText }}</NText>
+        <div class="lw-kline-chart-wrap">
+          <div
+            ref="chartContainerRef"
+            class="lw-kline-chart"
+            :style="{ height: chartHeight-110 + 'px', minHeight: chartHeight-110 + 'px' }"
+          />
+          <div
+            v-if="showChip"
+            class="lw-chip"
+            :class="{ 'lw-chip--dark': darkTheme }"
+            :style="{ height: chartHeight-110 + 'px', minHeight: chartHeight-110 + 'px' }"
+          >
+            <div class="lw-chip__head">
+              <span class="lw-chip__title">筹码分布</span>
+              <span v-if="chipMeta.hoverDate" class="lw-chip__meta">
+                {{ chipMeta.hoverDate }}
+              </span>
+              <span v-if="chipItems.length" class="lw-chip__meta">
+                均成本 {{ chipMeta.avgCost.toFixed(2) }} · 获利
+                {{ (chipMeta.profitRatio * 100).toFixed(1) }}%
+              </span>
+            </div>
+            <div v-if="!chipItems.length" class="lw-chip__empty">
+              {{ mergedRawRows.length ? '移动鼠标到K线查看' : '暂无K线数据' }}
+            </div>
+            <canvas
+              v-show="chipItems.length"
+              ref="chipCanvasRef"
+              class="lw-chip__canvas"
+            />
+          </div>
+        </div>
         <div
           v-if="indicatorSignalSummary"
-          class="lw-kline-signal-summary"
+          class="lw-kline-signal-summary lw-kline-mobile-signal-strip"
           :class="{ 'lw-kline-signal-summary--dark': darkTheme }"
         >
           <div class="lw-kline-signal-summary__head">
@@ -4408,39 +4463,6 @@ watch(showLongPosition, (newVal) => {
               class="lw-kline-signal-summary__tag"
               :class="'lw-kline-signal-summary__tag--' + s.signal"
             >{{ s.name }}</span>
-          </div>
-        </div>
-        <NText v-if="errorText" type="error" style="font-size: 12px">{{ errorText }}</NText>
-        <div class="lw-kline-chart-wrap">
-          <div
-            ref="chartContainerRef"
-            class="lw-kline-chart"
-            :style="{ height: chartHeight-110 + 'px', minHeight: chartHeight-110 + 'px' }"
-          />
-          <div
-            v-if="showChip"
-            class="lw-chip"
-            :class="{ 'lw-chip--dark': darkTheme }"
-            :style="{ height: chartHeight-110 + 'px', minHeight: chartHeight-110 + 'px' }"
-          >
-            <div class="lw-chip__head">
-              <span class="lw-chip__title">筹码分布</span>
-              <span v-if="chipMeta.hoverDate" class="lw-chip__meta">
-                {{ chipMeta.hoverDate }}
-              </span>
-              <span v-if="chipItems.length" class="lw-chip__meta">
-                均成本 {{ chipMeta.avgCost.toFixed(2) }} · 获利
-                {{ (chipMeta.profitRatio * 100).toFixed(1) }}%
-              </span>
-            </div>
-            <div v-if="!chipItems.length" class="lw-chip__empty">
-              {{ mergedRawRows.length ? '移动鼠标到K线查看' : '暂无K线数据' }}
-            </div>
-            <canvas
-              v-show="chipItems.length"
-              ref="chipCanvasRef"
-              class="lw-chip__canvas"
-            />
           </div>
         </div>
         <NFlex align="center" :size="8" class="lw-kline-hint-row">
@@ -4492,6 +4514,11 @@ watch(showLongPosition, (newVal) => {
 }
 .lw-kline-sidebar__section {
   margin-bottom: 6px;
+}
+.lw-kline-mobile-indicator-header,
+.lw-kline-mobile-indicator-trigger,
+.lw-kline-mobile-indicator-backdrop {
+  display: none;
 }
 .lw-kline-main {
   flex: 1 1 0;
@@ -4710,28 +4737,72 @@ watch(showLongPosition, (newVal) => {
   }
 
   .lw-kline-crosshair-strip,
-  .lw-kline-signal-summary,
   .lw-kline-hint-row {
     display: none !important;
   }
 
+  .lw-kline-mobile-indicator-trigger {
+    display: inline-flex;
+  }
+
+  .lw-kline-mobile-indicator-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(15, 23, 42, 0.26);
+  }
+
   .lw-kline-sidebar.lw-kline-mobile-indicators {
     display: block !important;
-    width: 100%;
+    width: calc(100vw - 12px);
     min-width: 0;
-    max-height: 150px;
-    margin-bottom: 6px;
+    max-height: min(66dvh, 520px);
+    margin-bottom: 0;
     overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    border-radius: 12px 12px 0 0;
     box-sizing: border-box;
-    padding: 6px;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
     scrollbar-width: thin;
+    background: #ffffff;
+    box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.18);
+    bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
+    left: 6px;
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    right: 6px;
+    transform: translateY(12px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 40;
+  }
+
+  .lw-kline-sidebar.lw-kline-mobile-indicator-panel--open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 
   .lw-kline--dark .lw-kline-sidebar.lw-kline-mobile-indicators {
     border-color: #3f3f46;
+    background: #141414;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .lw-kline-mobile-indicator-header {
+    align-items: center;
+    display: flex;
+    font-size: 14px;
+    font-weight: 700;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    position: sticky;
+    top: -8px;
+    z-index: 1;
+    background: inherit;
+    padding: 2px 0 8px;
   }
 
   .lw-kline-sidebar__inner {
@@ -4781,6 +4852,45 @@ watch(showLongPosition, (newVal) => {
 
   .lw-kline-chart-wrap {
     display: block;
+  }
+
+  .lw-kline-mobile-signal-strip {
+    display: block !important;
+    margin-top: 6px;
+    padding: 6px;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__head {
+    margin-bottom: 4px;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__title,
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__total {
+    font-size: 11px;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__bar {
+    height: 6px;
+    margin-bottom: 5px;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__legend {
+    column-gap: 8px;
+    row-gap: 4px;
+    font-size: 10px;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tags {
+    gap: 4px;
+    margin-top: 5px;
+    max-height: 48px;
+    overflow-y: auto;
+  }
+
+  .lw-kline-mobile-signal-strip .lw-kline-signal-summary__tag {
+    font-size: 10px;
+    line-height: 16px;
+    padding: 0 5px;
   }
 
   .lw-chip {
