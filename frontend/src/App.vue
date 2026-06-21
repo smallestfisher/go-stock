@@ -126,7 +126,7 @@ function updateMobileViewport() {
   isMobile.value = window.matchMedia('(max-width: 768px)').matches
   contentStyle.value = isMobile.value
       ? "height: calc(100dvh - var(--mobile-bottom-nav-height) - env(safe-area-inset-bottom));overflow: auto"
-      : "max-height: calc(92vh);overflow: hidden"
+      : "height: calc(100vh - var(--desktop-bottom-menu-height));overflow: auto"
 }
 
 function handleMobileNav(item) {

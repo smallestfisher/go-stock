@@ -2,6 +2,7 @@ html {
     /*background-color: rgba(27, 38, 54, 1);*/
     text-align: center;
     /*color: white;*/
+    --desktop-bottom-menu-height: 72px;
     --mobile-bottom-nav-height: 64px;
 }
 
@@ -34,13 +35,13 @@ body {
     display: none !important;
 }
 
-.desktop-only {
-    display: block !important;
-}
-
 .app-shell,
 .app-shell__grid {
     width: 100%;
+}
+
+.desktop-bottom-menu {
+    min-height: var(--desktop-bottom-menu-height);
 }
 
 .mobile-bottom-nav {
