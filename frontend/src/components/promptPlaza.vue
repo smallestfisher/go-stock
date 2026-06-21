@@ -21,6 +21,7 @@ const activeSort = ref('latest')
 const keyword = ref('')
 const loading = ref(false)
 const prompts = ref([])
+const filterDrawerVisible = ref(false)
 const pagination = reactive({
   page: 1,
   pageSize: 12,
@@ -266,16 +267,29 @@ function handlePageChange(page) {
 function handleSearch() {
   pagination.page = 1
   loadPrompts()
+  closeMobileFilters()
 }
 
 function handleCategoryFilter() {
   pagination.page = 1
   loadPrompts()
+  closeMobileFilters()
 }
 
 function onSortChange() {
   pagination.page = 1
   loadPrompts()
+  closeMobileFilters()
+}
+
+function openMobileFilters() {
+  filterDrawerVisible.value = true
+}
+
+function closeMobileFilters() {
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+    filterDrawerVisible.value = false
+  }
 }
 
 async function showDetail(id) {
@@ -563,7 +577,7 @@ function timeAgo(timeStr) {
   <div class="prompt-plaza-page" style="padding: 0">
     <n-space vertical :size="12">
       <n-space class="prompt-plaza-toolbar" justify="space-between" align="center">
-        <n-space class="prompt-plaza-toolbar__search" align="center">
+        <n-space class="prompt-plaza-toolbar__search prompt-plaza-desktop-filter-bar" align="center">
           <n-input
             v-model:value="keyword"
             placeholder="搜索提示词..."
@@ -574,6 +588,9 @@ function timeAgo(timeStr) {
           <n-button type="primary" @click="handleSearch">搜索</n-button>
           <n-button quaternary @click="showRanking('hot')">🏆 排行榜</n-button>
         </n-space>
+        <n-button class="prompt-plaza-mobile-filter-trigger mobile-only" type="primary" secondary @click="openMobileFilters">
+          搜索 / 筛选
+        </n-button>
         <n-space>
           <n-button type="success" @click="showCreateModal">✏️ 发布提示词</n-button>
           <template v-if="isLoggedIn">
@@ -588,7 +605,7 @@ function timeAgo(timeStr) {
         </n-space>
       </n-space>
 
-      <n-space class="prompt-plaza-filters" align="center" :size="8">
+      <n-space class="prompt-plaza-filters prompt-plaza-desktop-filter-bar" align="center" :size="8">
         <n-text depth="3" style="font-size: 13px">分类:</n-text>
         <n-radio-group v-model:value="activeCategory" size="small" @update:value="handleCategoryFilter">
           <n-radio-button :value="null">全部</n-radio-button>
@@ -605,18 +622,56 @@ function timeAgo(timeStr) {
           <n-radio-button value="comments">💬 评论</n-radio-button>
         </n-radio-group>
       </n-space>
+      <n-drawer
+        v-model:show="filterDrawerVisible"
+        class="prompt-plaza-mobile-filter-drawer"
+        placement="bottom"
+        height="58vh"
+      >
+        <n-drawer-content title="搜索 / 筛选" closable>
+          <n-space vertical :size="14">
+            <n-input
+              v-model:value="keyword"
+              placeholder="搜索提示词..."
+              clearable
+              @keyup.enter="handleSearch"
+            />
+            <n-button type="primary" block @click="handleSearch">搜索</n-button>
+            <n-button secondary block @click="filterDrawerVisible = false; showRanking('hot')">排行榜</n-button>
+            <div class="prompt-plaza-mobile-filter-group">
+              <n-text depth="3" style="font-size: 13px">分类</n-text>
+              <n-radio-group v-model:value="activeCategory" size="small" @update:value="handleCategoryFilter">
+                <n-radio-button :value="null">全部</n-radio-button>
+                <n-radio-button v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</n-radio-button>
+              </n-radio-group>
+            </div>
+            <div class="prompt-plaza-mobile-filter-group">
+              <n-text depth="3" style="font-size: 13px">排序</n-text>
+              <n-radio-group v-model:value="activeSort" size="small" @update:value="onSortChange">
+                <n-radio-button value="latest">最新</n-radio-button>
+                <n-radio-button value="hot">热度</n-radio-button>
+                <n-radio-button value="likes">点赞</n-radio-button>
+                <n-radio-button value="favorites">收藏</n-radio-button>
+                <n-radio-button value="downloads">下载</n-radio-button>
+                <n-radio-button value="comments">评论</n-radio-button>
+              </n-radio-group>
+            </div>
+          </n-space>
+        </n-drawer-content>
+      </n-drawer>
 
       <n-spin :show="loading">
         <n-grid class="prompt-plaza-grid" cols="1 s:1 m:2 l:3" :x-gap="12" :y-gap="12" responsive="screen">
           <n-gi v-for="item in prompts" :key="item.id">
             <n-card
+              class="prompt-plaza-mobile-card"
               hoverable
               size="small"
               style="cursor: pointer; height: 100%"
               @click="showDetail(item.id)"
             >
               <template #header>
-                <n-space align="center" :size="6">
+                <n-space class="prompt-plaza-mobile-title" align="center" :size="6">
                   <n-text strong style="font-size: 15px">{{ item.title }}</n-text>
                 </n-space>
               </template>
@@ -627,12 +682,12 @@ function timeAgo(timeStr) {
                 {{item.summary|| item.description || item.content }}
               </n-ellipsis>
               <template #footer>
-                <n-space justify="space-between" align="center">
+                <n-space class="prompt-plaza-mobile-footer" justify="space-between" align="center">
                   <n-text depth="3" style="font-size: 12px">
                     {{ item.user?.nickname || item.user?.username || '匿名' }}
                     · {{ timeAgo(item.createdAt) }}
                   </n-text>
-                  <n-space :size="12" style="font-size: 12px">
+                  <n-space class="prompt-plaza-mobile-stats" :size="12" style="font-size: 12px">
                     <n-text depth="3">
                       👁️ {{ item.viewsCount || 0 }}
                     </n-text>
@@ -652,7 +707,7 @@ function timeAgo(timeStr) {
                 </n-space>
               </template>
               <template #action v-if="item.tags">
-                <n-space :size="4">
+                <n-space class="prompt-plaza-mobile-tags" :size="4">
                   <n-tag v-for="tag in item.tags.split(',').filter(t=>t).slice(0, 3)" :key="tag" size="tiny" round>{{ tag.trim() }}</n-tag>
                 </n-space>
               </template>
@@ -672,9 +727,9 @@ function timeAgo(timeStr) {
       </n-space>
     </n-space>
 
-    <n-modal v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.data?.title || '提示词详情'">
+    <n-modal class="prompt-plaza-detail-modal" v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.data?.title || '提示词详情'">
       <template v-if="detailModal.data">
-        <n-space align="left" justify="space-between" style="margin-bottom: 12px">
+        <n-space class="prompt-plaza-detail-meta" align="left" justify="space-between" style="margin-bottom: 12px">
           <n-space align="left" :size="8">
             <n-tag v-if="detailModal.data.category" type="info" size="small">{{ detailModal.data.category }}</n-tag>
             <n-text depth="3" style="font-size: 12px">
@@ -684,7 +739,7 @@ function timeAgo(timeStr) {
               · 更新于 {{ formatTime(detailModal.data.updatedAt) }}
             </n-text>
           </n-space>
-          <n-space :size="8">
+          <n-space class="prompt-plaza-detail-actions" :size="8">
             <n-button
               v-if="currentUser && detailModal.data.userId === currentUser.id"
               size="tiny"
@@ -730,8 +785,8 @@ function timeAgo(timeStr) {
           </n-space>
         </n-space>
 
-        <div style="display: flex; gap: 16px">
-          <div style="flex: 4; min-width: 0">
+        <div class="prompt-plaza-detail-layout" style="display: flex; gap: 16px">
+          <div class="prompt-plaza-detail-content" style="flex: 4; min-width: 0">
             <n-space vertical :size="8">
               <n-space :size="4" v-if="detailModal.data.tags">
                 <n-tag v-for="tag in detailModal.data.tags.split(',').filter(t=>t)" :key="tag" size="small" round>{{ tag.trim() }}</n-tag>
@@ -745,7 +800,7 @@ function timeAgo(timeStr) {
               </div>
             </n-space>
           </div>
-          <div style="flex: 1; min-width: 0">
+          <div class="prompt-plaza-detail-comments" style="flex: 1; min-width: 0">
             <n-space vertical :size="8" style="width: 100%">
               <n-text strong>评论 ({{ detailModal.data.commentsCount || 0 }})</n-text>
               <n-input
@@ -968,6 +1023,30 @@ function timeAgo(timeStr) {
     width: 100% !important;
   }
 
+  .prompt-plaza-desktop-filter-bar {
+    display: none !important;
+  }
+
+  .prompt-plaza-mobile-filter-trigger {
+    display: inline-flex !important;
+    min-width: 120px;
+  }
+
+  .prompt-plaza-mobile-filter-drawer :deep(.n-drawer-content) {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .prompt-plaza-mobile-filter-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  .prompt-plaza-mobile-filter-group :deep(.n-radio-group) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
   .prompt-plaza-filters {
     align-items: flex-start !important;
     display: block !important;
@@ -980,8 +1059,58 @@ function timeAgo(timeStr) {
     display: inline-flex;
   }
 
+  .prompt-plaza-filters.prompt-plaza-desktop-filter-bar {
+    display: none !important;
+  }
+
   .prompt-plaza-grid {
     width: 100%;
+  }
+
+  :deep(.prompt-plaza-mobile-card .n-card-header) {
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+
+  :deep(.prompt-plaza-mobile-card .n-card-header__main) {
+    min-width: 0;
+  }
+
+  .prompt-plaza-mobile-title {
+    min-width: 0;
+  }
+
+  .prompt-plaza-mobile-title :deep(.n-text) {
+    display: -webkit-box;
+    line-height: 1.35;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .prompt-plaza-mobile-footer,
+  .prompt-plaza-mobile-stats {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 6px 10px !important;
+    width: 100%;
+  }
+
+  .prompt-plaza-mobile-stats {
+    justify-content: flex-start;
+  }
+
+  .prompt-plaza-mobile-tags {
+    display: flex;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .prompt-plaza-mobile-tags::-webkit-scrollbar {
+    display: none;
   }
 
   :deep(.n-modal) {
@@ -991,6 +1120,36 @@ function timeAgo(timeStr) {
   :deep(.n-modal .n-card) {
     max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
     overflow: auto;
+  }
+
+  :deep(.prompt-plaza-detail-modal.n-modal) {
+    margin: 0 !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  .prompt-plaza-detail-meta,
+  .prompt-plaza-detail-actions {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .prompt-plaza-detail-actions :deep(.n-button) {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 112px;
+  }
+
+  .prompt-plaza-detail-layout {
+    display: block !important;
+  }
+
+  .prompt-plaza-detail-content,
+  .prompt-plaza-detail-comments {
+    width: 100%;
+  }
+
+  .prompt-plaza-detail-comments {
+    margin-top: 12px;
   }
 }
 </style>

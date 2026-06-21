@@ -80,6 +80,13 @@ const checks = [
     expectations: [
       ["prompt-plaza-page", "prompt plaza page shell class"],
       ["prompt-plaza-toolbar", "prompt plaza responsive toolbar"],
+      ["prompt-plaza-mobile-filter-trigger", "prompt plaza mobile filter trigger"],
+      ["prompt-plaza-mobile-filter-drawer", "prompt plaza mobile filter drawer"],
+      ["prompt-plaza-mobile-card", "prompt plaza mobile card"],
+      ["prompt-plaza-mobile-stats", "prompt plaza mobile stats"],
+      ["prompt-plaza-mobile-tags", "prompt plaza mobile tags"],
+      ["prompt-plaza-detail-modal", "prompt plaza mobile detail modal"],
+      ["prompt-plaza-detail-actions", "prompt plaza mobile detail actions"],
     ],
   },
 ];
