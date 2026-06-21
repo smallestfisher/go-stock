@@ -440,11 +440,11 @@ function deletePrompt(ID) {
 </script>
 
 <template>
-  <n-flex justify="left" style="text-align: left">
-    <n-form ref="formRef" :label-placement="'left'" :label-align="'left'">
+  <n-flex class="settings-page-shell" justify="left" style="text-align: left">
+    <n-form class="settings-form" ref="formRef" :label-placement="'left'" :label-align="'left'">
       <n-space vertical size="large">
-        <n-card :title="() => h(NTag, { type: 'primary', bordered: false }, () => '基础设置')" size="small">
-          <n-grid :cols="24" :x-gap="24" style="text-align: left">
+        <n-card class="settings-section-card" :title="() => h(NTag, { type: 'primary', bordered: false }, () => '基础设置')" size="small">
+          <n-grid class="settings-form-grid" :cols="24" :x-gap="24" style="text-align: left">
 <!--            <n-form-item-gi :span="10" label="Tushare Token：" path="tushareToken">
               <n-input type="text" placeholder="Tushare api token" v-model:value="formValue.tushareToken" clearable/>
             </n-form-item-gi>-->
@@ -554,8 +554,8 @@ function deletePrompt(ID) {
           </n-grid>
         </n-card>
 
-        <n-card :title="() => h(NTag, { type: 'primary', bordered: false }, () => '通知设置')" size="small">
-          <n-grid :cols="24" :x-gap="24" style="text-align: left">
+        <n-card class="settings-section-card" :title="() => h(NTag, { type: 'primary', bordered: false }, () => '通知设置')" size="small">
+          <n-grid class="settings-form-grid" :cols="24" :x-gap="24" style="text-align: left">
             <n-form-item-gi :span="3" label="钉钉推送：" path="dingPush.enable">
               <n-switch v-model:value="formValue.dingPush.enable"/>
             </n-form-item-gi>
@@ -581,8 +581,8 @@ function deletePrompt(ID) {
           </n-grid>
         </n-card>
 
-        <n-card :title="() => h(NTag, { type: 'primary', bordered: false }, () => 'AI设置')" size="small">
-          <n-grid :cols="24" :x-gap="24" style="text-align: left;">
+        <n-card class="settings-section-card settings-ai-section-card" :title="() => h(NTag, { type: 'primary', bordered: false }, () => 'AI设置')" size="small">
+          <n-grid class="settings-form-grid settings-ai-grid" :cols="24" :x-gap="24" style="text-align: left;">
             <n-form-item-gi :span="24" label="AI诊股：" path="openAI.enable">
               <n-switch v-model:value="formValue.openAI.enable"/>
             </n-form-item-gi>
@@ -634,7 +634,7 @@ function deletePrompt(ID) {
                     <template #header-extra>
                       <n-button type="error" size="tiny" ghost @click.stop="removeAiConfig(index)" style="margin-right: 8px;">删除</n-button>
                     </template>
-                    <n-grid :cols="24" :x-gap="24">
+                    <n-grid class="settings-ai-config-grid" :cols="24" :x-gap="24">
                       <n-form-item-gi :span="24" hidden label="配置ID" :path="`openAI.aiConfigs[${index}].ID`">
                         <n-input type="text" placeholder="配置ID" v-model:value="aiConfig.ID" clearable/>
                       </n-form-item-gi>
@@ -726,7 +726,7 @@ function deletePrompt(ID) {
 
             <n-gi :span="24">
               <n-space vertical>
-                <n-space justify="center">
+                <n-space class="settings-mobile-action-bar" justify="center">
 <!--                  <n-button type="warning" @click="managePrompts">管理提示词模板</n-button>-->
                   <n-button type="primary" strong @click="saveConfig">保存设置</n-button>
                   <n-button type="info" @click="exportConfig">导出配置</n-button>
@@ -752,7 +752,7 @@ function deletePrompt(ID) {
   </n-flex>
 
   <n-modal v-model:show="showManagePromptsModal" closable :mask-closable="false">
-    <n-card style="width: 800px; height: 600px; text-align: left" :bordered="false"
+    <n-card class="settings-prompt-modal" style="width: 800px; height: 600px; text-align: left" :bordered="false"
             :title="(formPrompt.ID > 0 ? '修改' : '添加') + '提示词'" size="huge" role="dialog" aria-modal="true">
       <n-form ref="formPromptRef" :label-placement="'left'" :label-align="'left'">
         <n-form-item label="名称">
@@ -781,5 +781,111 @@ function deletePrompt(ID) {
   font-size: 16px;
   font-weight: bold;
   color: red;
+}
+
+@media (max-width: 768px) {
+  .settings-page-shell {
+    box-sizing: border-box;
+    display: block !important;
+    padding: 6px 6px calc(var(--mobile-bottom-nav-height) + 96px);
+    text-align: left;
+    width: 100%;
+  }
+
+  .settings-form {
+    width: 100%;
+  }
+
+  .settings-section-card {
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .settings-section-card :deep(.n-card__content) {
+    padding: 10px;
+  }
+
+  .settings-form-grid,
+  .settings-ai-config-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 2px;
+  }
+
+  .settings-form-grid > *,
+  .settings-ai-config-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  .settings-form :deep(.n-form-item) {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .settings-form :deep(.n-form-item-label) {
+    align-items: flex-start;
+    display: flex;
+    line-height: 1.35;
+    margin-bottom: 6px;
+    min-height: auto;
+    padding: 0;
+    white-space: normal;
+  }
+
+  .settings-form :deep(.n-form-item-blank) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .settings-form :deep(.n-input),
+  .settings-form :deep(.n-input-number),
+  .settings-form :deep(.n-select),
+  .settings-form :deep(.n-auto-complete) {
+    width: 100% !important;
+  }
+
+  .settings-form :deep(.n-tooltip-trigger) {
+    flex: 0 0 auto;
+  }
+
+  .settings-ai-section-card :deep(.n-collapse-item__header-main) {
+    min-width: 0;
+  }
+
+  .settings-ai-section-card :deep(.n-collapse-item__header-main .n-flex) {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 2px !important;
+  }
+
+  .settings-mobile-action-bar {
+    align-items: stretch !important;
+    background: var(--n-color, #fff);
+    border-top: 1px solid var(--n-border-color, #efeff5);
+    bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    left: 0;
+    padding: 8px;
+    position: fixed;
+    right: 0;
+    z-index: 19;
+  }
+
+  .settings-mobile-action-bar :deep(.n-button) {
+    min-width: 0;
+    width: 100%;
+  }
+
+  :deep(.settings-prompt-modal) {
+    height: auto !important;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    width: calc(100vw - 12px) !important;
+  }
 }
 </style>

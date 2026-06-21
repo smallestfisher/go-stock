@@ -89,6 +89,17 @@ const checks = [
       ["prompt-plaza-detail-actions", "prompt plaza mobile detail actions"],
     ],
   },
+  {
+    file: "frontend/src/components/settings.vue",
+    expectations: [
+      ["settings-page-shell", "settings page shell"],
+      ["settings-section-card", "settings section cards"],
+      ["settings-form-grid", "settings mobile form grid"],
+      ["settings-ai-config-grid", "settings mobile AI config grid"],
+      ["settings-mobile-action-bar", "settings mobile action bar"],
+      ["settings-prompt-modal", "settings prompt modal"],
+    ],
+  },
 ];
 
 for (const check of checks) {
