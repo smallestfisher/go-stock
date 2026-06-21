@@ -50,6 +50,17 @@ const checks = [
     expectations: [
       ["kline-analysis-page", "K-line page shell class"],
       ["mobile-kline-search", "mobile K-line search layout"],
+      ["kline-mobile-chart-stage", "mobile K-line chart stage"],
+      ["kline-mobile-search-trigger", "mobile K-line search trigger"],
+      ["kline-mobile-search-drawer", "mobile K-line search drawer"],
+      ["kline-mobile-recent-list", "mobile K-line recent list"],
+    ],
+  },
+  {
+    file: "frontend/src/components/StockLightweightKlineChart.vue",
+    expectations: [
+      ["lw-kline-top-controls", "mobile compact K-line top controls"],
+      ["lw-kline-mobile-compact", "mobile compact K-line rules"],
     ],
   },
   {

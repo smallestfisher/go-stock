@@ -3852,7 +3852,7 @@ watch(showLongPosition, (newVal) => {
 </script>
 
 <template>
-  <div class="lw-kline-root" :class="{ 'lw-kline--dark': darkTheme }">
+  <div class="lw-kline-root lw-kline-mobile-compact" :class="{ 'lw-kline--dark': darkTheme }">
     <div class="lw-kline-body">
       <div class="lw-kline-sidebar">
         <div class="lw-kline-sidebar__inner">
@@ -4183,7 +4183,7 @@ watch(showLongPosition, (newVal) => {
         </div>
       </div>
       <div class="lw-kline-main">
-        <NFlex :size="6" wrap style="row-gap: 4px; align-items: center">
+        <NFlex :size="6" wrap class="lw-kline-top-controls" style="row-gap: 4px; align-items: center">
           <NText depth="3" style="font-size: 12px; margin-right: 2px">周期</NText>
           <NButton
             v-for="it in INTERVALS"
@@ -4698,6 +4698,60 @@ watch(showLongPosition, (newVal) => {
 .lw-kline--dark .lw-kline-source-tag--fallback {
   background: #422006;
   color: #fbbf24;
+}
+
+@media (max-width: 768px) {
+  .lw-kline-mobile-compact {
+    display: block;
+  }
+
+  .lw-kline-body {
+    display: block;
+  }
+
+  .lw-kline-sidebar,
+  .lw-kline-crosshair-strip,
+  .lw-kline-signal-summary,
+  .lw-kline-hint-row {
+    display: none !important;
+  }
+
+  .lw-kline-main {
+    gap: 4px;
+  }
+
+  .lw-kline-top-controls {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    margin: 0 0 4px;
+    overflow-x: auto;
+    padding: 0 2px 4px;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
+  .lw-kline-top-controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lw-kline-top-controls :deep(.n-button),
+  .lw-kline-top-controls :deep(.n-input),
+  .lw-kline-top-controls :deep(.n-text) {
+    flex: 0 0 auto;
+  }
+
+  .lw-kline-chart-wrap {
+    display: block;
+  }
+
+  .lw-chip {
+    display: none;
+  }
+
+  .lw-kline-chart {
+    border-radius: 6px;
+  }
 }
 .lw-kline-signal-summary {
   width: 100%;

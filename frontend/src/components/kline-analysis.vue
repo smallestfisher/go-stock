@@ -16,6 +16,7 @@ const darkTheme = ref(false)
 const chartHeight = ref(window.innerHeight - 230)
 const recentStocks = ref([])
 const unsupportedCode = ref(false)
+const mobileSearchVisible = ref(false)
 let stockChangeHandler = null
 
 function toEastMoneyCode(code) {
@@ -95,6 +96,7 @@ function applySearch(value) {
   selectedName.value = found ? found.name : ''
   addToRecent(code, selectedName.value)
   searchQuery.value = found ? `${found.name} - ${found.ts_code}` : code
+  closeMobileSearch()
 }
 
 function handleSearch(value) {
@@ -132,13 +134,24 @@ function selectRecent(code, name) {
   selectedCode.value = emCode
   selectedName.value = name
   addToRecent(code, name)
+  closeMobileSearch()
 }
 
 function updateChartHeight() {
   const isMobile = window.matchMedia('(max-width: 768px)').matches
   chartHeight.value = isMobile
-    ? Math.max(320, window.innerHeight - 190)
+    ? Math.max(420, window.innerHeight - 128)
     : Math.max(400, window.innerHeight - 230)
+}
+
+function openMobileSearch() {
+  mobileSearchVisible.value = true
+}
+
+function closeMobileSearch() {
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+    mobileSearchVisible.value = false
+  }
 }
 
 onBeforeMount(() => {
@@ -182,17 +195,22 @@ onBeforeUnmount(() => {
       <NText :depth="darkTheme ? 1 : 3" style="font-size: 15px; font-weight: 700">{{ selectedName }}&nbsp;</NText>
       <NText depth="3" style="font-size: 13px">{{ selectedCode }}</NText>
     </div>
-    <StockLightweightKlineChart
-      :key="selectedCode"
-      :code="selectedCode"
-      :stockName="selectedName"
-      :darkTheme="darkTheme"
-      :chartHeight="chartHeight"
-      :realtimeIntervalMs="60000"
-    />
+    <div class="kline-mobile-chart-stage">
+      <StockLightweightKlineChart
+        :key="selectedCode"
+        :code="selectedCode"
+        :stockName="selectedName"
+        :darkTheme="darkTheme"
+        :chartHeight="chartHeight"
+        :realtimeIntervalMs="60000"
+      />
+    </div>
 
     <div class="kline-search-bar mobile-kline-search">
-      <n-input-group>
+      <n-button class="kline-mobile-search-trigger mobile-only" type="primary" block @click="openMobileSearch">
+        换股 / 搜索
+      </n-button>
+      <n-input-group class="kline-desktop-search-control">
         <n-auto-complete
           v-model:value="searchQuery"
           :options="options"
@@ -222,6 +240,46 @@ onBeforeUnmount(() => {
         </n-button>
       </div>
     </div>
+    <n-drawer
+      v-model:show="mobileSearchVisible"
+      class="kline-mobile-search-drawer"
+      placement="bottom"
+      height="48vh"
+    >
+      <n-drawer-content title="换股 / 搜索" closable>
+        <NFlex vertical :size="12">
+          <n-input-group>
+            <n-auto-complete
+              v-model:value="searchQuery"
+              :options="options"
+              placeholder="输入股票名称或代码"
+              clearable
+              :on-select="handleSearch"
+              @update:value="findStockList"
+              @keydown.enter.prevent="submitSearch"
+            />
+            <n-button type="primary" @click="submitSearch">
+              搜索
+            </n-button>
+          </n-input-group>
+          <NText v-if="unsupportedCode" type="warning" style="font-size: 12px">该股票暂不支持K线图</NText>
+          <div v-if="recentStocks.length" class="kline-mobile-recent-list">
+            <NText depth="3" style="font-size: 12px">最近查看</NText>
+            <div class="kline-mobile-recent-list__items">
+              <n-button
+                v-for="s in recentStocks.slice(0, 8)"
+                :key="s.code"
+                size="small"
+                secondary
+                @click="selectRecent(s.code, s.name)"
+              >
+                {{ s.name || s.code }}
+              </n-button>
+            </div>
+          </div>
+        </NFlex>
+      </n-drawer-content>
+    </n-drawer>
   </div>
 </template>
 
@@ -247,6 +305,9 @@ onBeforeUnmount(() => {
   z-index: 10;
   width: 320px;
 }
+.kline-mobile-chart-stage {
+  width: 100%;
+}
 .recent-stocks {
   display: flex;
   align-items: center;
@@ -258,7 +319,7 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .kline-analysis-page {
     min-height: calc(100dvh - var(--mobile-bottom-nav-height));
-    padding: 6px 6px 92px;
+    padding: 4px 4px 72px;
   }
 
   .kline-title-bar {
@@ -269,11 +330,47 @@ onBeforeUnmount(() => {
     min-height: 28px;
   }
 
+  .kline-mobile-chart-stage {
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
   .mobile-kline-search {
     bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom));
     left: 8px;
     right: 8px;
     width: auto;
+  }
+
+  .kline-desktop-search-control,
+  .mobile-kline-search > .n-flex,
+  .mobile-kline-search > .recent-stocks {
+    display: none !important;
+  }
+
+  .kline-mobile-search-trigger {
+    height: 42px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  }
+
+  .kline-mobile-search-drawer :deep(.n-drawer-content) {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .kline-mobile-recent-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .kline-mobile-recent-list__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .kline-mobile-recent-list__items :deep(.n-button) {
+    flex: 1 1 calc(33.333% - 8px);
+    min-width: 86px;
   }
 
   .recent-stocks {
