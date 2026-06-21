@@ -362,7 +362,8 @@ function showStockKline(stockCode, stockName, market) {
 </script>
 
 <template>
-    <n-flex :wrap="false" align="center" :size="12" style="flex-shrink: 0; margin-bottom: 8px;">
+  <div class="fund-ranking-page">
+    <n-flex class="fund-ranking-toolbar" :wrap="false" align="center" :size="12" style="flex-shrink: 0; margin-bottom: 8px;">
       <n-select v-model:value="marketType" :options="marketTypeOptions" style="width: 120px;" size="small"/>
       <n-input v-model:value="searchKeyword" placeholder="基金名称/代码" clearable size="small" style="width: 180px;" @update:value="onSearchKeywordChange"/>
       <n-select v-model:value="rankingFundType" :options="fundTypeOptions" style="width: 120px;" size="small"/>
@@ -372,6 +373,7 @@ function showStockKline(stockCode, stockName, market) {
       <n-text depth="3" v-if="searchCodes !== null" style="font-size: 12px;">搜索到 {{ searchCodes.length }} 只，当前页匹配 {{ filteredData.length }} 只</n-text>
     </n-flex>
     <n-data-table
+      class="fund-ranking-table"
       remote
       :columns="rankingColumns"
       :data="filteredData"
@@ -388,6 +390,7 @@ function showStockKline(stockCode, stockName, market) {
     />
 
   <n-modal
+    class="fund-ranking-holdings-modal"
     v-model:show="holdingsModalShow"
     :title="holdingsFundName + ' - ' + holdingsFundCode + ' 十大持仓'"
     preset="card"
@@ -410,6 +413,7 @@ function showStockKline(stockCode, stockName, market) {
   </n-modal>
 
   <n-modal
+    class="fund-ranking-kline-modal"
     v-model:show="klineModalShow"
     :title="klineStockName + ' - ' + klineStockCode + ' K线图'"
     preset="card"
@@ -425,10 +429,74 @@ function showStockKline(stockCode, stockName, market) {
       :chart-height="460"
     />
   </n-modal>
+  </div>
 </template>
 
 <style scoped>
+.fund-ranking-page {
+  min-width: 0;
+}
+
 :deep(.nowrap-cell) {
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .fund-ranking-page {
+    padding-bottom: calc(var(--mobile-bottom-nav-height) + 8px);
+  }
+
+  .fund-ranking-toolbar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+
+  .fund-ranking-toolbar :deep(.n-select),
+  .fund-ranking-toolbar :deep(.n-input),
+  .fund-ranking-toolbar :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .fund-ranking-toolbar :deep(.n-text) {
+    grid-column: 1 / -1;
+    line-height: 1.35;
+  }
+
+  .fund-ranking-table {
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 190px) !important;
+    margin-top: 8px !important;
+  }
+
+  .fund-ranking-table :deep(.n-data-table-th),
+  .fund-ranking-table :deep(.n-data-table-td) {
+    white-space: nowrap;
+  }
+
+  :deep(.fund-ranking-holdings-modal.n-modal),
+  :deep(.fund-ranking-kline-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.fund-ranking-holdings-modal .n-card),
+  :deep(.fund-ranking-kline-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+  }
+
+  :deep(.fund-ranking-holdings-modal .n-card__content),
+  :deep(.fund-ranking-kline-modal .n-card__content) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 90px);
+    overflow: auto;
+    padding: 10px 12px;
+  }
+
+  @media (max-width: 420px) {
+    .fund-ranking-toolbar {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 }
 </style>

@@ -309,28 +309,30 @@ function blinkBorder(findId) {
 </script>
 
 <template>
-  <vue-danmaku v-model:danmus="danmus" useSlot style="height:100px; width:100%;z-index: 9;position:absolute; top: 400px; pointer-events: none;">
-    <template v-slot:dm="{ danmu }">
-      <n-gradient-text type="info">
-        <n-icon :component="ChatboxOutline"/>{{ danmu }}
-      </n-gradient-text>
-    </template>
-  </vue-danmaku>
+  <div class="fund-follow-page">
+    <vue-danmaku class="fund-follow-danmaku" v-model:danmus="danmus" useSlot style="height:100px; width:100%;z-index: 9;position:absolute; top: 400px; pointer-events: none;">
+      <template v-slot:dm="{ danmu }">
+        <n-gradient-text type="info">
+          <n-icon :component="ChatboxOutline"/>{{ danmu }}
+        </n-gradient-text>
+      </template>
+    </vue-danmaku>
 
-  <n-divider style="margin: 4px 0 8px 0"/>
+    <n-divider style="margin: 4px 0 8px 0"/>
 
-  <n-input
-    v-model:value="followKeyword"
-    placeholder="搜索基金名称/代码"
-    clearable
-    size="small"
-    style="margin-bottom: 8px;"
-    @update:value="onFollowSearch"
-  />
+    <n-input
+      class="fund-follow-search"
+      v-model:value="followKeyword"
+      placeholder="搜索基金名称/代码"
+      clearable
+      size="small"
+      style="margin-bottom: 8px;"
+      @update:value="onFollowSearch"
+    />
 
-  <n-grid :x-gap="10" :y-gap="10" :cols="2" responsive="screen" item-responsive>
-    <n-gi v-for="info in followList" :key="info.code" :id="info.code + '_gi'">
-      <n-card :id="info.code" size="small" hoverable>
+    <n-grid class="fund-follow-grid" :x-gap="10" :y-gap="10" :cols="2" responsive="screen" item-responsive>
+      <n-gi v-for="info in followList" :key="info.code" :id="info.code + '_gi'">
+        <n-card class="fund-follow-card" :id="info.code" size="small" hoverable>
         <template #header>
           <n-text style="font-size: 15px; font-weight: 600;">{{ info.fundBasic?.fullName || info.name }}</n-text>
         </template>
@@ -341,8 +343,8 @@ function blinkBorder(findId) {
           </n-flex>
         </template>
 
-        <n-grid :cols="24" :x-gap="16">
-          <n-gi :span="10">
+        <n-grid class="fund-follow-card-body" :cols="24" :x-gap="16">
+          <n-gi class="fund-follow-value-panel" :span="10">
             <n-flex align="center" :size="12" :wrap="false">
               <div v-if="!isOnExchangeFund(info.code) && info.netActualRate != null" style="min-width: 100px;">
                 <div style="font-size: 12px; color: #999;">实际净值</div>
@@ -389,7 +391,7 @@ function blinkBorder(findId) {
             </n-flex>
           </n-gi>
 
-          <n-gi :span="14">
+          <n-gi class="fund-follow-holdings-panel" :span="14">
             <div v-if="holdingsMap[info.code] && holdingsMap[info.code].length" class="holdings-panel">
               <div class="holdings-title">
                 十大持仓
@@ -431,7 +433,7 @@ function blinkBorder(findId) {
         </template>
 
         <template #action>
-          <n-flex justify="space-between" align="center">
+          <n-flex class="fund-follow-actions" justify="space-between" align="center">
             <n-text depth="3" style="font-size: 11px;">{{ countdown }}s 后刷新</n-text>
             <n-flex :size="8">
               <n-button size="tiny" :loading="refreshing" @click="manualRefresh">
@@ -443,67 +445,70 @@ function blinkBorder(findId) {
             </n-flex>
           </n-flex>
         </template>
-      </n-card>
-    </n-gi>
-  </n-grid>
+        </n-card>
+      </n-gi>
+    </n-grid>
 
-  <n-flex justify="center" style="margin-top: 8px;" v-if="followTotalPages > 1">
-    <n-pagination v-model:page="followPage" :page-count="followTotalPages" :page-size="followPageSize" @update:page="onFollowPageChange" size="small"/>
-  </n-flex>
+    <n-flex justify="center" style="margin-top: 8px;" v-if="followTotalPages > 1">
+      <n-pagination v-model:page="followPage" :page-count="followTotalPages" :page-size="followPageSize" @update:page="onFollowPageChange" size="small"/>
+    </n-flex>
 
-  <n-modal
-    v-model:show="chartModalShow"
-    :title="chartFundName + ' - ' + chartFundCode"
-    preset="card"
-    style="width: 90vw; max-width: 1100px;"
-    :mask-closable="true"
-  >
-    <FundKlineChart
-      v-if="chartFundCode"
-      :key="chartFundCode"
-      :fund-code="chartFundCode"
-      :fund-name="chartFundName"
-      :dark-theme="darkTheme"
-      :chart-height="400"
-    />
-
-    <n-divider style="margin: 12px 0 8px 0">{{ isOnExchangeFund(chartFundCode) ? '历史行情' : '历史净值' }}</n-divider>
-
-    <n-data-table
-      :columns="netValueColumns"
-      :data="netValueData"
-      :loading="netValueLoading"
-      :pagination="{ pageSize: 10 }"
-      size="small"
-      :bordered="false"
-      :max-height="300"
-      striped
-    />
-  </n-modal>
-
-  <div style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
-    <n-input-group>
-      <n-auto-complete
-        v-model:value="data.name"
-        :input-props="{ autocomplete: 'disabled' }"
-        :options="options"
-        placeholder="基金名称/代码/弹幕"
-        clearable
-        @update-value="getFundList"
-        :on-select="onSelectFund"
+    <n-modal
+      class="fund-follow-chart-modal"
+      v-model:show="chartModalShow"
+      :title="chartFundName + ' - ' + chartFundCode"
+      preset="card"
+      style="width: 90vw; max-width: 1100px;"
+      :mask-closable="true"
+    >
+      <FundKlineChart
+        v-if="chartFundCode"
+        :key="chartFundCode"
+        :fund-code="chartFundCode"
+        :fund-name="chartFundName"
+        :dark-theme="darkTheme"
+        :chart-height="400"
       />
-      <n-popover trigger="manual" :show="showPopover">
-        <template #trigger>
-          <n-button type="primary" @click="AddFund">
-            <n-icon :component="Add"/>&nbsp;关注
+
+      <n-divider style="margin: 12px 0 8px 0">{{ isOnExchangeFund(chartFundCode) ? '历史行情' : '历史净值' }}</n-divider>
+
+      <n-data-table
+        class="fund-follow-net-table"
+        :columns="netValueColumns"
+        :data="netValueData"
+        :loading="netValueLoading"
+        :pagination="{ pageSize: 10 }"
+        size="small"
+        :bordered="false"
+        :max-height="300"
+        striped
+      />
+    </n-modal>
+
+    <div class="fund-mobile-add-bar" style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
+      <n-input-group>
+        <n-auto-complete
+          v-model:value="data.name"
+          :input-props="{ autocomplete: 'disabled' }"
+          :options="options"
+          placeholder="基金名称/代码/弹幕"
+          clearable
+          @update-value="getFundList"
+          :on-select="onSelectFund"
+        />
+        <n-popover trigger="manual" :show="showPopover">
+          <template #trigger>
+            <n-button type="primary" @click="AddFund">
+              <n-icon :component="Add"/>&nbsp;关注
+            </n-button>
+          </template>
+          <span>输入基金名称/代码关键词开始吧~~~</span>
+        </n-popover>
+        <n-button type="info" @click="SendDanmu" v-if="data.enableDanmu">
+          <n-icon :component="ChatboxOutline"/>&nbsp;发送弹幕
           </n-button>
-        </template>
-        <span>输入基金名称/代码关键词开始吧~~~</span>
-      </n-popover>
-      <n-button type="info" @click="SendDanmu" v-if="data.enableDanmu">
-        <n-icon :component="ChatboxOutline"/>&nbsp;发送弹幕
-      </n-button>
-    </n-input-group>
+      </n-input-group>
+    </div>
   </div>
 </template>
 
@@ -585,5 +590,132 @@ function blinkBorder(findId) {
 .holding-change {
   text-align: right;
   font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .fund-follow-page {
+    padding-bottom: calc(var(--mobile-bottom-nav-height) + 58px);
+  }
+
+  .fund-follow-danmaku {
+    display: none;
+  }
+
+  .fund-follow-search {
+    margin-bottom: 10px !important;
+  }
+
+  .fund-follow-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .fund-follow-card {
+    border-radius: 8px;
+  }
+
+  .fund-follow-card :deep(.n-card-header) {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 12px 8px;
+  }
+
+  .fund-follow-card :deep(.n-card-header__main) {
+    min-width: 0;
+  }
+
+  .fund-follow-card :deep(.n-card-header__extra) {
+    max-width: 42%;
+  }
+
+  .fund-follow-card :deep(.n-card__content),
+  .fund-follow-card :deep(.n-card__footer),
+  .fund-follow-card :deep(.n-card__action) {
+    padding: 8px 12px;
+  }
+
+  .fund-follow-card-body {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .fund-follow-value-panel,
+  .fund-follow-holdings-panel {
+    grid-column: 1 / -1 !important;
+  }
+
+  .fund-follow-value-panel :deep(.n-flex) {
+    flex-wrap: wrap !important;
+  }
+
+  .holdings-panel {
+    border-left: 0;
+    border-top: 1px solid var(--n-border-color, #efeff5);
+    padding-left: 0;
+    padding-top: 8px;
+  }
+
+  .holdings-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .holding-row,
+  .holdings-header {
+    grid-template-columns: minmax(80px, 1fr) 48px 50px 58px;
+  }
+
+  .fund-follow-actions {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 8px !important;
+  }
+
+  .fund-follow-actions :deep(.n-flex) {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .fund-follow-actions :deep(.n-button) {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 104px;
+  }
+
+  :deep(.fund-follow-chart-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.fund-follow-chart-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+  }
+
+  :deep(.fund-follow-chart-modal .n-card__content) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 90px);
+    overflow: auto;
+    padding: 10px 12px;
+  }
+
+  .fund-follow-net-table {
+    overflow-x: auto;
+  }
+
+  .fund-mobile-add-bar {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(var(--mobile-bottom-nav-height) + 8px) !important;
+    width: auto !important;
+  }
+
+  .fund-mobile-add-bar :deep(.n-input-group) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .fund-mobile-add-bar :deep(.n-auto-complete) {
+    min-width: 0;
+  }
 }
 </style>

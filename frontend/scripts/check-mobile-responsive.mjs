@@ -106,6 +106,45 @@ const checks = [
     ],
   },
   {
+    file: "frontend/src/components/fund.vue",
+    expectations: [
+      ["fund-page-shell", "fund page shell"],
+      ["fund-mobile-tabs", "fund mobile tabs"],
+    ],
+  },
+  {
+    file: "frontend/src/components/FundFollow.vue",
+    expectations: [
+      ["fund-follow-page", "fund follow page shell"],
+      ["fund-follow-search", "fund follow mobile search"],
+      ["fund-follow-grid", "fund follow mobile grid"],
+      ["fund-follow-card", "fund follow mobile card"],
+      ["fund-follow-card-body", "fund follow card body"],
+      ["fund-follow-actions", "fund follow actions"],
+      ["fund-follow-chart-modal", "fund follow chart modal"],
+      ["fund-follow-net-table", "fund follow net value table"],
+      ["fund-mobile-add-bar", "fund mobile add bar"],
+    ],
+  },
+  {
+    file: "frontend/src/components/FundRanking.vue",
+    expectations: [
+      ["fund-ranking-page", "fund ranking page shell"],
+      ["fund-ranking-toolbar", "fund ranking mobile toolbar"],
+      ["fund-ranking-table", "fund ranking mobile table"],
+      ["fund-ranking-holdings-modal", "fund ranking holdings modal"],
+      ["fund-ranking-kline-modal", "fund ranking K-line modal"],
+    ],
+  },
+  {
+    file: "frontend/src/components/FundKlineChart.vue",
+    expectations: [
+      ["fund-kline-chart", "fund K-line chart shell"],
+      ["fund-kline-controls", "fund K-line mobile controls"],
+      ["fund-kline-source", "fund K-line source label"],
+    ],
+  },
+  {
     file: "frontend/src/components/settings.vue",
     expectations: [
       ["settings-page-shell", "settings page shell"],
