@@ -37,6 +37,10 @@ const checks = [
     expectations: [
       ["stock-page-shell", "stock page shell class"],
       ["mobile-ai-modal", "mobile AI modal class"],
+      ["mobile-ai-modal__reader", "mobile AI reader area"],
+      ["mobile-ai-modal__footer", "mobile AI footer metadata"],
+      ["mobile-ai-modal__control-panel", "mobile AI control panel"],
+      ["mobile-ai-modal__bottom-actions", "mobile AI bottom actions"],
       ["stock-mobile-actions", "mobile stock action layout"],
       ["stock-mobile-add-drawer", "mobile stock add drawer"],
       ["stock-mobile-add-trigger", "mobile stock add trigger"],
@@ -87,6 +91,18 @@ const checks = [
       ["prompt-plaza-mobile-tags", "prompt plaza mobile tags"],
       ["prompt-plaza-detail-modal", "prompt plaza mobile detail modal"],
       ["prompt-plaza-detail-actions", "prompt plaza mobile detail actions"],
+    ],
+  },
+  {
+    file: "frontend/src/components/researchReport.vue",
+    expectations: [
+      ["research-report-page", "research report page shell"],
+      ["research-report-search", "research report mobile search"],
+      ["research-report-table", "research report mobile table"],
+      ["research-ai-modal", "research AI modal"],
+      ["research-ai-reader", "research AI reader area"],
+      ["research-ai-footer", "research AI footer metadata"],
+      ["research-ai-actions", "research AI actions"],
     ],
   },
   {

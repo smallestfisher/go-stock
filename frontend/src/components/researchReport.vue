@@ -265,55 +265,133 @@ function deleteAIResponseResult(id){
 </script>
 
 <template>
-  <n-input-group>
-    <n-date-picker  v-model:value="paginationReactive.range" type="daterange"   style="width: 50%"/>
-    <n-input clearable placeholder="输入关键词搜索" v-model:value="paginationReactive.keyword"/>
-    <n-button type="primary" ghost @click="handleSearch"  @input="handleSearch">
-      搜索
-    </n-button>
-  </n-input-group>
-        <n-data-table
-            remote
-            size="small"
-            :columns="columnsRef"
-            :data="dataRef"
-            :loading="loadingRef"
-            :pagination="paginationReactive"
-            :row-key="(rowData)=>rowData.ID"
-            @update:page="handlePageChange"
-            flex-height
-            style="height: calc(100vh - 210px);margin-top: 10px"
-        />
+  <div class="research-report-page">
+    <n-input-group class="research-report-search">
+      <n-date-picker  v-model:value="paginationReactive.range" type="daterange"   style="width: 50%"/>
+      <n-input clearable placeholder="输入关键词搜索" v-model:value="paginationReactive.keyword"/>
+      <n-button type="primary" ghost @click="handleSearch"  @input="handleSearch">
+        搜索
+      </n-button>
+    </n-input-group>
+    <n-data-table
+        class="research-report-table"
+        remote
+        size="small"
+        :columns="columnsRef"
+        :data="dataRef"
+        :loading="loadingRef"
+        :pagination="paginationReactive"
+        :row-key="(rowData)=>rowData.ID"
+        @update:page="handlePageChange"
+        flex-height
+        style="height: calc(100vh - 210px);margin-top: 10px"
+    />
 
 
 
-  <n-modal transform-origin="center" v-model:show="editorDataRef.show" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
-           :title="'['+editorDataRef.stockName+']AI分析'">
-    <n-spin size="small" :show="editorDataRef.loading">
-      <MdPreview  ref="mdPreviewRef" style="height: 540px;max-height: 60vh;text-align: left;overflow-y: auto;"
-                 :modelValue="editorDataRef.content" :theme="theme"/>
-    </n-spin>
-    <template #footer>
-      <n-flex justify="space-between" ref="tipsRef">
-        <n-text type="info" v-if="editorDataRef.chatId">
-          <n-tag v-if="editorDataRef.modelName" type="warning" round :title="editorDataRef.chatId" :bordered="false">
-            {{ editorDataRef.modelName }}
-          </n-tag>
-          {{ editorDataRef.CreatedAt }}
-        </n-text>
-        <n-text type="error">*AI分析结果仅供参考，请以实际行情为准。投资需谨慎，风险自担。</n-text>
-      </n-flex>
-    </template>
-    <template #action>
-      <n-flex justify="right">
-        <n-button size="tiny" type="success" @click="copyToClipboard">复制到剪切板</n-button>
-        <n-button size="tiny" type="primary" @click="saveAsMarkdown(editorDataRef.stockCode,editorDataRef.stockName)">保存为Markdown文件</n-button>
-        <n-button size="tiny" type="error" @click="share(editorDataRef.stockCode,editorDataRef.stockName)">分享到项目社区</n-button>
-      </n-flex>
-    </template>
-  </n-modal>
+    <n-modal class="research-ai-modal" transform-origin="center" v-model:show="editorDataRef.show" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
+             :title="'['+editorDataRef.stockName+']AI分析'">
+      <n-spin size="small" :show="editorDataRef.loading">
+        <MdPreview  class="research-ai-reader" ref="mdPreviewRef" style="height: 540px;max-height: 60vh;text-align: left;overflow-y: auto;"
+                   :modelValue="editorDataRef.content" :theme="theme"/>
+      </n-spin>
+      <template #footer>
+        <n-flex class="research-ai-footer" justify="space-between" ref="tipsRef">
+          <n-text type="info" v-if="editorDataRef.chatId">
+            <n-tag v-if="editorDataRef.modelName" type="warning" round :title="editorDataRef.chatId" :bordered="false">
+              {{ editorDataRef.modelName }}
+            </n-tag>
+            {{ editorDataRef.CreatedAt }}
+          </n-text>
+          <n-text type="error">*AI分析结果仅供参考，请以实际行情为准。投资需谨慎，风险自担。</n-text>
+        </n-flex>
+      </template>
+      <template #action>
+        <n-flex class="research-ai-actions" justify="right">
+          <n-button size="tiny" type="success" @click="copyToClipboard">复制到剪切板</n-button>
+          <n-button size="tiny" type="primary" @click="saveAsMarkdown(editorDataRef.stockCode,editorDataRef.stockName)">保存为Markdown文件</n-button>
+          <n-button size="tiny" type="error" @click="share(editorDataRef.stockCode,editorDataRef.stockName)">分享到项目社区</n-button>
+        </n-flex>
+      </template>
+    </n-modal>
+  </div>
 </template>
 
 <style scoped>
+.research-report-page {
+  min-width: 0;
+}
 
+@media (max-width: 768px) {
+  .research-report-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+  }
+
+  .research-report-search {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .research-report-search :deep(.n-date-picker),
+  .research-report-search :deep(.n-input),
+  .research-report-search :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .research-report-table {
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 170px) !important;
+    margin-top: 10px !important;
+  }
+
+  .research-report-table :deep(.n-data-table-th),
+  .research-report-table :deep(.n-data-table-td) {
+    white-space: nowrap;
+  }
+
+  :deep(.research-ai-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.research-ai-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+  }
+
+  :deep(.research-ai-modal .n-card__content) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 210px);
+    overflow: auto;
+    padding: 10px 12px;
+  }
+
+  :deep(.research-ai-modal .n-card__footer),
+  :deep(.research-ai-modal .n-card__action) {
+    padding: 10px 12px;
+  }
+
+  .research-ai-reader {
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 270px) !important;
+    max-height: none !important;
+    min-height: 300px;
+    overflow-y: auto;
+  }
+
+  .research-ai-footer {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 6px !important;
+    line-height: 1.45;
+  }
+
+  .research-ai-actions {
+    align-items: stretch !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  .research-ai-actions :deep(.n-button) {
+    flex: 1 1 100%;
+  }
+}
 </style>

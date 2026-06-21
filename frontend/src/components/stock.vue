@@ -2799,19 +2799,19 @@ function searchStockReport(stockCode) {
   <n-modal class="mobile-ai-modal" transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
            :title="'['+data.name+']AI分析'">
     <n-spin size="small" :show="data.loading && !data.airesult">
-      <MdEditor v-if="modalShow4 && enableEditor" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
+      <MdEditor v-if="modalShow4 && enableEditor" class="mobile-ai-modal__reader" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
                 :modelValue="data.airesult" :theme="theme">
         <template #defToolbars>
           <ExportPDF :file-name="data.name+'['+data.code+']AI分析报告'" style="text-align: left"
                      :modelValue="data.airesult" @onProgress="handleProgress"/>
         </template>
       </MdEditor>
-      <div v-if="modalShow4 && !enableEditor" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
+      <div v-if="modalShow4 && !enableEditor" class="mobile-ai-modal__reader" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
         <MdPreview ref="mdPreviewRef" :modelValue="data.airesult" :theme="theme"/>
       </div>
     </n-spin>
     <template #footer>
-      <n-flex justify="space-between" ref="tipsRef">
+      <n-flex class="mobile-ai-modal__footer" justify="space-between" ref="tipsRef">
         <n-text type="info" v-if="data.time">
           <n-tag v-if="data.modelName" type="warning" round :title="data.chatId" :bordered="false">
             {{ data.modelName }}
@@ -2823,53 +2823,57 @@ function searchStockReport(stockCode) {
       </n-flex>
     </template>
     <template #action>
-      <n-flex class="mobile-ai-modal__switches" justify="left" style="margin-bottom: 10px">
-        <n-switch v-model:value="enableTools" :round="false">
-          <template #checked>
-            工具调用
-          </template>
-          <template #unchecked>
-            非工具调用
-          </template>
-        </n-switch>
-        <n-switch v-model:value="thinkingMode" :round="false">
-          <template #checked>
-            思考模式
-          </template>
-          <template #unchecked>
-            非思考模式
-          </template>
-        </n-switch>
-        <n-gradient-text type="error" style="margin-left: 10px">
-          *AI函数工具调用可以增强AI获取数据的能力,但会消耗更多tokens。
-        </n-gradient-text>
-      </n-flex>
-      <n-flex class="mobile-ai-modal__selectors" justify="space-between" style="margin-bottom: 10px">
-        <n-select style="width: 31%" v-model:value="data.aiConfigId" label-field="name" value-field="ID"
-                  :options="aiConfigs" placeholder="请选择AI模型服务配置"/>
-        <n-select style="width: 31%" v-model:value="data.sysPromptId" label-field="name" value-field="ID"
-                  :options="sysPromptOptions" placeholder="请选择系统提示词"/>
-        <n-select style="width: 31%" v-model:value="data.question" label-field="name" value-field="content"
-                  :options="userPromptOptions" placeholder="请选择用户提示词"/>
-      </n-flex>
-      <n-flex class="mobile-ai-modal__actions" justify="right">
-        <n-input v-model:value="data.question" style="text-align: left" clearable
-                 type="textarea"
-                 :show-count="true"
-                 placeholder="请输入您的问题:例如{{stockName}}[{{stockCode}}]分析和总结"
-                 :autosize="{
-              minRows: 2,
-              maxRows: 5
-            }"
-        />
-        <!--        <n-button size="tiny" type="error" @click="enableEditor=!enableEditor">编辑/预览</n-button>-->
-        <n-button size="tiny" type="warning" @click="aiReCheckStock(data.name,data.code)">开始AI分析</n-button>
-        <n-button size="tiny" type="info" @click="saveAsImage(data.name,data.code)">保存为图片</n-button>
-        <n-button size="tiny" type="success" @click="copyToClipboard">复制到剪切板</n-button>
-        <n-button size="tiny" type="primary" @click="saveAsMarkdown">保存为Markdown文件</n-button>
-        <n-button size="tiny" type="primary" @click="saveAsWord">保存为Word文件</n-button>
-        <n-button size="tiny" type="error" @click="share(data.code,data.name)">分享到项目社区</n-button>
-      </n-flex>
+      <div class="mobile-ai-modal__control-panel">
+        <n-flex class="mobile-ai-modal__switches" justify="left" style="margin-bottom: 10px">
+          <n-switch v-model:value="enableTools" :round="false">
+            <template #checked>
+              工具调用
+            </template>
+            <template #unchecked>
+              非工具调用
+            </template>
+          </n-switch>
+          <n-switch v-model:value="thinkingMode" :round="false">
+            <template #checked>
+              思考模式
+            </template>
+            <template #unchecked>
+              非思考模式
+            </template>
+          </n-switch>
+          <n-gradient-text type="error" style="margin-left: 10px">
+            *AI函数工具调用可以增强AI获取数据的能力,但会消耗更多tokens。
+          </n-gradient-text>
+        </n-flex>
+        <n-flex class="mobile-ai-modal__selectors" justify="space-between" style="margin-bottom: 10px">
+          <n-select style="width: 31%" v-model:value="data.aiConfigId" label-field="name" value-field="ID"
+                    :options="aiConfigs" placeholder="请选择AI模型服务配置"/>
+          <n-select style="width: 31%" v-model:value="data.sysPromptId" label-field="name" value-field="ID"
+                    :options="sysPromptOptions" placeholder="请选择系统提示词"/>
+          <n-select style="width: 31%" v-model:value="data.question" label-field="name" value-field="content"
+                    :options="userPromptOptions" placeholder="请选择用户提示词"/>
+        </n-flex>
+        <n-flex class="mobile-ai-modal__actions" justify="right">
+          <n-input v-model:value="data.question" style="text-align: left" clearable
+                   type="textarea"
+                   :show-count="true"
+                   placeholder="请输入您的问题:例如{{stockName}}[{{stockCode}}]分析和总结"
+                   :autosize="{
+                minRows: 2,
+                maxRows: 5
+              }"
+          />
+          <n-flex class="mobile-ai-modal__bottom-actions" justify="right">
+            <!--        <n-button size="tiny" type="error" @click="enableEditor=!enableEditor">编辑/预览</n-button>-->
+            <n-button size="tiny" type="warning" @click="aiReCheckStock(data.name,data.code)">开始AI分析</n-button>
+            <n-button size="tiny" type="info" @click="saveAsImage(data.name,data.code)">保存为图片</n-button>
+            <n-button size="tiny" type="success" @click="copyToClipboard">复制到剪切板</n-button>
+            <n-button size="tiny" type="primary" @click="saveAsMarkdown">保存为Markdown文件</n-button>
+            <n-button size="tiny" type="primary" @click="saveAsWord">保存为Word文件</n-button>
+            <n-button size="tiny" type="error" @click="share(data.code,data.name)">分享到项目社区</n-button>
+          </n-flex>
+        </n-flex>
+      </div>
     </template>
   </n-modal>
   <n-modal v-model:show="modalShow5" :title="data.name+'资金趋势'" style="width: 1000px;max-width: calc(100vw - 32px);" :preset="'card'">
@@ -3072,16 +3076,50 @@ function searchStockReport(stockCode) {
   }
 
   :deep(.mobile-ai-modal .n-card__content) {
-    max-height: calc(100dvh - 260px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 260px);
     overflow: auto;
+    padding: 10px 12px;
+  }
+
+  :deep(.mobile-ai-modal .n-card__footer),
+  :deep(.mobile-ai-modal .n-card__action) {
+    padding: 10px 12px;
+  }
+
+  .mobile-ai-modal__reader {
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 360px) !important;
+    max-height: none !important;
+    min-height: 220px;
+    overflow-y: auto;
+  }
+
+  .mobile-ai-modal__footer {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 6px !important;
+    line-height: 1.45;
+  }
+
+  .mobile-ai-modal__control-panel {
+    display: grid;
+    gap: 8px;
   }
 
   .mobile-ai-modal__switches,
   .mobile-ai-modal__selectors,
-  .mobile-ai-modal__actions {
+  .mobile-ai-modal__actions,
+  .mobile-ai-modal__bottom-actions {
     align-items: stretch !important;
     flex-wrap: wrap;
     gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .mobile-ai-modal__switches :deep(.n-gradient-text) {
+    flex: 1 1 100%;
+    margin-left: 0 !important;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .mobile-ai-modal__selectors :deep(.n-select),
@@ -3089,7 +3127,11 @@ function searchStockReport(stockCode) {
     width: 100% !important;
   }
 
-  .mobile-ai-modal__actions :deep(.n-button) {
+  .mobile-ai-modal__bottom-actions {
+    width: 100%;
+  }
+
+  .mobile-ai-modal__bottom-actions :deep(.n-button) {
     flex: 1 1 calc(50% - 8px);
     min-width: 120px;
   }
