@@ -610,14 +610,13 @@ function timeAgo(timeStr) {
         <n-grid class="prompt-plaza-grid" cols="1 s:1 m:2 l:3" :x-gap="12" :y-gap="12" responsive="screen">
           <n-gi v-for="item in prompts" :key="item.id">
             <n-card
-              class="prompt-plaza-mobile-card"
               hoverable
               size="small"
               style="cursor: pointer; height: 100%"
               @click="showDetail(item.id)"
             >
               <template #header>
-                <n-space class="prompt-plaza-mobile-title" align="center" :size="6">
+                <n-space align="center" :size="6">
                   <n-text strong style="font-size: 15px">{{ item.title }}</n-text>
                 </n-space>
               </template>
@@ -628,12 +627,12 @@ function timeAgo(timeStr) {
                 {{item.summary|| item.description || item.content }}
               </n-ellipsis>
               <template #footer>
-                <n-space class="prompt-plaza-mobile-footer" justify="space-between" align="center">
+                <n-space justify="space-between" align="center">
                   <n-text depth="3" style="font-size: 12px">
                     {{ item.user?.nickname || item.user?.username || '匿名' }}
                     · {{ timeAgo(item.createdAt) }}
                   </n-text>
-                  <n-space class="prompt-plaza-mobile-stats" :size="12" style="font-size: 12px">
+                  <n-space :size="12" style="font-size: 12px">
                     <n-text depth="3">
                       👁️ {{ item.viewsCount || 0 }}
                     </n-text>
@@ -653,7 +652,7 @@ function timeAgo(timeStr) {
                 </n-space>
               </template>
               <template #action v-if="item.tags">
-                <n-space class="prompt-plaza-mobile-tags" :size="4">
+                <n-space :size="4">
                   <n-tag v-for="tag in item.tags.split(',').filter(t=>t).slice(0, 3)" :key="tag" size="tiny" round>{{ tag.trim() }}</n-tag>
                 </n-space>
               </template>
@@ -983,52 +982,6 @@ function timeAgo(timeStr) {
 
   .prompt-plaza-grid {
     width: 100%;
-  }
-
-  :deep(.prompt-plaza-mobile-card .n-card-header) {
-    align-items: flex-start;
-    gap: 8px;
-    padding-bottom: 6px;
-  }
-
-  :deep(.prompt-plaza-mobile-card .n-card-header__main) {
-    min-width: 0;
-  }
-
-  .prompt-plaza-mobile-title {
-    min-width: 0;
-  }
-
-  .prompt-plaza-mobile-title :deep(.n-text) {
-    display: -webkit-box;
-    line-height: 1.35;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .prompt-plaza-mobile-footer,
-  .prompt-plaza-mobile-stats {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    gap: 6px 10px !important;
-    width: 100%;
-  }
-
-  .prompt-plaza-mobile-stats {
-    justify-content: flex-start;
-  }
-
-  .prompt-plaza-mobile-tags {
-    display: flex;
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-  }
-
-  .prompt-plaza-mobile-tags::-webkit-scrollbar {
-    display: none;
   }
 
   :deep(.n-modal) {

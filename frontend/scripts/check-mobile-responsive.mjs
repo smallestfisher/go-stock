@@ -38,8 +38,11 @@ const checks = [
       ["stock-page-shell", "stock page shell class"],
       ["mobile-ai-modal", "mobile AI modal class"],
       ["stock-mobile-actions", "mobile stock action layout"],
-      ["stock-mobile-summary", "mobile stock summary card"],
-      ["stock-mobile-metric-strip", "mobile stock metric strip"],
+      ["stock-mobile-add-drawer", "mobile stock add drawer"],
+      ["stock-mobile-add-trigger", "mobile stock add trigger"],
+      ["stock-mobile-primary-actions", "mobile primary stock actions"],
+      ["stock-mobile-more-menu", "mobile secondary stock menu"],
+      ["stock-mobile-card-body", "mobile stock card tap target"],
     ],
   },
   {
@@ -47,8 +50,6 @@ const checks = [
     expectations: [
       ["kline-analysis-page", "K-line page shell class"],
       ["mobile-kline-search", "mobile K-line search layout"],
-      ["kline-mobile-toolbar", "mobile K-line toolbar"],
-      ["kline-mobile-recent-strip", "mobile K-line recent stock strip"],
     ],
   },
   {
@@ -56,8 +57,6 @@ const checks = [
     expectations: [
       ["market-page-shell", "market page shell class"],
       ["market-mobile-scroll", "market mobile scroll class"],
-      ["market-mobile-source-tabs", "mobile market news source tabs"],
-      ["market-mobile-index-card", "mobile market index card"],
     ],
   },
   {
@@ -65,8 +64,6 @@ const checks = [
     expectations: [
       ["prompt-plaza-page", "prompt plaza page shell class"],
       ["prompt-plaza-toolbar", "prompt plaza responsive toolbar"],
-      ["prompt-plaza-mobile-card", "prompt plaza mobile card"],
-      ["prompt-plaza-mobile-stats", "prompt plaza mobile stats"],
     ],
   },
 ];

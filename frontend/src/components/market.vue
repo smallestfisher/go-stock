@@ -421,18 +421,7 @@ function ReFlesh(source) {
             <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
           </n-gi>
           <n-gi>
-            <n-tabs class="market-mobile-source-tabs" type="segment" animated size="small">
-              <n-tab-pane name="财联社" tab="财联社">
-                <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-              <n-tab-pane name="新浪" tab="新浪">
-                <news-list :newsList="sinaNewsList" :header-title="'新浪财经'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-              <n-tab-pane v-if="foreignNewsList.length>0" name="外媒" tab="外媒">
-                <news-list :newsList="foreignNewsList" :header-title="'外媒'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-            </n-tabs>
-            <n-grid class="market-news-grid market-desktop-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
+            <n-grid class="market-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
               <n-gi>
                 <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
               </n-gi>
@@ -453,7 +442,7 @@ function ReFlesh(source) {
           <n-tab-pane name="全球指数" tab="全球指数">
             <n-grid class="market-mobile-scroll" :cols="5" :y-gap="0">
               <n-gi v-for="(val, key) in globalStockIndexes" :key="key">
-                <n-list class="market-mobile-index-card" bordered>
+                <n-list bordered>
                   <template #header>
                     {{ getAreaName(key) }}
                   </template>
@@ -858,10 +847,6 @@ function ReFlesh(source) {
 
 </template>
 <style scoped>
-.market-mobile-source-tabs {
-  display: none;
-}
-
 @media (max-width: 768px) {
   .market-page-shell {
     margin: 0 6px 86px;
@@ -880,24 +865,6 @@ function ReFlesh(source) {
     display: block !important;
   }
 
-  .market-desktop-news-grid {
-    display: none !important;
-  }
-
-  .market-mobile-source-tabs {
-    display: block;
-  }
-
-  :deep(.market-mobile-source-tabs .n-tabs-nav) {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-
-  :deep(.market-mobile-source-tabs .n-tabs-pane-wrapper) {
-    margin-top: 8px;
-  }
-
   .market-news-grid :deep(.n-grid-item) {
     margin-bottom: 8px;
   }
@@ -914,21 +881,6 @@ function ReFlesh(source) {
 
   .market-mobile-scroll :deep(.n-grid-item) {
     scroll-snap-align: start;
-  }
-
-  .market-mobile-index-card {
-    border-radius: 6px;
-    min-height: 100%;
-    overflow: hidden;
-  }
-
-  .market-mobile-index-card :deep(.n-list-item) {
-    padding: 8px 10px;
-  }
-
-  .market-mobile-index-card :deep(.n-grid) {
-    align-items: center;
-    grid-template-columns: minmax(110px, 1fr) minmax(88px, auto) 44px !important;
   }
 
   .market-summary-fab {

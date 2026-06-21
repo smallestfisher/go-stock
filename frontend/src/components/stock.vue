@@ -113,6 +113,7 @@ const modalShow3 = ref(false)
 const modalShow4 = ref(false)
 const modalShow5 = ref(false)
 const modalShow6 = ref(false)
+const mobileAddDrawerVisible = ref(false)
 const lwKlineCode = ref('')
 const lwKlineName = ref('')
 const currentStockTradingPrice = ref({
@@ -656,6 +657,85 @@ function AddStock() {
     })
   } else {
     message.error("已经关注了")
+  }
+}
+
+function openMobileAddDrawer() {
+  addBTN.value = true
+  mobileAddDrawerVisible.value = true
+}
+
+function addStockFromMobile() {
+  if (!data?.code || stocks.value.includes(data.code)) {
+    AddStock()
+    return
+  }
+  AddStock()
+  mobileAddDrawerVisible.value = false
+}
+
+function getStockMobileMoreOptions(result, groupId = 0) {
+  const hasDepth = result['买一报价'] > 0
+  const options = [
+    { label: '详情', key: 'detail' },
+  ]
+  if (hasDepth) {
+    options.push(
+        { label: '资金', key: 'money' },
+        { label: '公告', key: 'notice' },
+        { label: '研报', key: 'report' },
+    )
+  }
+  if (groupList.value.length > 0) {
+    options.push({
+      label: '设置分组',
+      key: 'group',
+      children: groupList.value.map(group => ({
+        label: group.name,
+        key: `group:${group.ID}`,
+      })),
+    })
+  }
+  if (Number(groupId) > 0) {
+    options.push({ label: '移出分组', key: 'remove-group' })
+  }
+  if (data.enableDanmu) {
+    options.push({ label: '发送弹幕', key: 'danmu' })
+  }
+  options.push({ label: '取消关注', key: 'unfollow' })
+  return options
+}
+
+function handleStockMobileMoreSelect(key, result, groupId = 0) {
+  const code = result['股票代码']
+  const name = result['股票名称']
+  if (String(key).startsWith('group:')) {
+    AddStockGroupInfo(Number(String(key).slice(6)), code, name)
+    return
+  }
+  switch (key) {
+    case 'detail':
+      search(code, name)
+      break
+    case 'money':
+      showMoney(code, name)
+      break
+    case 'notice':
+      searchNotice(code)
+      break
+    case 'report':
+      searchStockReport(code)
+      break
+    case 'remove-group':
+      delStockGroup(code, name, groupId)
+      break
+    case 'danmu':
+      data.name = name
+      SendDanmu()
+      break
+    case 'unfollow':
+      removeMonitor(code, name, result.key)
+      break
   }
 }
 
@@ -2195,38 +2275,11 @@ function searchStockReport(stockCode) {
     <n-tab-pane closable name="0" :tab="'全部'">
       <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <n-gi :id="result['股票代码']+'_gi'" v-for="result in sortedResults" style="margin-left: 2px;">
-          <n-card class="stock-card" :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
+          <n-card class="stock-mobile-card" :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
                   :title="result['股票名称']" :closable="false"
                   @close="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
-            <div class="stock-mobile-summary mobile-only">
-              <div class="stock-mobile-summary__quote">
-                <n-text class="stock-mobile-summary__price" :type="result.type">
-                  <n-number-animation :duration="1000" :precision="2" :from="result['上次当前价格']"
-                                      :to="Number(result['当前价格'])"/>
-                </n-text>
-                <n-text class="stock-mobile-summary__change" :type="result.type">
-                  <n-number-animation :duration="1000" :precision="3" :from="0" :to="result.changePercent"/>
-                  %
-                </n-text>
-                <n-text v-if="result.costVolume>0" class="stock-mobile-summary__profit" :type="result.type">
-                  今日
-                  <n-number-animation :duration="1000" :precision="2" :from="0" :to="result.profitAmountToday"/>
-                </n-text>
-              </div>
-              <stock-spark-line class="stock-mobile-summary__spark" :last-price="Number(result['当前价格'])"
-                                :open-price="Number(result['昨日收盘价'])"
-                                :stock-code="result['股票代码']" :stock-name="result['股票名称']"></stock-spark-line>
-              <div class="stock-mobile-metric-strip">
-                <span>高 {{ result["今日最高价"] }} {{ result.highRate }}%</span>
-                <span>低 {{ result["今日最低价"] }} {{ result.lowRate }}%</span>
-                <span>开 {{ result["今日开盘价"] }}</span>
-                <span>昨 {{ result["昨日收盘价"] }}</span>
-              </div>
-              <div class="stock-mobile-position" v-if="result.costPrice>0">
-                成本 {{ result.costPrice }} x {{ result.costVolume }} · {{ result.profit }}% · {{ result.profitAmount }} ¥
-              </div>
-            </div>
-            <n-grid class="stock-desktop-quote" :cols="1" :y-gap="6">
+            <n-grid class="stock-mobile-card-body" :cols="1" :y-gap="6"
+                    @click="showLightweightKline(result['股票代码'],result['股票名称'])">
               <n-gi>
                 <n-text :type="result.type">
                   <n-number-animation :duration="1000" :precision="2" :from="result['上次当前价格']"
@@ -2244,7 +2297,7 @@ function searchStockReport(stockCode) {
                 </n-text>
               </n-gi>
             </n-grid>
-            <n-grid class="stock-desktop-metrics" :cols="2" :y-gap="4" :x-gap="4">
+            <n-grid :cols="2" :y-gap="4" :x-gap="4">
               <n-gi>
                 <n-text :type="'info'">{{ "最高 " + result["今日最高价"] + " " + result.highRate }}%</n-text>
               </n-gi>
@@ -2258,7 +2311,7 @@ function searchStockReport(stockCode) {
                 <n-text :type="'info'">{{ "今开 " + result["今日开盘价"] }}</n-text>
               </n-gi>
             </n-grid>
-            <n-collapse class="stock-depth-collapse" accordion v-if="result['买一报价']>0">
+            <n-collapse accordion v-if="result['买一报价']>0">
               <n-collapse-item title="盘口" name="1" v-if="result['买一报价']>0">
                 <template #header-extra>
                   <n-flex justify="space-between">
@@ -2305,17 +2358,17 @@ function searchStockReport(stockCode) {
               </n-collapse-item>
             </n-collapse>
             <template #header-extra>
-
-              <n-tag size="small" :bordered="false">{{ result['股票代码'] }}</n-tag>&nbsp;
-              <n-button size="tiny" secondary type="primary"
-                        @click="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
-                取消关注
-              </n-button>&nbsp;
-
-              <n-button size="tiny" v-if="data.openAiEnable" secondary type="warning"
-                        @click="aiCheckStock(result['股票名称'],result['股票代码'])">
-                AI分析
-              </n-button>
+              <n-flex class="stock-desktop-card-extra" align="center" :size="4">
+                <n-tag size="small" :bordered="false">{{ result['股票代码'] }}</n-tag>
+                <n-button size="tiny" secondary type="primary"
+                          @click="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
+                  取消关注
+                </n-button>
+                <n-button size="tiny" v-if="data.openAiEnable" secondary type="warning"
+                          @click="aiCheckStock(result['股票名称'],result['股票代码'])">
+                  AI分析
+                </n-button>
+              </n-flex>
             </template>
             <template #footer>
               <n-flex vertical :size="8">
@@ -2337,7 +2390,22 @@ function searchStockReport(stockCode) {
               </n-flex>
             </template>
             <template #action>
-              <n-flex class="stock-mobile-actions stock-card-compact-actions" justify="left">
+              <n-flex class="stock-mobile-primary-actions mobile-only" justify="space-between">
+                <n-button size="small" type="warning" secondary v-if="data.openAiEnable"
+                          @click.stop="aiCheckStock(result['股票名称'],result['股票代码'])">AI</n-button>
+                <n-button size="small" type="error" secondary
+                          @click.stop="showFenshi(result['股票代码'],result['股票名称'],result.changePercent)">分时</n-button>
+                <n-button size="small" type="primary" secondary
+                          @click.stop="showLightweightKline(result['股票代码'],result['股票名称'])">K线</n-button>
+                <n-button size="small" type="warning" secondary
+                          @click.stop="setStock(result['股票代码'],result['股票名称'])">成本</n-button>
+                <n-dropdown class="stock-mobile-more-menu" trigger="click"
+                            :options="getStockMobileMoreOptions(result)"
+                            @select="(key) => handleStockMobileMoreSelect(key, result)">
+                  <n-button size="small" secondary>更多</n-button>
+                </n-dropdown>
+              </n-flex>
+              <n-flex class="stock-mobile-actions stock-desktop-actions" justify="left">
                 <n-button size="tiny" type="warning" @click="setStock(result['股票代码'],result['股票名称'])"> 成本
                 </n-button>
                 <n-button size="tiny" type="error"
@@ -2370,38 +2438,11 @@ function searchStockReport(stockCode) {
     <n-tab-pane closable v-for="group in groupList" :group-id="group.ID" :name="String(group.ID)" :tab="group.name">
       <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <n-gi :id="result['股票代码']+'_gi'" v-for="result in groupResults" style="margin-left: 2px;">
-          <n-card class="stock-card" :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
+          <n-card class="stock-mobile-card" :data-sort="result.sort" :id="result['股票代码']" :data-code="result['股票代码']" :bordered="true"
                   :title="result['股票名称']" :closable="false"
                   @close="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
-            <div class="stock-mobile-summary mobile-only">
-              <div class="stock-mobile-summary__quote">
-                <n-text class="stock-mobile-summary__price" :type="result.type">
-                  <n-number-animation :duration="1000" :precision="2" :from="result['上次当前价格']"
-                                      :to="Number(result['当前价格'])"/>
-                </n-text>
-                <n-text class="stock-mobile-summary__change" :type="result.type">
-                  <n-number-animation :duration="1000" :precision="3" :from="0" :to="result.changePercent"/>
-                  %
-                </n-text>
-                <n-text v-if="result.costVolume>0" class="stock-mobile-summary__profit" :type="result.type">
-                  今日
-                  <n-number-animation :duration="1000" :precision="2" :from="0" :to="result.profitAmountToday"/>
-                </n-text>
-              </div>
-              <stock-spark-line class="stock-mobile-summary__spark" :last-price="Number(result['当前价格'])"
-                                :open-price="Number(result['昨日收盘价'])"
-                                :stock-code="result['股票代码']" :stock-name="result['股票名称']"></stock-spark-line>
-              <div class="stock-mobile-metric-strip">
-                <span>高 {{ result["今日最高价"] }} {{ result.highRate }}%</span>
-                <span>低 {{ result["今日最低价"] }} {{ result.lowRate }}%</span>
-                <span>开 {{ result["今日开盘价"] }}</span>
-                <span>昨 {{ result["昨日收盘价"] }}</span>
-              </div>
-              <div class="stock-mobile-position" v-if="result.costPrice>0">
-                成本 {{ result.costPrice }} x {{ result.costVolume }} · {{ result.profit }}% · {{ result.profitAmount }} ¥
-              </div>
-            </div>
-            <n-grid class="stock-desktop-quote" :cols="12" :y-gap="6">
+            <n-grid class="stock-mobile-card-body" :cols="12" :y-gap="6"
+                    @click="showLightweightKline(result['股票代码'],result['股票名称'])">
               <n-gi :span="6">
                 <n-text :type="result.type">
                   <n-number-animation :duration="1000" :precision="2" :from="result['上次当前价格']"
@@ -2423,7 +2464,7 @@ function searchStockReport(stockCode) {
                                   :stock-code="result['股票代码']" :stock-name="result['股票名称']"></stock-spark-line>
               </n-gi>
             </n-grid>
-            <n-grid class="stock-desktop-metrics" :cols="2" :y-gap="4" :x-gap="4">
+            <n-grid :cols="2" :y-gap="4" :x-gap="4">
               <n-gi>
                 <n-text :type="'info'">{{ "最高 " + result["今日最高价"] + " " + result.highRate }}%</n-text>
               </n-gi>
@@ -2437,7 +2478,7 @@ function searchStockReport(stockCode) {
                 <n-text :type="'info'">{{ "今开 " + result["今日开盘价"] }}</n-text>
               </n-gi>
             </n-grid>
-            <n-collapse class="stock-depth-collapse" accordion v-if="result['买一报价']>0">
+            <n-collapse accordion v-if="result['买一报价']>0">
               <n-collapse-item title="盘口" name="1" v-if="result['买一报价']>0">
                 <template #header-extra>
                   <n-flex justify="space-between">
@@ -2484,20 +2525,20 @@ function searchStockReport(stockCode) {
               </n-collapse-item>
             </n-collapse>
             <template #header-extra>
-
-              <n-tag size="small" :bordered="false">{{ result['股票代码'] }}</n-tag>&nbsp;
-              <n-button size="tiny" secondary type="primary"
-                        @click="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
-                取消关注
-              </n-button>&nbsp;
-
-              <n-button size="tiny" v-if="data.openAiEnable" secondary type="warning"
-                        @click="aiCheckStock(result['股票名称'],result['股票代码'])">
-                AI分析
-              </n-button>
-              <n-button secondary type="error" size="tiny"
-                        @click="delStockGroup(result['股票代码'],result['股票名称'],group.ID)">移出分组
-              </n-button>
+              <n-flex class="stock-desktop-card-extra" align="center" :size="4">
+                <n-tag size="small" :bordered="false">{{ result['股票代码'] }}</n-tag>
+                <n-button size="tiny" secondary type="primary"
+                          @click="removeMonitor(result['股票代码'],result['股票名称'],result.key)">
+                  取消关注
+                </n-button>
+                <n-button size="tiny" v-if="data.openAiEnable" secondary type="warning"
+                          @click="aiCheckStock(result['股票名称'],result['股票代码'])">
+                  AI分析
+                </n-button>
+                <n-button secondary type="error" size="tiny"
+                          @click="delStockGroup(result['股票代码'],result['股票名称'],group.ID)">移出分组
+                </n-button>
+              </n-flex>
             </template>
             <template #footer>
               <n-flex vertical :size="8">
@@ -2519,7 +2560,22 @@ function searchStockReport(stockCode) {
               </n-flex>
             </template>
             <template #action>
-              <n-flex class="stock-mobile-actions stock-card-compact-actions" justify="left">
+              <n-flex class="stock-mobile-primary-actions mobile-only" justify="space-between">
+                <n-button size="small" type="warning" secondary v-if="data.openAiEnable"
+                          @click.stop="aiCheckStock(result['股票名称'],result['股票代码'])">AI</n-button>
+                <n-button size="small" type="error" secondary
+                          @click.stop="showFenshi(result['股票代码'],result['股票名称'],result.changePercent)">分时</n-button>
+                <n-button size="small" type="primary" secondary
+                          @click.stop="showLightweightKline(result['股票代码'],result['股票名称'])">K线</n-button>
+                <n-button size="small" type="warning" secondary
+                          @click.stop="setStock(result['股票代码'],result['股票名称'])">成本</n-button>
+                <n-dropdown class="stock-mobile-more-menu" trigger="click"
+                            :options="getStockMobileMoreOptions(result, group.ID)"
+                            @select="(key) => handleStockMobileMoreSelect(key, result, group.ID)">
+                  <n-button size="small" secondary>更多</n-button>
+                </n-dropdown>
+              </n-flex>
+              <n-flex class="stock-mobile-actions stock-desktop-actions" justify="left">
                 <n-button size="tiny" type="warning" @click="setStock(result['股票代码'],result['股票名称'])"> 成本
                 </n-button>
                 <n-button size="tiny" type="error"
@@ -2552,8 +2608,11 @@ function searchStockReport(stockCode) {
   </n-tabs>
 
   <div class="stock-floating-search" style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
+    <n-button class="stock-mobile-add-trigger mobile-only" type="primary" block @click="openMobileAddDrawer">
+      <n-icon :component="Add"/> &nbsp;搜索/添加股票
+    </n-button>
     <!--    <n-card :bordered="false">-->
-    <n-input-group>
+    <n-input-group class="stock-desktop-add-control">
       <!--        <n-button  type="error" @click="addBTN=!addBTN" > <n-icon :component="Search"/>&nbsp;<n-text  v-if="addBTN">隐藏</n-text></n-button>-->
 
       <n-auto-complete v-model:value="data.name" v-if="addBTN"
@@ -2579,7 +2638,38 @@ function searchStockReport(stockCode) {
     </n-input-group>
     <!--    </n-card>-->
   </div>
-  <n-modal transform-origin="center" size="small" v-model:show="modalShow" :title="formModel.name" style="width: 800px;max-width: calc(100vw - 32px);"
+  <n-drawer
+      v-model:show="mobileAddDrawerVisible"
+      class="stock-mobile-add-drawer"
+      placement="bottom"
+      height="46vh"
+  >
+    <n-drawer-content title="搜索/添加股票" closable>
+      <n-flex vertical :size="12">
+        <n-input-group>
+          <n-auto-complete v-model:value="data.name"
+                           :input-props="{
+                                autocomplete: 'disabled',
+                              }"
+                           :options="options"
+                           placeholder="输入股票名称或代码"
+                           clearable @update-value="getStockList" :on-select="onSelect"/>
+          <n-popover trigger="manual" :show="showPopover">
+            <template #trigger>
+              <n-button type="primary" @click="addStockFromMobile">
+                <n-icon :component="Add"/> &nbsp;关注
+              </n-button>
+            </template>
+            <span>输入股票名称/代码关键词开始吧~~~</span>
+          </n-popover>
+        </n-input-group>
+        <n-button type="info" secondary block @click="SendDanmu" v-if="data.enableDanmu">
+          <n-icon :component="ChatboxOutline"/> &nbsp;发送弹幕
+        </n-button>
+      </n-flex>
+    </n-drawer-content>
+  </n-drawer>
+  <n-modal class="stock-cost-modal" transform-origin="center" size="small" v-model:show="modalShow" :title="formModel.name" style="width: 800px;max-width: calc(100vw - 32px);"
            :preset="'card'">
     <n-form :model="formModel" :rules="{
               costPrice: { required: true, message: '请输入成本'},
@@ -2890,87 +2980,12 @@ function searchStockReport(stockCode) {
     width: 100%;
   }
 
-  .stock-mobile-summary {
-    display: grid !important;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) 112px;
-    margin-top: 4px;
-    text-align: left;
-  }
-
-  .stock-mobile-summary__quote {
-    align-items: baseline;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  .stock-mobile-summary__price {
-    font-size: 26px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .stock-mobile-summary__change {
-    font-size: 17px;
-    font-weight: 700;
-  }
-
-  .stock-mobile-summary__profit {
-    font-size: 12px;
-  }
-
-  .stock-mobile-summary__spark {
-    align-self: center;
-    min-width: 0;
-  }
-
-  .stock-mobile-metric-strip {
-    color: var(--n-text-color-3);
-    display: grid;
-    font-size: 12px;
-    gap: 5px 8px;
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    line-height: 1.35;
-  }
-
-  .stock-mobile-position {
-    background: var(--n-action-color, rgba(128, 128, 128, 0.08));
-    border-radius: 6px;
-    box-sizing: border-box;
-    color: var(--n-text-color-2);
-    font-size: 12px;
-    grid-column: 1 / -1;
-    line-height: 1.35;
-    padding: 6px 8px;
-  }
-
-  .stock-desktop-quote,
-  .stock-desktop-metrics,
-  .stock-depth-collapse {
-    display: none !important;
-  }
-
   :deep(.stock-card-grid .n-card) {
     overflow: hidden;
   }
 
-  :deep(.stock-card .n-card-header) {
-    padding-bottom: 6px;
-  }
-
-  :deep(.stock-card .n-card__content) {
-    padding-top: 4px;
-  }
-
-  :deep(.stock-card .n-card__footer) {
-    padding-top: 8px;
-  }
-
-  :deep(.stock-card .n-card__action) {
-    padding: 8px 10px 10px;
+  .stock-mobile-card-body {
+    cursor: pointer;
   }
 
   :deep(.stock-card-grid .n-card-header) {
@@ -2991,17 +3006,27 @@ function searchStockReport(stockCode) {
     gap: 6px !important;
   }
 
-  .stock-card-compact-actions :deep(.n-button) {
-    flex: 1 1 calc(25% - 6px);
-    min-width: 68px;
+  .stock-desktop-card-extra,
+  .stock-desktop-actions,
+  .stock-desktop-add-control {
+    display: none !important;
   }
 
-  .stock-card-compact-actions :deep(.n-flex) {
-    flex: 1 1 100%;
+  .stock-mobile-primary-actions {
+    align-items: stretch !important;
+    display: grid !important;
+    gap: 6px !important;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    width: 100%;
   }
 
-  .stock-card-compact-actions :deep(.n-dropdown),
-  .stock-card-compact-actions :deep(.n-button[type='button']) {
+  .stock-mobile-primary-actions :deep(.n-button) {
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .stock-mobile-more-menu {
     min-width: 0;
   }
 
@@ -3010,6 +3035,30 @@ function searchStockReport(stockCode) {
     left: 8px;
     right: 8px !important;
     width: auto !important;
+  }
+
+  .stock-mobile-add-trigger {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    height: 42px;
+  }
+
+  .stock-mobile-add-drawer :deep(.n-drawer-content) {
+    border-radius: 12px 12px 0 0;
+  }
+
+  :deep(.stock-cost-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.stock-cost-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  :deep(.stock-cost-modal .n-form-item) {
+    grid-template-columns: 88px minmax(0, 1fr) !important;
   }
 
   :deep(.mobile-ai-modal.n-modal) {
