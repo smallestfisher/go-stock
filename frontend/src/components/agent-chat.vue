@@ -1,6 +1,7 @@
 <template>
-  <div class="chat-box">
+  <div class="chat-box agent-chat-page">
     <t-chat
+        class="agent-chat-thread"
         ref="chatRef"
         :clear-history="chatList.length > 0 && !isStreamLoad"
         :data="chatList"
@@ -12,7 +13,7 @@
     >
       <!-- eslint-disable vue/no-unused-vars -->
       <template #content="{ item, index }">
-        <div v-if="item.role === 'assistant' && item.steps && item.steps.length > 0" class="agent-steps">
+        <div v-if="item.role === 'assistant' && item.steps && item.steps.length > 0" class="agent-steps agent-chat-steps">
           <div class="agent-steps-header">📋 执行步骤 <span class="agent-steps-badge">{{ item.steps.length }}</span></div>
           <div class="agent-steps-list">
             <div v-for="(step, si) in item.steps" :key="si" class="agent-step-item">
@@ -25,7 +26,7 @@
           <t-chat-loading v-if="isStreamLoad" text="思考中..." />
           <t-chat-content v-if="item.reasoning.length > 0" :content="item.reasoning" />
         </t-chat-reasoning>
-        <div v-if="item.role === 'assistant' && item.jsonMarkdown" class="agent-json-md">
+        <div v-if="item.role === 'assistant' && item.jsonMarkdown" class="agent-json-md agent-chat-report">
           <div class="agent-json-md-header" @click="toggleJsonMd(index)">
             <svg :class="['agent-json-md-arrow', { 'agent-json-md-arrow-expanded': jsonMdExpandedMap[index] }]" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M9 6l6 6-6 6z"/></svg>
             <span class="agent-json-md-title">📊 分析报告</span>
@@ -48,7 +49,7 @@
           <t-chat-sender
               ref="chatSenderRef"
               v-model="inputValue"
-              class="chat-sender"
+              class="chat-sender agent-chat-sender"
               :textarea-props="{
                 placeholder: '请输入消息...',
               }"
@@ -59,10 +60,10 @@
           >
             <template #suffix>
               <!-- 监听键盘回车发送事件需要在sender组件监听 -->
-              <t-button theme="default" variant="text" size="large" class="btn" @click="inputEnter"> 发送 </t-button>
+              <t-button theme="default" variant="text" size="large" class="btn agent-chat-send-button" @click="inputEnter"> 发送 </t-button>
             </template>
             <template #prefix>
-              <NFlex>
+              <NFlex class="agent-chat-config-bar">
                 <NSelect
                     v-model:value="selectValue"
                     :options="selectOptions"
@@ -82,7 +83,7 @@
 
       </template>
     </t-chat>
-    <t-button v-show="isShowToBottom" variant="text" class="bottomBtn" @click="backBottom">
+    <t-button v-show="isShowToBottom" variant="text" class="bottomBtn agent-chat-bottom-button" @click="backBottom">
       <div class="to-bottom">
         <ArrowDownIcon />
       </div>
@@ -804,6 +805,117 @@ const inputEnter = function () {
   max-height: 500px;
   overflow-y: auto;
   text-align: left;
+}
+
+@media (max-width: 768px) {
+  .chat-box.agent-chat-page {
+    box-sizing: border-box;
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 10px);
+    margin: 0 8px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .agent-chat-thread {
+    min-height: 0;
+  }
+
+  .agent-chat-page .t-chat {
+    height: 100%;
+  }
+
+  .agent-chat-page .t-chat__inner,
+  .agent-chat-page .t-chat__list,
+  .agent-chat-page .t-chat__content {
+    min-width: 0;
+  }
+
+  .agent-chat-page .t-chat__content {
+    padding: 8px 4px 0;
+  }
+
+  .agent-chat-page .t-chat__item {
+    gap: 8px;
+  }
+
+  .agent-chat-page .t-chat__avatar {
+    flex: 0 0 32px;
+  }
+
+  .agent-chat-page .t-chat__avatar img,
+  .agent-chat-page .n-image img {
+    height: 32px !important;
+    width: 32px !important;
+  }
+
+  .agent-chat-page .t-chat__text,
+  .agent-chat-page .t-chat__detail,
+  .agent-chat-page .t-chat-content {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .agent-chat-config-bar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .agent-chat-config-bar .n-select {
+    width: 100% !important;
+  }
+
+  .chat-sender.agent-chat-sender {
+    border-radius: 8px;
+  }
+
+  .agent-chat-sender .t-chat-sender__header,
+  .agent-chat-sender .t-chat-sender__prefix {
+    width: 100%;
+  }
+
+  .agent-chat-sender .t-chat-sender__textarea textarea {
+    min-height: 54px;
+  }
+
+  .agent-chat-send-button.t-button {
+    min-width: 48px;
+    padding: 0 8px;
+  }
+
+  .agent-chat-bottom-button.bottomBtn {
+    bottom: 150px;
+  }
+
+  .agent-chat-steps,
+  .agent-chat-report {
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+
+  .agent-steps-header,
+  .agent-json-md-header {
+    padding: 6px 8px;
+  }
+
+  .agent-steps-list {
+    max-height: 160px;
+    padding: 6px 8px 6px 12px;
+  }
+
+  .agent-json-md-content {
+    max-height: 50dvh;
+    padding: 8px;
+  }
+
+  @media (max-width: 420px) {
+    .agent-chat-config-bar {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 }
 
 </style>

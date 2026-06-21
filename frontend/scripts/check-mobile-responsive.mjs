@@ -145,6 +145,19 @@ const checks = [
     ],
   },
   {
+    file: "frontend/src/components/agent-chat.vue",
+    expectations: [
+      ["agent-chat-page", "agent chat page shell"],
+      ["agent-chat-thread", "agent chat message thread"],
+      ["agent-chat-config-bar", "agent chat config controls"],
+      ["agent-chat-sender", "agent chat sender"],
+      ["agent-chat-send-button", "agent chat send button"],
+      ["agent-chat-bottom-button", "agent chat bottom button"],
+      ["agent-chat-report", "agent chat report block"],
+      ["agent-chat-steps", "agent chat steps block"],
+    ],
+  },
+  {
     file: "frontend/src/components/settings.vue",
     expectations: [
       ["settings-page-shell", "settings page shell"],
