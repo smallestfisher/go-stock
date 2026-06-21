@@ -44,8 +44,8 @@ function updateTab(name) {
 </script>
 
 <template>
-  <n-card>
-    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
+  <n-card class="research-page-shell">
+    <n-tabs class="research-mobile-tabs" type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="AI分析报告">
         <ResearchReport/>
       </n-tab-pane>
@@ -93,4 +93,26 @@ function updateTab(name) {
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .research-page-shell {
+    margin: 0 8px calc(var(--mobile-bottom-nav-height) + 8px);
+  }
+
+  .research-page-shell :deep(.n-card__content) {
+    padding: 10px;
+  }
+
+  .research-mobile-tabs :deep(.n-tabs-nav) {
+    overflow: hidden;
+  }
+
+  .research-mobile-tabs :deep(.n-tabs-nav-scroll-content) {
+    min-width: max-content;
+  }
+
+  .research-mobile-tabs :deep(.n-tab-pane) {
+    min-width: 0;
+    padding-top: 8px;
+  }
+}
 </style>

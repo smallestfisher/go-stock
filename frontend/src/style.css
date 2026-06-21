@@ -136,4 +136,40 @@ body {
     .n-data-table {
         text-align: left;
     }
+
+    .n-data-table .n-data-table-th,
+    .n-data-table .n-data-table-td {
+        white-space: nowrap;
+    }
+
+    .n-data-table .n-data-table-base-table-body,
+    .n-data-table .n-data-table-base-table-header,
+    .n-data-table .n-data-table-base-table {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .n-table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        text-align: left;
+    }
+
+    .n-table th,
+    .n-table td {
+        white-space: nowrap;
+    }
+
+    .n-form-item {
+        min-width: 0;
+    }
+
+    .n-input,
+    .n-input-number,
+    .n-select,
+    .n-auto-complete,
+    .n-date-picker {
+        max-width: 100%;
+    }
 }

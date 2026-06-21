@@ -322,6 +322,7 @@ function query({
       const total = res.total
       const pageCount =res.totalPages
       resolve({
+        page,
         pageCount,
         data: pagedData,
         total
@@ -354,7 +355,7 @@ function handleSearch() {
   if (!loadingRef.value) {
     loadingRef.value = true
     query({
-      page: paginationReactive?.page ?? 1,
+      page: 1,
       pageSize: paginationReactive.pageSize,
       order: "desc",
       keyword: paginationReactive.keyword,
@@ -380,6 +381,41 @@ function formatDate(dateString) {
   // const seconds = String(date.getSeconds()).padStart(2, '0')
   //return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   return `${year}-${month}-${day}`
+}
+
+function formatRecommendTime(timeStr) {
+  if (!timeStr) return '-'
+  return String(timeStr).substring(0, 19).replace('T', ' ')
+}
+
+function getCurrentDiff(row) {
+  const current = Number(row.stockCurrentPrice)
+  const previous = Number(row.stockPrePrice)
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return '--'
+  const diff = ((current - previous) / previous * 100).toFixed(2)
+  return `${current} | ${diff}%`
+}
+
+function getCurrentPriceType(row) {
+  return Number(row.stockCurrentPrice) < Number(row.stockPrePrice) ? 'success' : 'error'
+}
+
+function getRecommendProfitText(row) {
+  const current = Number(row.stockCurrentPrice)
+  const price = Number(row.stockPrice)
+  if (!Number.isFinite(current) || !Number.isFinite(price) || price === 0) return '暂平'
+  const diff = ((current - price) / price * 100).toFixed(2)
+  if (current > price) return `暂赢 ${diff}%`
+  if (current < price) return `暂亏 ${diff}%`
+  return '暂平'
+}
+
+function getRecommendProfitType(row) {
+  const current = Number(row.stockCurrentPrice)
+  const price = Number(row.stockPrice)
+  if (current > price) return 'error'
+  if (current < price) return 'success'
+  return 'info'
 }
 function getStockCode(stockCode) {
   if(stockCode.indexOf( ".")>0){
@@ -438,15 +474,17 @@ function toggleAlert(row, newEnableAlert) {
 </script>
 
 <template>
-  <n-input-group>
+  <div class="ai-recommend-page">
+  <n-input-group class="ai-recommend-search">
     <n-date-picker  v-model:value="paginationReactive.range" type="daterange"   style="width: 40%"/>
     <n-select v-model:value="paginationReactive.enableAlert" :options="enableAlertOptions" placeholder="预警状态" style="width: 15%" clearable />
-    <n-input clearable placeholder="输入关键词搜索" v-model:value="paginationReactive.keyword"/>
+    <n-input clearable placeholder="输入关键词搜索" v-model:value="paginationReactive.keyword" @keyup.enter="handleSearch"/>
     <n-button type="primary" ghost @click="handleSearch"  @input="handleSearch">
       搜索
     </n-button>
   </n-input-group>
         <n-data-table
+            class="ai-recommend-table desktop-only"
             remote
             size="small"
             :columns="columnsRef"
@@ -459,7 +497,73 @@ function toggleAlert(row, newEnableAlert) {
             style="height: calc(100vh - 210px);margin-top: 10px"
         />
 
-  <n-modal v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
+  <div class="ai-recommend-mobile-list mobile-only">
+    <n-spin :show="loadingRef">
+      <n-space vertical :size="10">
+        <n-card v-for="item in dataRef" :key="item.ID" class="ai-recommend-mobile-card" size="small" :bordered="true">
+          <template #header>
+            <n-space class="ai-recommend-mobile-card__header" align="center" :size="8">
+              <n-text strong>{{ item.stockName }}</n-text>
+              <n-text depth="3">{{ item.stockCode }}</n-text>
+              <n-tag v-if="item.rating" type="info" size="small">{{ item.rating }}</n-tag>
+            </n-space>
+          </template>
+          <template #header-extra>
+            <n-switch size="small" v-model:value="item.enableAlert" @update:value="(val) => toggleAlert(item, val)" />
+          </template>
+          <div class="ai-recommend-mobile-card__meta">
+            <span>{{ item.modelName || '-' }}</span>
+            <span>{{ formatRecommendTime(item.CreatedAt) }}</span>
+          </div>
+          <div class="ai-recommend-mobile-card__prices">
+            <div>
+              <span>最新</span>
+              <n-text :type="getCurrentPriceType(item)" strong>{{ getCurrentDiff(item) }}</n-text>
+            </div>
+            <div>
+              <span>推荐时</span>
+              <n-space :size="4" align="center">
+                <n-text>{{ item.stockPrice || '-' }}</n-text>
+                <n-tag :type="getRecommendProfitType(item)" size="tiny" :bordered="false">{{ getRecommendProfitText(item) }}</n-tag>
+              </n-space>
+            </div>
+            <div>
+              <span>开仓</span>
+              <n-text>{{ item.recommendBuyPrice || '-' }}</n-text>
+            </div>
+            <div>
+              <span>止盈</span>
+              <n-text>{{ item.recommendStopProfitPrice || '-' }}</n-text>
+            </div>
+            <div>
+              <span>止损</span>
+              <n-text>{{ item.recommendStopLossPrice || '-' }}</n-text>
+            </div>
+          </div>
+          <div class="ai-recommend-mobile-card__reason">
+            {{ item.recommendReason || item.remarks || '暂无推荐理由' }}
+          </div>
+          <template #action>
+            <n-space class="ai-recommend-mobile-card__actions" :size="8">
+              <n-button size="small" type="primary" @click="showDetail(item)">查看</n-button>
+              <n-button size="small" type="error" @click="deleteAiRecommendStocks(item.ID)">删除</n-button>
+            </n-space>
+          </template>
+        </n-card>
+        <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无推荐记录" />
+      </n-space>
+    </n-spin>
+    <n-space justify="center" style="margin-top: 12px">
+      <n-pagination
+        v-model:page="paginationReactive.page"
+        :page-count="paginationReactive.pageCount"
+        :page-size="paginationReactive.pageSize"
+        @update:page="handlePageChange"
+      />
+    </n-space>
+  </div>
+
+  <n-modal class="ai-recommend-detail-modal" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
     <n-gradient-text :size="16" type="warning">{{modalDataRef.remarks}}</n-gradient-text>
     <n-card size="small">
       <StockLightweightKlineChart
@@ -479,8 +583,112 @@ function toggleAlert(row, newEnableAlert) {
     <n-text type="error">{{modalDataRef.riskRemarks}}</n-text>
     </n-card>
   </n-modal>
+  </div>
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .ai-recommend-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
 
+  .ai-recommend-search {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .ai-recommend-search :deep(.n-date-picker),
+  .ai-recommend-search :deep(.n-select),
+  .ai-recommend-search :deep(.n-input),
+  .ai-recommend-search :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .ai-recommend-mobile-list {
+    display: block !important;
+    margin-top: 10px;
+  }
+
+  .ai-recommend-mobile-card {
+    text-align: left;
+  }
+
+  .ai-recommend-mobile-card__header {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .ai-recommend-mobile-card__header :deep(.n-text) {
+    overflow-wrap: anywhere;
+  }
+
+  .ai-recommend-mobile-card__meta {
+    color: var(--n-text-color-3);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 12px;
+    gap: 6px 10px;
+    margin-bottom: 10px;
+  }
+
+  .ai-recommend-mobile-card__prices {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .ai-recommend-mobile-card__prices > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .ai-recommend-mobile-card__prices span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .ai-recommend-mobile-card__reason {
+    color: var(--n-text-color-2);
+    display: -webkit-box;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .ai-recommend-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .ai-recommend-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.ai-recommend-detail-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.ai-recommend-detail-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  :deep(.ai-recommend-detail-modal .n-card__content) {
+    padding: 10px 12px;
+  }
+}
 </style>

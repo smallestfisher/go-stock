@@ -192,6 +192,35 @@ function isNumeric(value) {
   return !isNaN(parseFloat(value)) && isFinite(value);
 }
 
+function flattenMobileColumns(list) {
+  const result = []
+  for (const col of list || []) {
+    if (col.key === 'actions') continue
+    if (col.children && col.children.length) {
+      for (const child of col.children) {
+        result.push({
+          title: `${col.title}/${child.title}`,
+          key: child.key
+        })
+      }
+    } else {
+      result.push({
+        title: col.title,
+        key: col.key
+      })
+    }
+  }
+  return result
+}
+
+function getMobileResultFields(row) {
+  return flattenMobileColumns(columns.value)
+    .filter(col => !['SECURITY_CODE', 'SECURITY_SHORT_NAME', 'MARKET_SHORT_NAME', 'SERIAL'].includes(col.key))
+    .map(col => ({...col, value: row[col.key]}))
+    .filter(item => item.value !== undefined && item.value !== null && item.value !== '')
+    .slice(0, 6)
+}
+
 onBeforeMount(() => {
   GetConfig().then(result => {
     if (result.darkTheme) darkTheme.value = true
@@ -283,8 +312,9 @@ function openCenteredWindow(url, width, height) {
 </script>
 
 <template>
-  <n-grid :cols="24" style="max-height: calc(100vh - 165px)">
-    <n-gi :span="4">
+  <div class="select-stock-page">
+  <n-grid class="select-stock-layout" :cols="24" style="max-height: calc(100vh - 165px)">
+    <n-gi class="select-stock-sidebar" :span="4">
       <n-tabs v-model:value="leftTab" type="segment" size="small" style="margin-bottom: 4px;">
         <n-tab name="hot">热门策略</n-tab>
         <n-tab name="custom">我的策略</n-tab>
@@ -353,9 +383,9 @@ function openCenteredWindow(url, width, height) {
         </n-button>
       </div>
     </n-gi>
-    <n-gi :span="20">
+    <n-gi class="select-stock-main" :span="20">
       <div style="">
-        <n-input-group style="text-align: left">
+        <n-input-group class="select-stock-search" style="text-align: left">
           <n-input :rows="1" clearable v-model:value="search" placeholder="请输入选股指标或者要求" @keyup.enter="Search"/>
           <n-button type="primary" @click="Search">搜索A股</n-button>
           <n-button type="warning" @click="openSaveModal(false)" :disabled="!search">
@@ -376,6 +406,7 @@ function openCenteredWindow(url, width, height) {
         </n-ellipsis>
       </div>
       <n-data-table
+          class="select-stock-table desktop-only"
           :striped="true"
           flex-height
           size="small"
@@ -411,10 +442,38 @@ function openCenteredWindow(url, width, height) {
           }
       }"
       />
+      <div class="select-stock-mobile-list mobile-only">
+        <n-space vertical :size="10">
+          <n-card v-for="(item, idx) in dataList" :key="item.SECURITY_CODE || idx" class="select-stock-mobile-card" size="small" :bordered="true">
+            <template #header>
+              <n-space class="select-stock-mobile-card__title" align="center" :size="8">
+                <n-text strong>{{ item.SECURITY_SHORT_NAME || item.SECURITY_NAME_ABBR || '-' }}</n-text>
+                <n-text depth="3">{{ item.SECURITY_CODE }}</n-text>
+                <n-tag v-if="item.MARKET_SHORT_NAME" size="small" type="info">{{ item.MARKET_SHORT_NAME }}</n-tag>
+              </n-space>
+            </template>
+            <div class="select-stock-mobile-card__fields">
+              <div v-for="field in getMobileResultFields(item)" :key="field.key">
+                <span>{{ field.title }}</span>
+                <n-text :type="isNumeric(field.value) ? (Number(field.value) < 0 ? 'success' : Number(field.value) > 5 ? 'error' : 'warning') : 'default'">
+                  {{ field.value }}
+                </n-text>
+              </div>
+            </div>
+            <template #action>
+              <n-space class="select-stock-mobile-card__actions" :size="8">
+                <n-button size="small" type="info" @click="showStockKline(item)">K线</n-button>
+                <n-button size="small" type="warning" @click="handleFollow(item)">关注</n-button>
+              </n-space>
+            </template>
+          </n-card>
+          <n-empty v-if="dataList.length === 0" description="暂无选股结果" />
+        </n-space>
+      </div>
     </n-gi>
   </n-grid>
 
-  <n-modal v-model:show="showSaveModal" preset="dialog" :title="saveForm.id ? '编辑策略' : '保存策略'" positive-text="保存" negative-text="取消"
+  <n-modal class="select-stock-save-modal" v-model:show="showSaveModal" preset="dialog" :title="saveForm.id ? '编辑策略' : '保存策略'" positive-text="保存" negative-text="取消"
            @positive-click="handleSaveStrategy" style="width: 500px;">
     <n-form label-placement="left" label-width="80">
       <n-form-item label="策略名称">
@@ -430,6 +489,7 @@ function openCenteredWindow(url, width, height) {
   </n-modal>
 
   <n-modal
+    class="select-stock-kline-modal"
     v-model:show="klineModalShow"
     :title="(klineStockName || '') + ' - ' + klineStockCode + ' K线图'"
     preset="card"
@@ -445,7 +505,112 @@ function openCenteredWindow(url, width, height) {
       :chart-height="460"
     />
   </n-modal>
+  </div>
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .select-stock-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .select-stock-layout {
+    display: grid !important;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    max-height: none !important;
+  }
+
+  .select-stock-sidebar,
+  .select-stock-main {
+    grid-column: 1;
+    max-width: 100%;
+  }
+
+  .select-stock-sidebar :deep(.n-list) {
+    max-height: 170px;
+    overflow: auto;
+  }
+
+  .select-stock-sidebar :deep(.n-scrollbar) {
+    max-height: 170px !important;
+  }
+
+  .select-stock-search {
+    display: grid !important;
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .select-stock-search :deep(.n-input),
+  .select-stock-search :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .select-stock-mobile-list {
+    display: block !important;
+    margin-top: 10px;
+  }
+
+  .select-stock-mobile-card {
+    text-align: left;
+  }
+
+  .select-stock-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .select-stock-mobile-card__fields {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .select-stock-mobile-card__fields > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .select-stock-mobile-card__fields span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .select-stock-mobile-card__fields :deep(.n-text) {
+    overflow-wrap: anywhere;
+  }
+
+  .select-stock-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .select-stock-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.select-stock-save-modal.n-modal),
+  :deep(.select-stock-kline-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.select-stock-save-modal .n-card),
+  :deep(.select-stock-kline-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+}
 </style>

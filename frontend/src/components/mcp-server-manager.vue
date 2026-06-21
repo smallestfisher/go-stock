@@ -1,6 +1,7 @@
 <template>
-  <n-space vertical style="margin-bottom: 12px">
-    <n-space>
+  <div class="mcp-server-page">
+  <n-space class="mcp-server-toolbar" vertical style="margin-bottom: 12px">
+    <n-space class="mcp-server-toolbar__inner">
       <n-input
         v-model:value="searchKeyword"
         placeholder="搜索服务器名称..."
@@ -35,6 +36,7 @@
   </n-space>
 
   <n-data-table
+    class="mcp-server-table desktop-only"
     remote
     size="small"
     :columns="columns"
@@ -50,7 +52,71 @@
     style="height: calc(100vh - 210px); margin-top: 10px"
   />
 
+  <div class="mcp-server-mobile-list mobile-only">
+    <n-spin :show="loading">
+      <n-space vertical :size="10">
+        <n-card v-for="item in serverList" :key="item.id" class="mcp-server-mobile-card" size="small" :bordered="true">
+          <template #header>
+            <n-space class="mcp-server-mobile-card__title" align="center" :size="8">
+              <n-text strong>{{ item.name }}</n-text>
+              <n-tag :type="item.enable ? 'success' : 'error'" size="small">{{ item.enable ? '启用' : '禁用' }}</n-tag>
+            </n-space>
+          </template>
+          <template #header-extra>
+            <n-tag :type="item.status === 'available' ? 'success' : item.status === 'unavailable' ? 'error' : 'default'" size="small">
+              {{ getStatusLabel(item.status) }}
+            </n-tag>
+          </template>
+          <div class="mcp-server-mobile-card__fields">
+            <div>
+              <span>URL</span>
+              <n-text code>{{ item.url || '-' }}</n-text>
+            </div>
+            <div>
+              <span>工具</span>
+              <n-text>{{ item.tools?.length || 0 }} 个</n-text>
+            </div>
+          </div>
+          <div v-if="item.description" class="mcp-server-mobile-card__description">{{ item.description }}</div>
+          <div v-if="item.testResult" class="mcp-server-mobile-card__result">
+            <n-text :type="item.status === 'available' ? 'success' : 'error'">{{ item.testResult }}</n-text>
+          </div>
+          <div v-if="item.tools?.length" class="mcp-server-mobile-card__tools">
+            <n-tag v-for="tool in item.tools.slice(0, 4)" :key="tool.id" size="tiny" type="info" :bordered="false">
+              {{ tool.toolName }}
+            </n-tag>
+          </div>
+          <template #action>
+            <n-space class="mcp-server-mobile-card__actions" :size="8">
+              <n-button size="small" type="info" @click="handleTest(item)">测试</n-button>
+              <n-button size="small" :type="item.enable ? 'warning' : 'info'" @click="handleToggleEnable(item)">
+                {{ item.enable ? '禁用' : '启用' }}
+              </n-button>
+              <n-button size="small" type="primary" @click="handleEdit(item)">编辑</n-button>
+              <n-popconfirm @positive-click="handleDelete(item.id)">
+                <template #trigger>
+                  <n-button size="small" type="error">删除</n-button>
+                </template>
+                确定要删除服务器 "{{ item.name }}" 吗？
+              </n-popconfirm>
+            </n-space>
+          </template>
+        </n-card>
+        <n-empty v-if="!loading && serverList.length === 0" description="暂无 MCP 服务器" />
+      </n-space>
+    </n-spin>
+    <n-space justify="center" style="margin-top: 12px">
+      <n-pagination
+        :page="currentPage"
+        :page-count="Math.ceil(total / pageSize) || 1"
+        :page-size="pageSize"
+        @update:page="handlePageChange"
+      />
+    </n-space>
+  </div>
+
   <n-modal
+    class="mcp-server-edit-modal"
     v-model:show="showCreateModal"
     :title="editingServer ? '修改服务器' : '创建新服务器'"
     preset="dialog"
@@ -122,6 +188,7 @@
   </n-modal>
 
   <n-modal
+    class="mcp-server-tool-modal"
     v-model:show="showToolDetailModal"
     title="工具参数详情"
     preset="card"
@@ -161,6 +228,7 @@
       </n-collapse>
     </template>
   </n-modal>
+  </div>
 </template>
 
 <script setup>
@@ -766,4 +834,111 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@media (max-width: 768px) {
+  .mcp-server-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .mcp-server-toolbar,
+  .mcp-server-toolbar__inner {
+    width: 100%;
+  }
+
+  .mcp-server-toolbar__inner {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: 1fr;
+  }
+
+  .mcp-server-toolbar__inner :deep(.n-input),
+  .mcp-server-toolbar__inner :deep(.n-select),
+  .mcp-server-toolbar__inner :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .mcp-server-mobile-list {
+    display: block !important;
+  }
+
+  .mcp-server-mobile-card {
+    text-align: left;
+  }
+
+  .mcp-server-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .mcp-server-mobile-card__fields {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr;
+    margin-bottom: 10px;
+  }
+
+  .mcp-server-mobile-card__fields > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .mcp-server-mobile-card__fields span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .mcp-server-mobile-card__fields :deep(.n-text),
+  .mcp-server-mobile-card__description,
+  .mcp-server-mobile-card__result {
+    overflow-wrap: anywhere;
+  }
+
+  .mcp-server-mobile-card__description,
+  .mcp-server-mobile-card__result {
+    color: var(--n-text-color-2);
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  .mcp-server-mobile-card__tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .mcp-server-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mcp-server-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.mcp-server-edit-modal.n-modal),
+  :deep(.mcp-server-tool-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.mcp-server-edit-modal .n-dialog),
+  :deep(.mcp-server-tool-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.mcp-server-edit-modal .n-form-item) {
+    grid-template-columns: 1fr !important;
+  }
+}
 </style>

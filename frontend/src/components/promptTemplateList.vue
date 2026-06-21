@@ -187,6 +187,7 @@ function query({ page, pageSize = 10, name = "", type = "", content = "" }) {
       "content": content
     }).then((res) => {
       resolve({
+        page,
         data: res.list,
         total: res.total,
         totalPages: res.totalPages
@@ -226,7 +227,7 @@ function handleSearch() {
   if (!loadingRef.value) {
     loadingRef.value = true
     query({
-      page: paginationReactive?.page ?? 1,
+      page: 1,
       pageSize: paginationReactive.pageSize,
       name: searchFormRef.name,
       type: searchFormRef.type,
@@ -239,6 +240,11 @@ function handleSearch() {
       loadingRef.value = false
     })
   }
+}
+
+function formatTemplateTime(timeStr) {
+  if (!timeStr) return '-'
+  return String(timeStr).substring(0, 19).replace('T', ' ')
 }
 
 function showAddModal() {
@@ -341,13 +347,13 @@ async function handleShare() {
 </script>
 
 <template>
-  <div>
+  <div class="prompt-template-page">
     <!-- 搜索区域 -->
-    <n-space vertical style="margin-bottom: 16px">
-      <n-space>
-        <n-input v-model:value="searchFormRef.name" placeholder="模板名称" clearable />
-        <n-select style="width: 200px" v-model:value="searchFormRef.type" :options="promptTypeOptions" placeholder="请选择提示词类型" clearable/>
-        <n-input v-model:value="searchFormRef.content" placeholder="内容关键词" clearable />
+    <n-space class="prompt-template-search" vertical style="margin-bottom: 16px">
+      <n-space class="prompt-template-search__inner">
+        <n-input v-model:value="searchFormRef.name" placeholder="模板名称" clearable @keyup.enter="handleSearch" />
+        <n-select class="prompt-template-type-select" v-model:value="searchFormRef.type" :options="promptTypeOptions" placeholder="请选择提示词类型" clearable/>
+        <n-input v-model:value="searchFormRef.content" placeholder="内容关键词" clearable @keyup.enter="handleSearch" />
         <n-button type="success" @click="handleSearch">搜索</n-button>
         <n-button type="warning" @click="showAddModal">新增模板</n-button>
       </n-space>
@@ -355,6 +361,7 @@ async function handleShare() {
 
     <!-- 数据表格 -->
     <n-data-table
+      class="prompt-template-table desktop-only"
       remote
       size="small"
       :columns="columnsRef"
@@ -367,8 +374,54 @@ async function handleShare() {
       style="height: calc(100vh - 250px)"
     />
 
+    <div class="prompt-template-mobile-list mobile-only">
+      <n-spin :show="loadingRef">
+        <n-space vertical :size="10">
+          <n-card
+            v-for="item in dataRef"
+            :key="item.ID"
+            class="prompt-template-mobile-card"
+            size="small"
+            :bordered="true"
+          >
+            <template #header>
+              <n-space class="prompt-template-mobile-card__title" align="center" :size="8">
+                <n-text strong>{{ item.name }}</n-text>
+                <n-tag :type="item.type === '模型系统Prompt' ? 'success' : 'info'" size="small">
+                  {{ item.type }}
+                </n-tag>
+              </n-space>
+            </template>
+            <div class="prompt-template-mobile-card__content">
+              {{ item.content }}
+            </div>
+            <div class="prompt-template-mobile-card__meta">
+              <span>创建 {{ formatTemplateTime(item.CreatedAt) }}</span>
+              <span>更新 {{ formatTemplateTime(item.UpdatedAt) }}</span>
+            </div>
+            <template #action>
+              <n-space class="prompt-template-mobile-card__actions" :size="8">
+                <n-button size="small" type="primary" @click="showEditModal(item)">编辑</n-button>
+                <n-button size="small" type="info" @click="showShareModal(item)">分享</n-button>
+                <n-button size="small" type="error" @click="deletePromptTemplate(item.ID)">删除</n-button>
+              </n-space>
+            </template>
+          </n-card>
+          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无提示词模板" />
+        </n-space>
+      </n-spin>
+      <n-space justify="center" style="margin-top: 12px">
+        <n-pagination
+          v-model:page="paginationReactive.page"
+          :page-count="paginationReactive.pageCount"
+          :page-size="paginationReactive.pageSize"
+          @update:page="handlePageChange"
+        />
+      </n-space>
+    </div>
+
     <!-- 编辑/新增模态框 -->
-    <n-modal v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
+    <n-modal class="prompt-template-edit-modal" v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
       <n-form :model="modalDataRef.formData" label-placement="left" label-width="80">
         <n-form-item label="模板名称" required>
           <n-input v-model:value="modalDataRef.formData.name" placeholder="请输入模板名称" />
@@ -395,7 +448,7 @@ async function handleShare() {
       </template>
     </n-modal>
 
-    <n-modal v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
+    <n-modal class="prompt-template-share-modal" v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
       <n-form :model="shareDataRef" label-placement="left" label-width="80">
         <n-form-item label="标题" required>
           <n-input v-model:value="shareDataRef.title" placeholder="提示词标题" />
@@ -431,6 +484,10 @@ async function handleShare() {
 </template>
 
 <style scoped>
+.prompt-template-type-select {
+  width: 200px;
+}
+
 :deep(.md-editor) {
   text-align: left;
 }
@@ -439,5 +496,118 @@ async function handleShare() {
 }
 :deep(.n-popover .md-editor-preview-wrapper) {
   padding: 0;
+}
+
+@media (max-width: 768px) {
+  .prompt-template-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .prompt-template-search,
+  .prompt-template-search__inner {
+    width: 100%;
+  }
+
+  .prompt-template-search__inner {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-template-search__inner :deep(.n-input),
+  .prompt-template-search__inner :deep(.n-select),
+  .prompt-template-search__inner :deep(.n-button),
+  .prompt-template-type-select {
+    width: 100% !important;
+  }
+
+  .prompt-template-mobile-list {
+    display: block !important;
+  }
+
+  .prompt-template-mobile-card {
+    text-align: left;
+  }
+
+  .prompt-template-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .prompt-template-mobile-card__title :deep(.n-text) {
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .prompt-template-mobile-card__content {
+    color: var(--n-text-color-2);
+    display: -webkit-box;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 10px;
+    max-height: 86px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  .prompt-template-mobile-card__meta {
+    color: var(--n-text-color-3);
+    display: grid;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .prompt-template-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .prompt-template-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.prompt-template-edit-modal.n-modal),
+  :deep(.prompt-template-share-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.prompt-template-edit-modal .n-card),
+  :deep(.prompt-template-share-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  :deep(.prompt-template-edit-modal .n-card__content),
+  :deep(.prompt-template-share-modal .n-card__content),
+  :deep(.prompt-template-edit-modal .n-card__footer),
+  :deep(.prompt-template-share-modal .n-card__footer) {
+    padding: 10px 12px;
+  }
+
+  :deep(.prompt-template-edit-modal .n-form-item),
+  :deep(.prompt-template-share-modal .n-form-item) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :deep(.prompt-template-edit-modal .md-editor) {
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - 310px) !important;
+    min-height: 280px;
+  }
+
+  :deep(.prompt-template-share-modal .n-space) {
+    flex-wrap: wrap !important;
+  }
+
+  :deep(.prompt-template-share-modal .n-space > .n-form-item) {
+    width: 100% !important;
+  }
 }
 </style>

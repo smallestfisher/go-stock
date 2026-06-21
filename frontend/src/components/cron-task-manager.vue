@@ -1,7 +1,8 @@
 <template>
       <!-- 搜索和筛选区域 -->
-   <n-space vertical style="margin-bottom: 12px">
-      <n-space>
+   <div class="cron-task-page">
+   <n-space class="cron-task-toolbar" vertical style="margin-bottom: 12px">
+      <n-space class="cron-task-toolbar__inner">
     <n-input
           v-model:value="searchKeyword"
           placeholder="搜索任务名称..."
@@ -45,6 +46,7 @@
 
       <!-- 任务列表表格 -->
       <n-data-table
+          class="cron-task-table desktop-only"
           remote
           size="small"
           :columns="columns"
@@ -56,8 +58,74 @@
           style="height: calc(100vh - 210px);margin-top: 10px"
       />
 
+      <div class="cron-task-mobile-list mobile-only">
+        <n-spin :show="loading">
+          <n-space vertical :size="10">
+            <n-card v-for="item in taskList" :key="item.id" class="cron-task-mobile-card" size="small" :bordered="true">
+              <template #header>
+                <n-space class="cron-task-mobile-card__title" align="center" :size="8">
+                  <n-text strong>{{ item.name }}</n-text>
+                  <n-tag type="info" size="small" :bordered="false">{{ getTaskTypeLabel(item.taskType) }}</n-tag>
+                </n-space>
+              </template>
+              <template #header-extra>
+                <n-tag :type="item.enable ? 'success' : 'error'" size="small">{{ item.enable ? '启用' : '禁用' }}</n-tag>
+              </template>
+              <div class="cron-task-mobile-card__fields">
+                <div>
+                  <span>Cron</span>
+                  <n-text code>{{ item.cronExpr || '-' }}</n-text>
+                </div>
+                <div>
+                  <span>状态</span>
+                  <n-tag :type="item.status === 'active' ? 'success' : item.status === 'paused' ? 'warning' : 'error'" size="small">
+                    {{ item.status || '-' }}
+                  </n-tag>
+                </div>
+                <div>
+                  <span>运行次数</span>
+                  <n-text>{{ item.runCount || 0 }}</n-text>
+                </div>
+                <div>
+                  <span>最近执行</span>
+                  <n-text>{{ formatTaskTime(item.lastRunAt) }}</n-text>
+                </div>
+              </div>
+              <n-text v-if="item.lastRunResult" class="cron-task-mobile-card__result" :type="item.lastRunResult.startsWith('成功') ? 'success' : 'error'">
+                {{ item.lastRunResult }}
+              </n-text>
+              <template #action>
+                <n-space class="cron-task-mobile-card__actions" :size="8">
+                  <n-button size="small" type="success" @click="handleExecute(item)">执行</n-button>
+                  <n-button size="small" :type="item.enable ? 'warning' : 'info'" @click="handleToggleEnable(item)">
+                    {{ item.enable ? '暂停' : '启用' }}
+                  </n-button>
+                  <n-button size="small" type="primary" @click="handleEdit(item)">编辑</n-button>
+                  <n-popconfirm @positive-click="handleDelete(item.id)">
+                    <template #trigger>
+                      <n-button size="small" type="error">删除</n-button>
+                    </template>
+                    确定要删除任务 "{{ item.name }}" 吗？
+                  </n-popconfirm>
+                </n-space>
+              </template>
+            </n-card>
+            <n-empty v-if="!loading && taskList.length === 0" description="暂无定时任务" />
+          </n-space>
+        </n-spin>
+        <n-space justify="center" style="margin-top: 12px">
+          <n-pagination
+            :page="currentPage"
+            :page-count="Math.ceil(total / pageSize) || 1"
+            :page-size="pageSize"
+            @update:page="handlePageChange"
+          />
+        </n-space>
+      </div>
+
     <!-- 创建/编辑任务弹窗 -->
     <n-modal
+      class="cron-task-edit-modal"
       v-model:show="showCreateModal"
       :title="editingTask ? '修改任务' : '创建新任务'"
       preset="dialog"
@@ -343,6 +411,7 @@
 
     <!-- Cron 表达式配置器 -->
     <n-modal
+      class="cron-task-builder-modal"
       v-model:show="showCronBuilder"
       title="Cron 表达式配置器"
       preset="dialog"
@@ -487,6 +556,7 @@
         </n-button>
       </template>
     </n-modal>
+   </div>
 </template>
 
 <script setup>
@@ -898,6 +968,11 @@ const getTaskTypeLabel = (value) => {
   return option ? option.label : value
 }
 
+const formatTaskTime = (value) => {
+  if (!value) return '未运行'
+  return new Date(value).toLocaleString('zh-CN')
+}
+
 // 表格列定义
 const columns = [
   {
@@ -1084,6 +1159,8 @@ const columns = [
 const pagination = computed(() => ({
   page: currentPage.value,
   pageSize: pageSize.value,
+  itemCount: total.value,
+  pageCount: Math.ceil(total.value / pageSize.value) || 1,
   showSizePicker: true,
   pageSizes: [10, 20, 50, 100],
   onChange: handlePageChange,
@@ -1481,5 +1558,139 @@ onMounted(async () => {
   font-weight: 600;
   color: #333;
   flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .cron-task-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .cron-task-toolbar,
+  .cron-task-toolbar__inner {
+    width: 100%;
+  }
+
+  .cron-task-toolbar__inner {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: 1fr;
+  }
+
+  .cron-task-toolbar__inner :deep(.n-input),
+  .cron-task-toolbar__inner :deep(.n-select),
+  .cron-task-toolbar__inner :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .cron-task-mobile-list {
+    display: block !important;
+  }
+
+  .cron-task-mobile-card {
+    text-align: left;
+  }
+
+  .cron-task-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .cron-task-mobile-card__title :deep(.n-text) {
+    overflow-wrap: anywhere;
+  }
+
+  .cron-task-mobile-card__fields {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .cron-task-mobile-card__fields > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .cron-task-mobile-card__fields span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .cron-task-mobile-card__fields :deep(.n-text) {
+    overflow-wrap: anywhere;
+  }
+
+  .cron-task-mobile-card__result {
+    display: block;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+  }
+
+  .cron-task-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .cron-task-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.cron-task-edit-modal.n-modal),
+  :deep(.cron-task-builder-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.cron-task-edit-modal .n-dialog),
+  :deep(.cron-task-builder-modal .n-dialog) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.cron-task-edit-modal .n-form-item),
+  :deep(.cron-task-builder-modal .n-form-item) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :deep(.cron-task-edit-modal .n-grid),
+  :deep(.cron-task-builder-modal .n-grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :deep(.cron-task-edit-modal .n-gi),
+  :deep(.cron-task-builder-modal .n-gi) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .cron-row {
+    align-items: flex-start;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .cron-label {
+    width: auto;
+  }
+
+  .cron-row :deep(.n-space) {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+  }
+
+  .cron-row :deep(.n-select) {
+    width: 100% !important;
+  }
 }
 </style>

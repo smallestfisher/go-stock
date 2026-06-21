@@ -211,7 +211,8 @@ function formatDate(dateVal) {
 }
 
 function formatAmount(n) {
-  return Number(n).toFixed(2)
+  const value = Number(n)
+  return Number.isFinite(value) ? value.toFixed(2) : '0.00'
 }
 
 function toEastMoneyCode(code) {
@@ -669,7 +670,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <n-input-group>
+  <div class="trading-record-page">
+  <n-input-group class="trading-record-search">
     <n-date-picker v-model:value="paginationReactive.range" type="daterange" style="width: 40%" />
     <n-select
       v-model:value="paginationReactive.direction"
@@ -684,7 +686,7 @@ onUnmounted(() => {
     <n-button type="primary" ghost @click="openAddModal">添加记录</n-button>
   </n-input-group>
 
-  <n-grid :cols="6" :x-gap="12" style="margin-top: 12px; padding: 12px; border-radius: 4px">
+  <n-grid class="trading-record-stats" :cols="6" :x-gap="12" style="margin-top: 12px; padding: 12px; border-radius: 4px">
     <n-grid-item>
       <n-statistic label="持仓金额(元)">
         <n-number-animation :from="0" :to="statisticsRef?.holdingsAmount || 0" :precision="2" />
@@ -724,6 +726,7 @@ onUnmounted(() => {
   </n-grid>
 
   <n-data-table
+    class="trading-record-table desktop-only"
     remote
     size="small"
     :columns="columnsRef"
@@ -736,7 +739,73 @@ onUnmounted(() => {
     style="height: calc(100vh - 310px); margin-top: 10px"
   />
 
-  <n-modal v-model:show="showAddModal" preset="card" title="添加交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
+  <div class="trading-record-mobile-list mobile-only">
+    <n-spin :show="loadingRef">
+      <n-space vertical :size="10">
+        <n-card v-for="item in dataRef" :key="item.ID" class="trading-record-mobile-card" size="small" :bordered="true">
+          <template #header>
+            <n-space class="trading-record-mobile-card__title" align="center" :size="8">
+              <n-text strong>{{ item.StockName }}</n-text>
+              <n-text depth="3">{{ item.StockCode }}</n-text>
+              <n-tag :type="item.Direction === '买入' ? 'error' : 'success'" size="small" round :bordered="false">
+                {{ item.Direction }}
+              </n-tag>
+            </n-space>
+          </template>
+          <div class="trading-record-mobile-card__time">{{ formatRowTradingTime(item) }}</div>
+          <div class="trading-record-mobile-card__metrics">
+            <div>
+              <span>成交价</span>
+              <n-text>{{ formatAmount(item.Price) }}</n-text>
+            </div>
+            <div>
+              <span>数量</span>
+              <n-text>{{ item.Volume }}</n-text>
+            </div>
+            <div>
+              <span>金额</span>
+              <n-text>{{ formatAmount(item.Amount) }}</n-text>
+            </div>
+            <div>
+              <span>收益率</span>
+              <n-text :type="item.profitPercent > 0 ? 'error' : item.profitPercent < 0 ? 'success' : 'info'" strong>
+                {{ item.profitPercent > 0 ? '+' : '' }}{{ item.profitPercent?.toFixed(2) }}%
+              </n-text>
+            </div>
+            <div>
+              <span>盈亏额</span>
+              <n-text :type="item.profitAmount > 0 ? 'error' : item.profitAmount < 0 ? 'success' : 'info'">
+                {{ formatAmount(item.profitAmount) }}
+              </n-text>
+            </div>
+            <div>
+              <span>最新价</span>
+              <n-text>{{ formatAmount(item.closePrice) }}</n-text>
+            </div>
+          </div>
+          <div v-if="item.Reason" class="trading-record-mobile-card__note">{{ item.Reason }}</div>
+          <template #action>
+            <n-space class="trading-record-mobile-card__actions" :size="8">
+              <n-button size="small" type="info" @click="openKlineChart(item)">K线</n-button>
+              <n-button size="small" type="warning" @click="openEditModal(item)">编辑</n-button>
+              <n-button size="small" type="error" @click="deleteTradingRecord(item.ID)">删除</n-button>
+            </n-space>
+          </template>
+        </n-card>
+        <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无交易日志" />
+      </n-space>
+    </n-spin>
+    <n-space justify="center" style="margin-top: 12px">
+      <n-pagination
+        v-model:page="paginationReactive.page"
+        :page-count="paginationReactive.pageCount"
+        :page-size="paginationReactive.pageSize"
+        @update:page="handlePageChange"
+      />
+    </n-space>
+  </div>
+
+  <n-modal class="trading-record-edit-modal" v-model:show="showAddModal" preset="card" title="添加交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
     <n-form label-placement="top" size="small">
       <n-grid :cols="3" :x-gap="12" :y-gap="2">
         <n-grid-item>
@@ -826,7 +895,7 @@ onUnmounted(() => {
     </template>
   </n-modal>
 
-  <n-modal v-model:show="showEditModal" preset="card" title="编辑交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
+  <n-modal class="trading-record-edit-modal" v-model:show="showEditModal" preset="card" title="编辑交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
     <n-form label-placement="top" size="small">
       <n-grid :cols="3" :x-gap="12" :y-gap="2">
         <n-grid-item>
@@ -916,7 +985,7 @@ onUnmounted(() => {
     </template>
   </n-modal>
 
-  <n-modal v-model:show="showKlineModal" preset="card" :title="'K线 - ' + klineStockName" style="width: 95vw; max-width: 1400px">
+  <n-modal class="trading-record-kline-modal" v-model:show="showKlineModal" preset="card" :title="'K线 - ' + klineStockName" style="width: 95vw; max-width: 1400px">
     <StockLightweightKlineChart
       :code="klineStockCode"
       :stock-name="klineStockName"
@@ -927,6 +996,136 @@ onUnmounted(() => {
       :costPrice="costPrice"
     />
   </n-modal>
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+@media (max-width: 768px) {
+  .trading-record-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .trading-record-search {
+    display: grid !important;
+    gap: 8px;
+    grid-template-columns: 1fr;
+  }
+
+  .trading-record-search :deep(.n-date-picker),
+  .trading-record-search :deep(.n-select),
+  .trading-record-search :deep(.n-input),
+  .trading-record-search :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .trading-record-stats {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 8px 0 !important;
+  }
+
+  .trading-record-stats :deep(.n-grid-item) {
+    min-width: 0;
+  }
+
+  .trading-record-stats :deep(.n-statistic) {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    padding: 8px;
+  }
+
+  .trading-record-stats :deep(.n-statistic__label) {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .trading-record-stats :deep(.n-statistic-value) {
+    font-size: 15px;
+  }
+
+  .trading-record-mobile-list {
+    display: block !important;
+  }
+
+  .trading-record-mobile-card {
+    text-align: left;
+  }
+
+  .trading-record-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .trading-record-mobile-card__time {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .trading-record-mobile-card__metrics {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .trading-record-mobile-card__metrics > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .trading-record-mobile-card__metrics span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .trading-record-mobile-card__note {
+    color: var(--n-text-color-2);
+    display: -webkit-box;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 4px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .trading-record-mobile-card__actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .trading-record-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  :deep(.trading-record-edit-modal.n-modal),
+  :deep(.trading-record-kline-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.trading-record-edit-modal .n-card),
+  :deep(.trading-record-kline-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  :deep(.trading-record-edit-modal .n-grid) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :deep(.trading-record-edit-modal .n-grid-item) {
+    grid-column: 1 / -1 !important;
+  }
+}
+</style>

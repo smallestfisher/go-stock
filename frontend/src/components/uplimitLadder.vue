@@ -385,12 +385,12 @@ function showKline(code, name) {
 </script>
 
 <template>
-  <div style="padding: 0 4px;">
+  <div class="uplimit-ladder-page" style="padding: 0 4px;">
     <n-spin :show="loading">
       <n-space vertical :size="16">
-        <n-card size="small" :bordered="true">
-          <n-space justify="space-between" align="center">
-            <n-space align="center" :size="16">
+        <n-card class="uplimit-ladder-toolbar" size="small" :bordered="true">
+          <n-space class="uplimit-ladder-toolbar__inner" justify="space-between" align="center">
+            <n-space class="uplimit-ladder-toolbar__meta" align="center" :size="16">
               <n-date-picker
                 v-model:formatted-value="selectedDate"
                 value-format="yyyy-MM-dd"
@@ -403,7 +403,7 @@ function showKline(code, name) {
               <n-tag type="warning" size="small" round>最高 {{ maxCount }} 连板</n-tag>
               <n-tag v-if="rawData?.today" type="info" size="small" round>实时数据</n-tag>
             </n-space>
-            <n-space>
+            <n-space class="uplimit-ladder-toolbar__views">
               <n-button :type="activeView==='ladder'?'primary':'default'" size="small" @click="activeView='ladder'">涨停高度</n-button>
               <n-button :type="activeView==='plate'?'primary':'default'" size="small" @click="activeView='plate'">板块热度</n-button>
               <n-button :type="activeView==='hot'?'primary':'default'" size="small" @click="activeView='hot'">个股热度</n-button>
@@ -483,7 +483,7 @@ function showKline(code, name) {
               </n-space>
             </n-card>
 
-            <n-grid :cols="2" :x-gap="12" :y-gap="12" responsive="screen">
+            <n-grid class="uplimit-ladder-plate-grid" :cols="2" :x-gap="12" :y-gap="12" responsive="screen">
               <n-gi v-for="plate in plateList" :key="plate.code">
                 <n-card size="small" :bordered="true"
                   style="cursor:pointer;" @click="selectPlate(plate.code)">
@@ -518,7 +518,7 @@ function showKline(code, name) {
               <n-text style="font-weight:bold;">个股热度排行</n-text>
               <n-text depth="3" style="font-size:12px;margin-left:8px;">热度≥{{ hotThreshold }}为超级热门</n-text>
             </template>
-            <n-table :single-line="false" striped size="small" style="font-size:13px;">
+            <n-table class="uplimit-ladder-rank-table" :single-line="false" striped size="small" style="font-size:13px;">
               <n-thead>
                 <n-tr>
                   <n-th width="50px">排名</n-th>
@@ -568,7 +568,7 @@ function showKline(code, name) {
                 <n-tag type="warning" size="small" round>{{ explodedStocks.length }}只</n-tag>
               </n-space>
             </template>
-            <n-table v-if="explodedStocks.length" :single-line="false" striped size="small" style="font-size:13px;">
+            <n-table class="uplimit-ladder-rank-table" v-if="explodedStocks.length" :single-line="false" striped size="small" style="font-size:13px;">
               <n-thead>
                 <n-tr>
                   <n-th>代码</n-th>
@@ -603,7 +603,7 @@ function showKline(code, name) {
       </n-space>
     </n-spin>
 
-    <n-modal v-model:show="showPlateModal" preset="card"
+    <n-modal class="uplimit-ladder-plate-modal" v-model:show="showPlateModal" preset="card"
       :title="plateInfo[selectedPlate]?.name + ' - 涨停股详情' || '涨停股详情'"
       style="width: 900px; max-width: 95vw;"
       :bordered="true" :segmented="{content:true}">
@@ -612,7 +612,7 @@ function showKline(code, name) {
         size="small" :bordered="false" striped />
     </n-modal>
 
-    <n-modal v-model:show="showKlineModal" preset="card"
+    <n-modal class="uplimit-ladder-kline-modal" v-model:show="showKlineModal" preset="card"
       :title="(klineName || '') + ' — 多周期K线'"
       style="width: 95vw; max-width: 1200px;"
       :bordered="true">
@@ -634,5 +634,72 @@ function showKline(code, name) {
 }
 :deep(.n-tag) {
   font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .uplimit-ladder-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px) !important;
+    text-align: left;
+  }
+
+  .uplimit-ladder-toolbar :deep(.n-card__content) {
+    padding: 10px;
+  }
+
+  .uplimit-ladder-toolbar__inner,
+  .uplimit-ladder-toolbar__meta,
+  .uplimit-ladder-toolbar__views {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .uplimit-ladder-toolbar__meta :deep(.n-date-picker) {
+    width: 100% !important;
+  }
+
+  .uplimit-ladder-toolbar__views {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .uplimit-ladder-toolbar__views :deep(.n-button) {
+    width: 100%;
+  }
+
+  .uplimit-ladder-plate-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .uplimit-ladder-plate-grid :deep(.n-grid-item) {
+    grid-column: 1 / -1 !important;
+  }
+
+  .uplimit-ladder-rank-table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .uplimit-ladder-rank-table :deep(td),
+  .uplimit-ladder-rank-table :deep(th) {
+    white-space: nowrap;
+  }
+
+  :deep(.uplimit-ladder-plate-modal.n-modal),
+  :deep(.uplimit-ladder-kline-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.uplimit-ladder-plate-modal .n-card),
+  :deep(.uplimit-ladder-kline-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
 }
 </style>

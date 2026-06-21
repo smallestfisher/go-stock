@@ -4,8 +4,8 @@ import {
   EventsOff,
   EventsOn
 } from './api/runtime'
-import {defineAsyncComponent, h, onBeforeMount, onBeforeUnmount, onMounted, ref} from "vue";
-import {RouterLink, useRouter} from 'vue-router'
+import {defineAsyncComponent, h, onBeforeMount, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {RouterLink, useRoute, useRouter} from 'vue-router'
 import {createDiscreteApi,darkTheme,lightTheme , NIcon, NText,NButton,dateZhCN,zhCN} from 'naive-ui'
 import {
   AlarmOutline,
@@ -35,6 +35,7 @@ import {FireFilled, MoneyCollectOutlined, NotificationFilled, StockOutlined} fro
 
 
 
+const route = useRoute()
 const router = useRouter()
 const FloatingAgentAssistant = defineAsyncComponent(() => import("./components/FloatingAgentAssistant.vue"))
 const loading = ref(true)
@@ -64,6 +65,19 @@ const mobileBottomNavItems = [
   { key: 'promptPlaza', label: '提示词', icon: GlobeOutline, route: { name: 'research', query: { name: '提示词广场' } } },
   { key: 'more', label: '更多', icon: ReorderTwoOutline },
 ]
+
+const routeActiveKeyMap = {
+  stock: 'stock',
+  market: 'market',
+  klineAnalysis: 'klineAnalysis',
+  fund: 'fund',
+  agent: 'agent',
+  research: 'research',
+  cronTasks: 'research',
+  mcpServers: 'research',
+  settings: 'settings',
+  about: 'about',
+}
 
 const investmentMottos = [
   "投资有风险，入市需谨慎",
@@ -136,9 +150,32 @@ function handleMobileNav(item) {
   mobileMenuVisible.value = false
 }
 
+function syncActiveKeyFromRoute(routeName) {
+  const key = routeActiveKeyMap[String(routeName || '')]
+  if (key) {
+    activeKey.value = key
+  }
+}
+
+function isMobileBottomNavActive(item) {
+  if (item.key === 'promptPlaza') {
+    return activeKey.value === 'research'
+  }
+  if (item.key === 'more') {
+    return !['stock', 'market', 'klineAnalysis', 'research'].includes(activeKey.value)
+  }
+  return activeKey.value === item.key
+}
+
 function handleMobileDrawerSelect() {
   mobileMenuVisible.value = false
 }
+
+watch(
+  () => route.name,
+  syncActiveKeyFromRoute,
+  { immediate: true },
+)
 const menuOptions = ref([
   {
     label: () =>
@@ -1233,7 +1270,7 @@ onMounted(() => {
                     v-for="item in mobileBottomNavItems"
                     :key="item.key"
                     class="mobile-bottom-nav__item"
-                    :class="{ 'mobile-bottom-nav__item--active': activeKey === item.key || (item.key === 'promptPlaza' && activeKey === 'research') }"
+                    :class="{ 'mobile-bottom-nav__item--active': isMobileBottomNavActive(item) }"
                     type="button"
                     @click="handleMobileNav(item)"
                 >

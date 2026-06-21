@@ -416,11 +416,18 @@ const toNumber = (value, defaultValue = 0) => {
   return isNaN(num) ? defaultValue : num
 }
 
+function formatConceptPreview(concept) {
+  if (!concept) return '无'
+  if (Array.isArray(concept)) return concept.slice(0, 4).join(' / ')
+  return String(concept)
+}
+
 </script>
 
 <template>
-    <n-space justify="start">
-      <n-card size="small" :bordered="false"  style="text-align: left">
+  <div class="all-stock-list-page">
+    <n-space class="all-stock-list-filters" justify="start">
+      <n-card class="all-stock-list-filter-card" size="small" :bordered="false"  style="text-align: left">
         <n-checkbox   @update:checked="handleCheckedChange" v-model:checked="technicalIndicatorReactive.MACD_GOLDEN_FORK">
         MACD金叉
       </n-checkbox>
@@ -512,7 +519,7 @@ const toNumber = (value, defaultValue = 0) => {
         窄幅整理
       </n-checkbox>
       </n-card>
-      <n-card size="small" :bordered="false"  style="text-align: left">
+      <n-card class="all-stock-list-filter-card" size="small" :bordered="false"  style="text-align: left">
         <n-radio-group size="small"  @update:checked="handleCheckedChange" name="UPP_DAYS"   v-model:value="technicalIndicatorReactive.UPP_DAYS">
           <n-radio :value="3">人气排名连涨:3天及以上</n-radio>
           <n-radio :value="5">人气排名连涨:5天及以上</n-radio>
@@ -541,7 +548,7 @@ const toNumber = (value, defaultValue = 0) => {
       </n-card>
 
     </n-space>
-    <n-input-group>
+    <n-input-group class="all-stock-list-search">
 <!--    <n-input clearable placeholder="输入股票名称" v-model:value="paginationReactive.keyword"/>-->
       <n-auto-complete
           v-model:value="paginationReactive.keyword"
@@ -565,6 +572,7 @@ const toNumber = (value, defaultValue = 0) => {
     </n-input-group>
     <!-- 数据表格 -->
     <n-data-table
+      class="all-stock-list-table desktop-only"
       remote
       size="small"
       :columns="columnsRef"
@@ -576,6 +584,57 @@ const toNumber = (value, defaultValue = 0) => {
       style="height: calc(100vh - 380px);margin-top: 10px"
       @update:page="handlePageChange"
     />
+
+    <div class="all-stock-list-mobile-list mobile-only">
+      <n-spin :show="loadingRef">
+        <n-space vertical :size="10">
+          <n-card v-for="item in dataRef" :key="item.SECUCODE" class="all-stock-list-mobile-card" size="small" :bordered="true">
+            <template #header>
+              <n-space class="all-stock-list-mobile-card__title" align="center" :size="8">
+                <n-text strong>{{ item.SECURITY_NAME_ABBR }}</n-text>
+                <n-text depth="3">{{ item.SECUCODE }}</n-text>
+                <n-tag v-if="item.INDUSTRY" size="small" type="primary">{{ item.INDUSTRY }}</n-tag>
+              </n-space>
+            </template>
+            <div class="all-stock-list-mobile-card__metrics">
+              <div>
+                <span>最新价</span>
+                <n-text>{{ isNumeric(item.NEW_PRICE) ? item.NEW_PRICE : '-' }}</n-text>
+              </div>
+              <div>
+                <span>涨跌幅</span>
+                <n-text :type="toNumber(item.CHANGE_RATE, 0) >= 0 ? 'error' : 'success'" strong>
+                  {{ toNumber(item.CHANGE_RATE, 0) >= 0 ? '+' : '' }}{{ toNumber(item.CHANGE_RATE, 0).toFixed(2) }}%
+                </n-text>
+              </div>
+              <div>
+                <span>成交量</span>
+                <n-text>{{ toNumber(item.VOLUME, 0) >= 10000 ? (toNumber(item.VOLUME, 0) / 10000).toFixed(2) + '万' : toNumber(item.VOLUME, 0) }}</n-text>
+              </div>
+              <div>
+                <span>换手率</span>
+                <n-text>{{ isNumeric(item.TURNOVERRATE) ? item.TURNOVERRATE : '-' }}</n-text>
+              </div>
+            </div>
+            <div class="all-stock-list-mobile-card__concept">
+              {{ formatConceptPreview(item.CONCEPT) }}
+            </div>
+            <template #action>
+              <n-button size="small" type="warning" block @click="showKline(item)">日K</n-button>
+            </template>
+          </n-card>
+          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无股票数据" />
+        </n-space>
+      </n-spin>
+      <n-space justify="center" style="margin-top: 12px">
+        <n-pagination
+          v-model:page="paginationReactive.page"
+          :page-count="paginationReactive.pageCount"
+          :page-size="paginationReactive.pageSize"
+          @update:page="handlePageChange"
+        />
+      </n-space>
+    </div>
     
     <!-- 分页控件 -->
 <!--    <div style="margin-top: 16px; display: flex; justify-content: center;">-->
@@ -597,7 +656,111 @@ const toNumber = (value, defaultValue = 0) => {
       <KLineChart style="width: 100%;max-width: 800px;" :code="getStockCode(modalDataRef.stockCode)" :chart-height="500" :stock-name="modalDataRef.stockName" :k-days="30" :dark-theme="editorDataRef.darkTheme"></KLineChart>
     </n-card>
   </n-modal>
+  </div>
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .all-stock-list-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .all-stock-list-filters {
+    align-items: stretch !important;
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: 1fr;
+  }
+
+  .all-stock-list-filter-card {
+    max-height: 180px;
+    overflow: auto;
+  }
+
+  .all-stock-list-filter-card :deep(.n-card__content) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 10px;
+  }
+
+  .all-stock-list-filter-card :deep(.n-checkbox),
+  .all-stock-list-filter-card :deep(.n-radio) {
+    margin-right: 0 !important;
+  }
+
+  .all-stock-list-filter-card :deep(.n-radio-group) {
+    display: grid;
+    gap: 6px;
+  }
+
+  .all-stock-list-search {
+    display: grid !important;
+    gap: 8px;
+    grid-template-columns: 1fr;
+    margin-top: 10px;
+  }
+
+  .all-stock-list-search :deep(.n-auto-complete),
+  .all-stock-list-search :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .all-stock-list-mobile-list {
+    display: block !important;
+    margin-top: 10px;
+  }
+
+  .all-stock-list-mobile-card {
+    text-align: left;
+  }
+
+  .all-stock-list-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .all-stock-list-mobile-card__metrics {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .all-stock-list-mobile-card__metrics > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .all-stock-list-mobile-card__metrics span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .all-stock-list-mobile-card__concept {
+    color: var(--n-text-color-2);
+    display: -webkit-box;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  :deep(.n-modal) {
+    margin: 0 !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.n-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+}
 </style>

@@ -117,7 +117,7 @@ onMounted(() => {
 </script>
 
 <template>
-      <n-space vertical size="large"  style="">
+      <n-space class="about-page" vertical size="large"  style="">
         <!-- 软件描述 -->
         <n-card size="large">
           <n-divider title-placement="center">关于软件</n-divider>
@@ -232,6 +232,7 @@ onMounted(() => {
         </n-card>
 
         <n-modal
+          class="about-manual-modal"
           v-model:show="showManual"
           preset="card"
           title="用户手册"
@@ -239,7 +240,7 @@ onMounted(() => {
           :bordered="false"
           :segmented="{ content: true, footer: true }"
         >
-          <div style="display: flex; max-height: 75vh;">
+          <div class="about-manual-layout" style="display: flex; max-height: 75vh;">
             <div v-if="catalogList.length" class="manual-catalog" style="width: 240px; min-width: 240px; border-right: 1px solid var(--n-border-color); padding: 8px 4px; overflow-y: auto;">
               <div style="font-weight: bold; margin-bottom: 8px; padding: 0 8px;">目录</div>
               <n-tree
@@ -255,7 +256,7 @@ onMounted(() => {
                 @update:selected-keys="onTreeSelect"
               />
             </div>
-            <div ref="manualScrollRef" style="flex: 1; overflow-y: auto; padding: 0 16px;">
+            <div class="about-manual-content" ref="manualScrollRef" style="flex: 1; overflow-y: auto; padding: 0 16px;">
               <MdPreview style="text-align: left;" :id="manualId" v-model="manualContent" :theme="theme" :preview-theme="'github'" :md-heading-id="slugifyHeading" @onHtmlChanged="extractCatalog" />
             </div>
           </div>
@@ -299,5 +300,59 @@ a:hover {
 
 .manual-catalog :deep(.n-tree-node) {
   text-align: left;
+}
+
+@media (max-width: 768px) {
+  .about-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    text-align: left;
+  }
+
+  .about-page :deep(.n-card__content) {
+    padding: 12px;
+  }
+
+  .about-page :deep(.n-gradient-text) {
+    font-size: 34px !important;
+    line-height: 1.15;
+  }
+
+  .about-page p {
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .about-page :deep(.n-image) {
+    max-width: 100%;
+  }
+
+  :deep(.about-manual-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.about-manual-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  .about-manual-layout {
+    display: grid !important;
+    gap: 10px;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 130px) !important;
+  }
+
+  .manual-catalog {
+    border-bottom: 1px solid var(--n-border-color);
+    border-right: 0 !important;
+    max-height: 160px;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .about-manual-content {
+    padding: 0 !important;
+  }
 }
 </style>

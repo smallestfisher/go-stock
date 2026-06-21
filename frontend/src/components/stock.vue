@@ -637,26 +637,36 @@ function fetchGroupList() {
 function AddStock() {
   if (!data?.code) {
     message.error("请输入有效股票代码");
-    return;
+    return Promise.resolve(false);
   }
   if (!stocks.value.includes(data.code)) {
-    Follow(data.code).then(result => {
+    return Follow(data.code).then(result => {
       if (result === "关注成功") {
         if (data.code.startsWith("us")) {
           data.code = "gb_" + data.code.replace("us", "").toLowerCase()
         }
         stocks.value.push(data.code)
         message.success(result)
-        GetFollowList(currentGroupId.value).then(result => {
+        return GetFollowList(currentGroupId.value).then(result => {
           followList.value = result
+        }).catch(err => {
+          console.error("GetFollowList error:", err)
+        }).then(() => {
+          monitor();
+          return true
         })
-        monitor();
       } else {
         message.error(result)
+        return false
       }
+    }).catch(err => {
+      const errMsg = err?.message || err || "未知错误"
+      message.error("关注失败: " + errMsg)
+      return false
     })
   } else {
     message.error("已经关注了")
+    return Promise.resolve(false);
   }
 }
 
@@ -665,13 +675,11 @@ function openMobileAddDrawer() {
   mobileAddDrawerVisible.value = true
 }
 
-function addStockFromMobile() {
-  if (!data?.code || stocks.value.includes(data.code)) {
-    AddStock()
-    return
+async function addStockFromMobile() {
+  const added = await AddStock()
+  if (added) {
+    mobileAddDrawerVisible.value = false
   }
-  AddStock()
-  mobileAddDrawerVisible.value = false
 }
 
 function getStockMobileMoreOptions(result, groupId = 0) {
@@ -1861,6 +1869,9 @@ function checkPriceLineAlerts(result) {
 }
 
 function aiReCheckStock(stock, stockCode) {
+  data.name = stock
+  data.code = stockCode
+  modalShow4.value = true
   if (!data.aiConfigId) {
     message.error("请先选择AI模型配置")
     return
@@ -1873,10 +1884,7 @@ function aiReCheckStock(stock, stockCode) {
   data.modelName = ""
   data.airesult = ""
   data.time = ""
-  data.name = stock
-  data.code = stockCode
   data.loading = true
-  modalShow4.value = true
   data.analysisStatus = "正在连接AI服务..."
   message.loading("ai检测中...", {
     duration: 0,
@@ -1909,15 +1917,27 @@ function aiReCheckStock(stock, stockCode) {
   }, 5 * 60 * 1000)
 }
 
+function startFreshAiCheck(stock, stockCode) {
+  data.modelName = ""
+  data.chatId = ""
+  data.question = ""
+  data.airesult = ""
+  data.time = ""
+  data.loading = false
+  data.analysisStatus = ""
+  aiReCheckStock(stock, stockCode)
+}
+
 function aiCheckStock(stock, stockCode) {
   GetAIResponseResult(stockCode).then(result => {
-    if (result.content) {
+    if (result?.content) {
       data.modelName = result.modelName
       data.chatId = result.chatId
       data.question = result.question
       data.name = stock
       data.code = stockCode
       data.loading = false
+      data.analysisStatus = ""
       modalShow4.value = true
       data.airesult = result.content
       const date = new Date(result.CreatedAt);
@@ -1929,19 +1949,11 @@ function aiCheckStock(stock, stockCode) {
       const seconds = String(date.getSeconds()).padStart(2, '0');
       data.time = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
     } else {
-      data.modelName = ""
-      data.question = ""
-      data.airesult = ""
-      data.time = ""
-      data.name = stock
-      data.code = stockCode
-      data.loading = false
-      modalShow4.value = true
-      // message.loading("ai检测中...", {
-      //   duration: 0,
-      // })
-      // NewChatStream(stock, stockCode, "", data.sysPromptId)
+      startFreshAiCheck(stock, stockCode)
     }
+  }).catch(err => {
+    console.error("GetAIResponseResult error:", err)
+    startFreshAiCheck(stock, stockCode)
   })
 }
 

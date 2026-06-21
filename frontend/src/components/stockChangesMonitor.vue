@@ -243,6 +243,70 @@ function formatAmount(amount) {
   return amount.toFixed(2)
 }
 
+function getChangeDateTime(row) {
+  const date = row.changeDate || row.ChangeDate
+  const time = row.changeTime || row.ChangeTime || row.time || ''
+  return date ? `${date} ${time}` : time
+}
+
+function getChangeCode(row) {
+  return row.stockCode || row.StockCode || row.code || ''
+}
+
+function getChangeName(row) {
+  return row.stockName || row.StockName || row.name || '-'
+}
+
+function getChangeTypeName(row) {
+  return row.typeName || row.TypeName || '-'
+}
+
+function getChangeTypeTag(row) {
+  const typeName = getChangeTypeName(row)
+  const bullishSet = new Set(['火箭发射', '快速反弹', '大笔买入', '封涨停板', '打开跌停板', '有大买盘', '竞价上涨', '高开5日线', '向上缺口', '60日新高', '60日大幅上涨', '打开涨停板'])
+  const bearishSet = new Set(['加速下跌', '高台跳水', '大笔卖出', '封跌停板', '有大卖盘', '竞价下跌', '低开5日线', '向下缺口', '60日新低', '60日大幅下跌'])
+  if (bullishSet.has(typeName)) return 'error'
+  if (bearishSet.has(typeName)) return 'success'
+  return 'default'
+}
+
+function getChangePrice(row) {
+  const price = row.price || row.Price
+  return price > 0 ? price.toFixed(2) : '-'
+}
+
+function getChangeRateText(row) {
+  const rate = row.changeRate || row.ChangeRate
+  if (rate !== 0 && Number.isFinite(Number(rate))) {
+    const prefix = rate > 0 ? '+' : ''
+    return `${prefix}${Number(rate).toFixed(2)}%`
+  }
+  return '-'
+}
+
+function getChangeRateType(row) {
+  const rate = row.changeRate || row.ChangeRate
+  return rate > 0 ? 'error' : rate < 0 ? 'success' : 'default'
+}
+
+function getChangeVolume(row) {
+  const volume = row.volume || row.Volume
+  return volume > 0 ? formatVolume(volume) : '-'
+}
+
+function getChangeAmount(row) {
+  const amount = row.amount || row.Amount
+  return amount > 0 ? formatAmount(amount) : '-'
+}
+
+function getChangeIndustry(row) {
+  return row.industry || row.Industry || '-'
+}
+
+function getChangeConcept(row) {
+  return row.concept || row.Concept || '-'
+}
+
 function copyCode(code) {
   navigator.clipboard.writeText(code).then(() => {
     message.success('已复制: ' + code)
@@ -531,11 +595,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <n-card>
+  <n-card class="stock-changes-page">
     <template #header>
       <n-space vertical>
-        <n-space justify="space-between" align="center">
-          <n-space align="center">
+        <n-space class="stock-changes-header" justify="space-between" align="center">
+          <n-space class="stock-changes-title-row" align="center">
             <n-text strong>股票异动监控</n-text>
             <n-tag v-if="viewMode === 'realtime'" :type="isTrading ? 'success' : 'warning'" size="small">
               {{ marketStatus }}
@@ -545,7 +609,7 @@ onBeforeUnmount(() => {
             </n-tag>
             <n-text depth="3" style="font-size: 12px">共 {{ paginationReactive.itemCount }} 条记录</n-text>
           </n-space>
-          <n-space align="center">
+          <n-space class="stock-changes-actions" align="center">
             <n-radio-group v-model:value="viewMode" @update:value="handleViewModeChange">
               <n-radio-button value="realtime">实时数据</n-radio-button>
               <n-radio-button value="history">历史数据</n-radio-button>
@@ -578,7 +642,7 @@ onBeforeUnmount(() => {
           当前非A股交易时间（周一至周五 9:30-11:30, 13:00-15:00），自动刷新已暂停。您可以查看历史数据或手动刷新。
         </n-alert>
 
-        <n-space v-if="viewMode === 'history'" align="center">
+        <n-space class="stock-changes-filter-row" v-if="viewMode === 'history'" align="center">
           <n-input 
             v-model:value="paginationReactive.keyword" 
             placeholder="输入股票代码或名称" 
@@ -608,7 +672,7 @@ onBeforeUnmount(() => {
             获取今日全部数据
           </n-button>
         </n-space>
-        <n-space v-if="viewMode === 'history'" align="center" style="margin-top: 8px">
+        <n-space class="stock-changes-filter-row" v-if="viewMode === 'history'" align="center" style="margin-top: 8px">
           <n-select
             v-model:value="paginationReactive.minVolume"
             :options="volumeOptions"
@@ -644,7 +708,7 @@ onBeforeUnmount(() => {
           />
         </n-space>
         
-        <n-space align="center" style="margin-top: 8px">
+        <n-space class="stock-changes-type-actions" align="center" style="margin-top: 8px">
           <n-text depth="3">异动类型筛选：</n-text>
           <n-button size="tiny" type="primary" @click="selectAllTypes">全选</n-button>
           <n-button size="tiny" @click="clearAllTypes">清空</n-button>
@@ -657,7 +721,7 @@ onBeforeUnmount(() => {
             <n-button size="tiny" @click="selectAllBullish">全选利好</n-button>
           </n-space>
           <n-checkbox-group v-model:value="selectedTypes" @update:value="fetchData">
-            <n-space>
+            <n-space class="stock-changes-checkbox-list">
               <n-checkbox v-for="item in bullishTypes" :key="item.value" :value="item.value" :label="item.label">
                 <template #default>
                   <n-text :style="{color: selectedTypes.includes(item.value) ? '#dc2626' : undefined}">{{ item.label }}</n-text>
@@ -673,7 +737,7 @@ onBeforeUnmount(() => {
             <n-button size="tiny" @click="selectAllBearish">全选利空</n-button>
           </n-space>
           <n-checkbox-group v-model:value="selectedTypes" @update:value="fetchData">
-            <n-space>
+            <n-space class="stock-changes-checkbox-list">
               <n-checkbox v-for="item in bearishTypes" :key="item.value" :value="item.value" :label="item.label">
                 <template #default>
                   <n-text :style="{color: selectedTypes.includes(item.value) ? '#16a34a' : undefined}">{{ item.label }}</n-text>
@@ -686,6 +750,7 @@ onBeforeUnmount(() => {
     </template>
 
     <n-data-table
+        class="stock-changes-table desktop-only"
         remote
         :columns="columnsRef"
         :data="dataRef"
@@ -698,8 +763,156 @@ onBeforeUnmount(() => {
         size="small"
         @update:page="handlePageChange"
     />
+    <div class="stock-changes-mobile-list mobile-only">
+      <n-spin :show="loadingRef">
+        <n-space vertical :size="10">
+          <n-card v-for="item in dataRef" :key="getChangeCode(item) + '-' + getChangeDateTime(item)" class="stock-changes-mobile-card" size="small" :bordered="true">
+            <template #header>
+              <n-space class="stock-changes-mobile-card__title" align="center" :size="8">
+                <n-text strong>{{ getChangeName(item) }}</n-text>
+                <n-text depth="3">{{ getChangeCode(item) }}</n-text>
+                <n-tag :type="getChangeTypeTag(item)" size="small">{{ getChangeTypeName(item) }}</n-tag>
+              </n-space>
+            </template>
+            <div class="stock-changes-mobile-card__time">{{ getChangeDateTime(item) }}</div>
+            <div class="stock-changes-mobile-card__metrics">
+              <div>
+                <span>价格</span>
+                <n-text>{{ getChangePrice(item) }}</n-text>
+              </div>
+              <div>
+                <span>涨跌幅</span>
+                <n-text :type="getChangeRateType(item)" strong>{{ getChangeRateText(item) }}</n-text>
+              </div>
+              <div>
+                <span>成交量</span>
+                <n-text>{{ getChangeVolume(item) }}</n-text>
+              </div>
+              <div>
+                <span>金额</span>
+                <n-text>{{ getChangeAmount(item) }}</n-text>
+              </div>
+            </div>
+            <div class="stock-changes-mobile-card__tags">
+              <n-tag size="tiny" type="info" :bordered="false">{{ getChangeIndustry(item) }}</n-tag>
+              <span>{{ getChangeConcept(item) }}</span>
+            </div>
+          </n-card>
+          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无异动数据" />
+        </n-space>
+      </n-spin>
+      <n-space v-if="viewMode === 'history'" justify="center" style="margin-top: 12px">
+        <n-pagination
+          v-model:page="paginationReactive.page"
+          :page-count="paginationReactive.pageCount"
+          :page-size="paginationReactive.pageSize"
+          @update:page="handlePageChange"
+        />
+      </n-space>
+    </div>
   </n-card>
 </template>
 
 <style scoped>
+@media (max-width: 768px) {
+  .stock-changes-page {
+    margin: 0 0 calc(var(--mobile-bottom-nav-height) + 8px);
+    text-align: left;
+  }
+
+  .stock-changes-page :deep(.n-card-header),
+  .stock-changes-page :deep(.n-card__content) {
+    padding: 10px 12px;
+  }
+
+  .stock-changes-header,
+  .stock-changes-actions,
+  .stock-changes-title-row,
+  .stock-changes-filter-row,
+  .stock-changes-type-actions {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .stock-changes-actions :deep(.n-radio-group),
+  .stock-changes-actions :deep(.n-button),
+  .stock-changes-filter-row :deep(.n-input),
+  .stock-changes-filter-row :deep(.n-date-picker),
+  .stock-changes-filter-row :deep(.n-time-picker),
+  .stock-changes-filter-row :deep(.n-select),
+  .stock-changes-filter-row :deep(.n-button) {
+    width: 100% !important;
+  }
+
+  .stock-changes-actions :deep(.n-radio-group) {
+    display: flex;
+  }
+
+  .stock-changes-actions :deep(.n-radio-button) {
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .stock-changes-checkbox-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 10px !important;
+  }
+
+  .stock-changes-checkbox-list :deep(.n-checkbox) {
+    margin-right: 0 !important;
+  }
+
+  .stock-changes-mobile-list {
+    display: block !important;
+  }
+
+  .stock-changes-mobile-card {
+    text-align: left;
+  }
+
+  .stock-changes-mobile-card__title {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    min-width: 0;
+  }
+
+  .stock-changes-mobile-card__time {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .stock-changes-mobile-card__metrics {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .stock-changes-mobile-card__metrics > div {
+    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
+    border-radius: 6px;
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .stock-changes-mobile-card__metrics span {
+    color: var(--n-text-color-3);
+    font-size: 12px;
+  }
+
+  .stock-changes-mobile-card__tags {
+    align-items: flex-start;
+    color: var(--n-text-color-2);
+    display: grid;
+    font-size: 12px;
+    gap: 6px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+}
 </style>

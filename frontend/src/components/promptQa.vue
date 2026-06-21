@@ -288,13 +288,13 @@ function timeAgo(timeStr) {
 </script>
 
 <template>
-  <div style="padding: 0">
+  <div class="prompt-qa-page" style="padding: 0">
     <n-alert v-if="!apiAvailable" title="问答服务暂不可用" type="warning" style="margin-bottom: 12px">
       问答广场接口未部署或服务未启动，请联系管理员部署最新版本的服务端程序。
     </n-alert>
     <n-space v-if="apiAvailable" vertical :size="12">
-      <n-space justify="space-between" align="center">
-        <n-space align="center">
+      <n-space class="prompt-qa-toolbar" justify="space-between" align="center">
+        <n-space class="prompt-qa-toolbar__filters" align="center">
           <n-input
             v-model:value="keyword"
             placeholder="搜索问题..."
@@ -307,7 +307,7 @@ function timeAgo(timeStr) {
           <n-button :type="resolvedFilter === 'false' ? 'warning' : 'default'" size="small" @click="handleResolvedFilter('false')">待解决</n-button>
           <n-button :type="resolvedFilter === 'true' ? 'success' : 'default'" size="small" @click="handleResolvedFilter('true')">已解决</n-button>
         </n-space>
-        <n-space>
+        <n-space class="prompt-qa-toolbar__actions">
           <n-button type="success" @click="showAskModal">❓ 提问</n-button>
           <template v-if="isLoggedIn">
             <n-tag type="success" size="medium" round>
@@ -321,7 +321,7 @@ function timeAgo(timeStr) {
       </n-space>
 
       <n-spin :show="loading">
-        <n-list bordered>
+        <n-list class="prompt-qa-list" bordered>
           <n-list-item v-for="item in questions" :key="item.id" style="cursor: pointer" @click="showDetail(item.id)">
             <n-thing>
               <template #header>
@@ -358,7 +358,7 @@ function timeAgo(timeStr) {
       </n-space>
     </n-space>
 
-    <n-modal v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.question?.title || '问题详情'">
+    <n-modal class="prompt-qa-detail-modal" v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.question?.title || '问题详情'">
       <template v-if="detailModal.question">
         <n-space vertical :size="16">
           <n-space align="center" justify="space-between">
@@ -442,7 +442,7 @@ function timeAgo(timeStr) {
       </template>
     </n-modal>
 
-    <n-modal v-model:show="askModal.show" preset="card" style="width: 800px; max-width: 95vw" title="❓ 提问">
+    <n-modal class="prompt-qa-ask-modal" v-model:show="askModal.show" preset="card" style="width: 800px; max-width: 95vw" title="提问">
       <n-space vertical :size="12">
         <n-input v-model:value="askModal.title" placeholder="问题标题" />
         <n-input
@@ -480,5 +480,75 @@ function timeAgo(timeStr) {
 :deep(.md-editor-preview pre),
 :deep(.md-editor-preview div) {
   text-align: left;
+}
+
+@media (max-width: 768px) {
+  .prompt-qa-page {
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px) !important;
+    text-align: left;
+  }
+
+  .prompt-qa-toolbar,
+  .prompt-qa-toolbar__filters,
+  .prompt-qa-toolbar__actions {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .prompt-qa-toolbar__filters :deep(.n-input) {
+    width: 100% !important;
+  }
+
+  .prompt-qa-toolbar__filters :deep(.n-button),
+  .prompt-qa-toolbar__actions :deep(.n-button) {
+    flex: 1 1 calc(33.333% - 8px);
+  }
+
+  .prompt-qa-list :deep(.n-list-item) {
+    padding: 10px 12px;
+  }
+
+  .prompt-qa-list :deep(.n-thing-header) {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .prompt-qa-list :deep(.n-thing-header__main) {
+    min-width: 0;
+  }
+
+  .prompt-qa-list :deep(.n-thing-header__main .n-space) {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .prompt-qa-list :deep(.n-thing-header__main .n-text) {
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  :deep(.prompt-qa-detail-modal.n-modal),
+  :deep(.prompt-qa-ask-modal.n-modal) {
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: calc(100vw - 12px) !important;
+  }
+
+  :deep(.prompt-qa-detail-modal .n-card),
+  :deep(.prompt-qa-ask-modal .n-card) {
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    overflow: auto;
+  }
+
+  :deep(.prompt-qa-detail-modal .n-card__content),
+  :deep(.prompt-qa-ask-modal .n-card__content) {
+    padding: 10px 12px;
+  }
+
+  :deep(.prompt-qa-detail-modal .n-space) {
+    flex-wrap: wrap !important;
+  }
 }
 </style>
