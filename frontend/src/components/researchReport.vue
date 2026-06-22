@@ -324,7 +324,7 @@ function deleteAIResponseResult(id){
 
 @media (max-width: 768px) {
   .research-report-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
   }
 
   .research-report-search {
@@ -340,7 +340,7 @@ function deleteAIResponseResult(id){
   }
 
   .research-report-table {
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - 170px) !important;
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 170px) !important;
     margin-top: 10px !important;
   }
 
@@ -356,24 +356,46 @@ function deleteAIResponseResult(id){
   }
 
   :deep(.research-ai-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
   }
 
   :deep(.research-ai-modal .n-card__content) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 210px);
-    overflow: auto;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
     padding: 10px 12px;
+  }
+
+  :deep(.research-ai-modal .n-card__content > .n-spin) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  :deep(.research-ai-modal .n-card__content > .n-spin .n-spin-content) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
   }
 
   :deep(.research-ai-modal .n-card__footer),
   :deep(.research-ai-modal .n-card__action) {
+    flex: 0 0 auto;
     padding: 10px 12px;
   }
 
+  /* reader 自适应填满剩余空间，不再用视口减固定像素 */
   .research-ai-reader {
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - 270px) !important;
+    flex: 1 1 auto;
+    height: auto !important;
     max-height: none !important;
-    min-height: 300px;
+    min-height: 200px;
     overflow-y: auto;
   }
 

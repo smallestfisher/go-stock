@@ -35,7 +35,7 @@ onBeforeUnmount(() => {
 <style scoped>
 @media (max-width: 768px) {
   .fund-page-shell {
-    margin: 0 8px calc(var(--mobile-bottom-nav-height) + 8px);
+    margin: 0 8px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px);
   }
 
   .fund-page-shell :deep(.n-card__content) {

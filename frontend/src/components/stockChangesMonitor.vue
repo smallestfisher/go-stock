@@ -816,7 +816,7 @@ onBeforeUnmount(() => {
 <style scoped>
 @media (max-width: 768px) {
   .stock-changes-page {
-    margin: 0 0 calc(var(--mobile-bottom-nav-height) + 8px);
+    margin: 0 0 calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px);
     text-align: left;
   }
 

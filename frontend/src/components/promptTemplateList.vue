@@ -500,7 +500,7 @@ async function handleShare() {
 
 @media (max-width: 768px) {
   .prompt-template-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
     text-align: left;
   }
 
@@ -581,8 +581,9 @@ async function handleShare() {
 
   :deep(.prompt-template-edit-modal .n-card),
   :deep(.prompt-template-share-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
   }
 
   :deep(.prompt-template-edit-modal .n-card__content),
@@ -592,14 +593,24 @@ async function handleShare() {
     padding: 10px 12px;
   }
 
+  :deep(.prompt-template-edit-modal .n-card__content) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   :deep(.prompt-template-edit-modal .n-form-item),
   :deep(.prompt-template-share-modal .n-form-item) {
     grid-template-columns: 1fr !important;
   }
 
+  /* md-editor 自适应填满剩余空间，不再用视口减固定像素 */
   :deep(.prompt-template-edit-modal .md-editor) {
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - 310px) !important;
-    min-height: 280px;
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 260px;
   }
 
   :deep(.prompt-template-share-modal .n-space) {

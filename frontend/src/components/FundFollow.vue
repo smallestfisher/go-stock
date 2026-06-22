@@ -594,7 +594,7 @@ function blinkBorder(findId) {
 
 @media (max-width: 768px) {
   .fund-follow-page {
-    padding-bottom: calc(var(--mobile-bottom-nav-height) + 58px);
+    padding-bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 58px);
   }
 
   .fund-follow-danmaku {
@@ -688,11 +688,16 @@ function blinkBorder(findId) {
   }
 
   :deep(.fund-follow-chart-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
   }
 
   :deep(.fund-follow-chart-modal .n-card__content) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 90px);
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
     overflow: auto;
     padding: 10px 12px;
   }
@@ -704,7 +709,7 @@ function blinkBorder(findId) {
   .fund-mobile-add-bar {
     left: 8px !important;
     right: 8px !important;
-    bottom: calc(var(--mobile-bottom-nav-height) + 8px) !important;
+    bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px) !important;
     width: auto !important;
   }
 

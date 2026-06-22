@@ -589,7 +589,7 @@ function toggleAlert(row, newEnableAlert) {
 <style scoped>
 @media (max-width: 768px) {
   .ai-recommend-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
     text-align: left;
   }
 
@@ -683,7 +683,7 @@ function toggleAlert(row, newEnableAlert) {
   }
 
   :deep(.ai-recommend-detail-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 

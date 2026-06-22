@@ -449,7 +449,7 @@ function handleReset() {
 <style scoped>
 @media (max-width: 768px) {
   .all-stock-info-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
     text-align: left;
   }
 

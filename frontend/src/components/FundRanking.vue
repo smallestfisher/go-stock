@@ -443,7 +443,7 @@ function showStockKline(stockCode, stockName, market) {
 
 @media (max-width: 768px) {
   .fund-ranking-page {
-    padding-bottom: calc(var(--mobile-bottom-nav-height) + 8px);
+    padding-bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px);
   }
 
   .fund-ranking-toolbar {
@@ -465,7 +465,7 @@ function showStockKline(stockCode, stockName, market) {
   }
 
   .fund-ranking-table {
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - 190px) !important;
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 190px) !important;
     margin-top: 8px !important;
   }
 
@@ -483,12 +483,17 @@ function showStockKline(stockCode, stockName, market) {
 
   :deep(.fund-ranking-holdings-modal .n-card),
   :deep(.fund-ranking-kline-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
   }
 
   :deep(.fund-ranking-holdings-modal .n-card__content),
   :deep(.fund-ranking-kline-modal .n-card__content) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 90px);
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
     overflow: auto;
     padding: 10px 12px;
   }

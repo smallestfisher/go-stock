@@ -961,7 +961,7 @@ function ReFlesh(source) {
   }
 
   :deep(.market-summary-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 

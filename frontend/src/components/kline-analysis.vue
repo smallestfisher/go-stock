@@ -5,8 +5,10 @@ import StockLightweightKlineChart from './StockLightweightKlineChart.vue'
 import { NAutoComplete, NButton, NFlex, NText, NInputGroup } from 'naive-ui'
 import { useMessage } from 'naive-ui'
 import { onBeforeMount, onMounted, onBeforeUnmount, ref } from 'vue'
+import {useDevice} from '../composables/useDevice'
 
 const message = useMessage()
+const {isMobile} = useDevice()
 const searchQuery = ref('')
 const selectedCode = ref('000001.SH')
 const selectedName = ref('上证指数')
@@ -138,9 +140,8 @@ function selectRecent(code, name) {
 }
 
 function updateChartHeight() {
-  const isMobile = window.matchMedia('(max-width: 768px)').matches
   const viewportHeight = Math.round(window.visualViewport?.height || window.innerHeight)
-  chartHeight.value = isMobile
+  chartHeight.value = isMobile.value
     ? Math.max(390, Math.min(560, viewportHeight - 220))
     : Math.max(400, window.innerHeight - 230)
 }
@@ -150,7 +151,7 @@ function openMobileSearch() {
 }
 
 function closeMobileSearch() {
-  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+  if (isMobile.value) {
     mobileSearchVisible.value = false
   }
 }

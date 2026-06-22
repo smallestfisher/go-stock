@@ -4,6 +4,10 @@ html {
     /*color: white;*/
     --desktop-bottom-menu-height: 72px;
     --mobile-bottom-nav-height: 64px;
+    /* 移动端安全区与内容高度 token，供新移动组件统一引用，取代散落的 calc(100dvh - ...) */
+    --safe-bottom: env(safe-area-inset-bottom);
+    --safe-top: env(safe-area-inset-top);
+    --app-content-height-mobile: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom));
 }
 
 body {

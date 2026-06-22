@@ -95,7 +95,7 @@ function updateTab(name) {
 <style scoped>
 @media (max-width: 768px) {
   .research-page-shell {
-    margin: 0 8px calc(var(--mobile-bottom-nav-height) + 8px);
+    margin: 0 8px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px);
   }
 
   .research-page-shell :deep(.n-card__content) {

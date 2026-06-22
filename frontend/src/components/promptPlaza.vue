@@ -1,5 +1,6 @@
 <script setup>
 import {computed, onMounted, ref, reactive} from 'vue'
+import {useDevice} from '../composables/useDevice'
 import {GetConfig, AddPromptTemplate} from "../api/app";
 import {useMessage, useDialog} from "naive-ui";
 import {MdPreview, MdEditor} from 'md-editor-v3'
@@ -10,6 +11,7 @@ import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../a
 
 const message = useMessage()
 const dialog = useDialog()
+const {isMobile} = useDevice()
 
 const darkTheme = ref(false)
 const editorTheme = ref('light')
@@ -287,7 +289,7 @@ function openMobileFilters() {
 }
 
 function closeMobileFilters() {
-  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+  if (isMobile.value) {
     filterDrawerVisible.value = false
   }
 }
@@ -1118,7 +1120,7 @@ function timeAgo(timeStr) {
   }
 
   :deep(.n-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 

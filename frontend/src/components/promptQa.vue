@@ -484,7 +484,7 @@ function timeAgo(timeStr) {
 
 @media (max-width: 768px) {
   .prompt-qa-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px) !important;
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px) !important;
     text-align: left;
   }
 
@@ -538,7 +538,7 @@ function timeAgo(timeStr) {
 
   :deep(.prompt-qa-detail-modal .n-card),
   :deep(.prompt-qa-ask-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 

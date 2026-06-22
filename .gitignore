@@ -110,6 +110,7 @@ dist
 /data/*.db*
 ai-assistant-web/data/*.db*
 *.exe
+/bin/
 /build/bin/*
 frontend/package.json.md5
 /build/us.json

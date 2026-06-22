@@ -638,7 +638,7 @@ function showKline(code, name) {
 
 @media (max-width: 768px) {
   .uplimit-ladder-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px) !important;
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px) !important;
     text-align: left;
   }
 
@@ -698,7 +698,7 @@ function showKline(code, name) {
 
   :deep(.uplimit-ladder-plate-modal .n-card),
   :deep(.uplimit-ladder-kline-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 }

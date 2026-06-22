@@ -304,7 +304,7 @@ a:hover {
 
 @media (max-width: 768px) {
   .about-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
     text-align: left;
   }
 
@@ -333,14 +333,24 @@ a:hover {
   }
 
   :deep(.about-manual-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
+  }
+
+  :deep(.about-manual-modal .n-card__content) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .about-manual-layout {
     display: grid !important;
+    flex: 1 1 auto;
     gap: 10px;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 130px) !important;
+    min-height: 0;
   }
 
   .manual-catalog {

@@ -40,7 +40,7 @@ const columnsRef = ref([
   {
     title: '股票代码',
     key: 'SECUCODE',
-    width: 100,
+    width: 110,
     render(row) {
       return h(NText, { type: "info" }, { default: () => row.SECUCODE })
     }
@@ -48,7 +48,7 @@ const columnsRef = ref([
   {
     title: '股票名称',
     key: 'SECURITY_NAME_ABBR',
-    width: 100,
+    width: 110,
     render(row) {
       return h(NText, { type: "success" }, { default: () => row.SECURITY_NAME_ABBR })
     }
@@ -56,7 +56,7 @@ const columnsRef = ref([
   {
     title: '最新价',
     key: 'NEW_PRICE',
-    width: 100,
+    width: 90,
     render(row) {
       const price = row.NEW_PRICE
       return h(NText, { type: "info" }, { default: () => isNumeric(price) ? price : '-' })
@@ -76,7 +76,7 @@ const columnsRef = ref([
   {
     title: '分时图',
     key: 'sparkline',
-    width: 120,
+    width: 130,
     render(row) {
       return h(sparkLine, {
         idSuffix: row.SECUCODE,
@@ -91,7 +91,7 @@ const columnsRef = ref([
   {
     title: '最高价',
     key: 'HIGH_PRICE',
-    width: 100,
+    width: 90,
     render(row) {
       const price = row.HIGH_PRICE
       return h(NText, { type: "info" }, { default: () => isNumeric(price) ? price : '-' })
@@ -100,7 +100,7 @@ const columnsRef = ref([
   {
     title: '最低价',
     key: 'LOW_PRICE',
-    width: 100,
+    width: 90,
     render(row) {
       const price = row.LOW_PRICE
       return h(NText, { type: "info" }, { default: () => isNumeric(price) ? price : '-' })
@@ -117,7 +117,7 @@ const columnsRef = ref([
   {
     title: '成交量',
     key: 'VOLUME',
-    width: 120,
+    width: 110,
     render(row) {
       const volume = toNumber(row.VOLUME, 0)
       let displayVolume = volume
@@ -145,9 +145,9 @@ const columnsRef = ref([
     }
   },
   {
-    title: '换手率 (%)',
+    title: '换手率',
     key: 'TURNOVERRATE',
-    width: 80,
+    width: 90,
     render(row) {
       const rate = row.TURNOVERRATE
       return h(NText, { type: "info" }, { default: () => isNumeric(rate) ? rate : '-' })
@@ -165,29 +165,46 @@ const columnsRef = ref([
   {
     title: '所属行业',
     key: 'INDUSTRY',
-    width: 100,
+    width: 140,
     render(row) {
-      return h(NTag, { type: "primary", size: "small" }, { default: () => row.INDUSTRY })
+      return row.INDUSTRY
+          ? h(NTag, { type: "primary", size: "small", bordered: false }, { default: () => row.INDUSTRY })
+          : h(NText, { depth: 3 }, { default: () => '-' })
     }
   },
   {
     title: '所属概念',
     key: 'CONCEPT',
-    width: 100,
+    width: 280,
     ellipsis: {
       tooltip: true
     },
     render(row) {
-      if(typeof row.CONCEPT === 'string'){
-        return h(NTag, { type: "info", size: "small" ,style: "margin-right: 4px;" }, { default: () => row.CONCEPT })
-      }else{
-        if (!row.CONCEPT || row.CONCEPT.length === 0) {
-          return h(NText, { type: "secondary" }, { default: () => '无' })
-        }
-        return row.CONCEPT.map(concept =>
-            h(NTag, { type: "info", size: "small", style: "margin-right: 4px;" }, { default: () => concept })
-        )
+      const concepts = Array.isArray(row.CONCEPT)
+          ? row.CONCEPT.filter(Boolean)
+          : String(row.CONCEPT || '').split(/[、,，/]/).map(item => item.trim()).filter(Boolean)
+      if (!concepts.length) {
+        return h(NText, { depth: 3 }, { default: () => '无' })
       }
+      const visibleConcepts = concepts.slice(0, 2)
+      const tags = visibleConcepts.map(concept =>
+          h(NTag, {
+            type: "info",
+            size: "small",
+            bordered: false,
+            title: concept,
+            style: "max-width: 92px; margin-right: 6px;"
+          }, { default: () => concept })
+      )
+      if (concepts.length > visibleConcepts.length) {
+        tags.push(h(NTag, {
+          size: "small",
+          bordered: false,
+          title: concepts.join(' / '),
+          style: "max-width: 42px;"
+        }, { default: () => `+${concepts.length - visibleConcepts.length}` }))
+      }
+      return h('div', { class: 'all-stock-list-concepts' }, tags)
     }
   },
   // {
@@ -200,6 +217,9 @@ const columnsRef = ref([
   // },
   {
     title: '操作',
+    key: 'actions',
+    width: 90,
+    fixed: 'right',
     render(row, index) {
       return [h(
           NButton,
@@ -580,6 +600,7 @@ function formatConceptPreview(concept) {
       :loading="loadingRef"
       :pagination="paginationReactive"
       :row-key="(rowData) => rowData.SECUCODE"
+      :scroll-x="1600"
       flex-height
       style="height: calc(100vh - 380px);margin-top: 10px"
       @update:page="handlePageChange"
@@ -660,9 +681,31 @@ function formatConceptPreview(concept) {
 </template>
 
 <style scoped>
+.all-stock-list-table {
+  text-align: left;
+}
+
+.all-stock-list-concepts {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.all-stock-list-concepts :deep(.n-tag) {
+  min-width: 0;
+}
+
+.all-stock-list-concepts :deep(.n-tag__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .all-stock-list-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + 10px);
+    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
     text-align: left;
   }
 
@@ -759,7 +802,7 @@ function formatConceptPreview(concept) {
   }
 
   :deep(.n-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
 }

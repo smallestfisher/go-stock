@@ -810,7 +810,7 @@ const inputEnter = function () {
 @media (max-width: 768px) {
   .chat-box.agent-chat-page {
     box-sizing: border-box;
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - 10px);
+    height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 10px);
     margin: 0 8px;
     min-height: 0;
     overflow: hidden;

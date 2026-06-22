@@ -787,7 +787,7 @@ function deletePrompt(ID) {
   .settings-page-shell {
     box-sizing: border-box;
     display: block !important;
-    padding: 6px 6px calc(var(--mobile-bottom-nav-height) + 96px);
+    padding: 6px 6px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 96px);
     text-align: left;
     width: 100%;
   }
@@ -884,7 +884,7 @@ function deletePrompt(ID) {
 
   :deep(.settings-prompt-modal) {
     height: auto !important;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - 12px);
+    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     width: calc(100vw - 12px) !important;
   }
 }
