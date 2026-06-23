@@ -55,6 +55,11 @@ function mobileGroupOf(tabName) {
 }
 function selectMobileGroup(category) {
   mobileActiveGroup.value = category
+  // 切换分类时跳到该分类第一个子栏，避免内容停留在旧 tab
+  const g = mobileGroups.find(g => g.category === category)
+  if (g && g.tabs.length && !g.tabs.includes(nowTab.value)) {
+    updateTab(g.tabs[0])
+  }
 }
 
 // 移动端当前分类下的功能项
@@ -172,8 +177,8 @@ function updateTab(name) {
     padding: 10px;
   }
 
-  /* 移动端用自定义两级菜单，隐藏原生横向滚动标签栏 */
-  .research-mobile-tabs--native-hidden :deep(.n-tabs-nav) {
+  /* 移动端用自定义两级菜单，隐藏顶层原生标签栏（直接子选择器，避免穿透嵌套子 tabs） */
+  .research-mobile-tabs--native-hidden > :deep(.n-tabs-nav) {
     display: none !important;
   }
 

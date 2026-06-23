@@ -100,6 +100,11 @@ const marketMobileCurrentTabs = computed(() => {
 })
 function selectMarketMobileGroup(category) {
   marketMobileActiveGroup.value = category
+  // 切换分类时跳到该分类的第一个子栏，避免内容停留在旧 tab 且无高亮 chip
+  const g = marketMobileGroups.find(g => g.category === category)
+  if (g && g.tabs.length && !g.tabs.includes(nowTab.value)) {
+    updateTab(g.tabs[0])
+  }
 }
 const indexInterval = ref(null)
 const indexIndustryRank = ref(null)
@@ -930,8 +935,10 @@ function ReFlesh(source) {
     min-width: max-content;
   }
 
-  /* 移动端用自定义两级菜单，隐藏原生横向滚动标签栏 */
-  .market-mobile-tabs--native-hidden :deep(.n-tabs-nav) {
+  /* 移动端用自定义两级菜单，隐藏顶层原生标签栏。
+     用直接子选择器(>)，避免穿透到嵌套的子 tabs（财联社/新浪/外媒、
+     全球指数、行业排名等 segment/card 子标签）把它们也隐藏掉。 */
+  .market-mobile-tabs--native-hidden > :deep(.n-tabs-nav) {
     display: none !important;
   }
 

@@ -4,6 +4,10 @@ import {AnalyzeSentimentWithFreqWeight,GlobalStockIndexes,GetTodayMarketStatisti
 import * as echarts from "echarts";
 import {onMounted,onUnmounted, ref, watch, nextTick} from "vue";
 import _ from "lodash";
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
+
+const {isMobile} = useDevice()
 const { name,darkTheme,kDays ,chartHeight} = defineProps({
   name: {
     type: String,
@@ -1919,7 +1923,7 @@ function handleTreemap() {
 </script>
 
 <template>
-  <n-collapse :trigger-areas="triggerAreas" :default-expanded-names="['1']" display-directive="show">
+  <n-collapse class="analyze-market" :trigger-areas="triggerAreas" :default-expanded-names="['1']" display-directive="show">
     <n-collapse-item  name="1" >
       <template #header>
           <n-flex>
@@ -1964,7 +1968,7 @@ function handleTreemap() {
           </div>
         </n-gi>
       </n-grid>
-      <n-flex justify="center" style="margin: 8px 0" :wrap="false">
+      <n-flex class="analyze-toggle-row" justify="center" style="margin: 8px 0" :wrap="!isMobile">
         <n-button text @click="showTreemap = !showTreemap" :type="showTreemap?'primary':''">
           {{ showTreemap ? '隐藏热词' : '查看热词' }}
         </n-button>
@@ -2053,9 +2057,12 @@ function handleTreemap() {
       </n-collapse-transition>
     </n-collapse-item>
   </n-collapse>
-  <n-modal v-model:show="showDimensionModal" preset="card" :title="dimensionModalTitle" style="width: 800px;max-width: calc(100vw - 32px);" :mask-closable="true">
+  <n-modal v-if="!isMobile" v-model:show="showDimensionModal" preset="card" :title="dimensionModalTitle" style="width: 800px;max-width: calc(100vw - 32px);" :mask-closable="true">
     <div ref="dimensionDetailChartRef" style="width: 100%;height: 450px"></div>
   </n-modal>
+  <BottomSheet v-else :show="showDimensionModal" :title="dimensionModalTitle" height="78vh" @update:show="(v) => showDimensionModal = v">
+    <div ref="dimensionDetailChartRef" style="width: 100%;height: 420px"></div>
+  </BottomSheet>
 </template>
 
 <style scoped>
@@ -2064,5 +2071,34 @@ function handleTreemap() {
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+/* ============ 移动端：图表单列堆叠、切换行换行 ============ */
+@media (max-width: 768px) {
+  /* 所有 n-grid 内的图表项强制单列全宽，避免 span=8/12 在窄屏挤成窄条 */
+  .analyze-market :deep(.n-grid) > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* 主要股指标签行允许换行 */
+  .analyze-market :deep(.n-collapse-item__header-main .n-flex) {
+    flex-wrap: wrap;
+  }
+
+  /* 切换按钮行换行 + 按钮等宽 */
+  .analyze-toggle-row {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    row-gap: 6px;
+  }
+
+  .analyze-toggle-row :deep(.n-divider) {
+    display: none;
+  }
+
+  .analyze-market :deep(.n-number-animation),
+  .analyze-market :deep(.n-tag .n-text) {
+    font-size: 12px;
+  }
 }
 </style>
