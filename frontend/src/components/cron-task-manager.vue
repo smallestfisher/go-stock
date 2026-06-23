@@ -125,6 +125,7 @@
 
     <!-- 创建/编辑任务弹窗 -->
     <n-modal
+      v-if="!isMobile"
       class="cron-task-edit-modal"
       v-model:show="showCreateModal"
       :title="editingTask ? '修改任务' : '创建新任务'"
@@ -411,6 +412,7 @@
 
     <!-- Cron 表达式配置器 -->
     <n-modal
+      v-if="!isMobile"
       class="cron-task-builder-modal"
       v-model:show="showCronBuilder"
       title="Cron 表达式配置器"
@@ -556,6 +558,222 @@
         </n-button>
       </template>
     </n-modal>
+
+    <!-- 创建/修改任务（移动端底部抽屉） -->
+    <BottomSheet v-if="isMobile && showCreateModal" :show="showCreateModal" :title="editingTask ? '修改任务' : '创建新任务'" height="90vh" @update:show="(v) => { showCreateModal = v; if (!v) resetForm() }">
+      <div class="cron-form-sheet">
+        <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="top" require-mark-placement="right-hanging">
+          <n-form-item label="任务名称" path="name">
+            <n-input v-model:value="formData.name" placeholder="请输入任务名称" clearable />
+          </n-form-item>
+          <n-form-item label="任务类型" path="taskType">
+            <n-select v-model:value="formData.taskType" :options="taskTypeOptions" placeholder="请选择任务类型" />
+          </n-form-item>
+          <n-form-item label="Cron 表达式" path="cronExpr">
+            <n-space :vertical="true" :size="6" style="width: 100%">
+              <n-input v-model:value="formData.cronExpr" placeholder="通过下方选择器生成或直接输入" clearable>
+                <template #suffix>
+                  <n-button size="small" @click="showCronBuilder = true">
+                    <template #icon><n-icon :component="SettingsOutline" /></template>
+                    配置
+                  </n-button>
+                </template>
+              </n-input>
+              <n-text depth="2" style="font-size: 12px; color: #18a058" v-if="calculateNextRunTime">
+                <n-icon :component="TimeOutline" size="14" /> 下次执行：{{ calculateNextRunTime }}
+              </n-text>
+            </n-space>
+          </n-form-item>
+
+          <n-form-item label="任务参数" path="params">
+            <!-- 股票分析参数 -->
+            <n-card v-if="formData.taskType === 'stock_analysis'" size="small" style="width: 100%">
+              <n-space :vertical="true" :size="10">
+                <n-form-item label-placement="top" label="提示词模板:">
+                  <n-select v-model:value="stockAnalysisParamsData.promptId" :options="promptTemplateOptions" placeholder="请选择提示词模板" filterable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="AI 配置:">
+                  <n-select v-model:value="stockAnalysisParamsData.aiConfigId" :options="aiConfigOptions" placeholder="请选择 AI 配置" filterable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="系统提示词:">
+                  <n-select v-model:value="stockAnalysisParamsData.sysPromptId" :options="sysPromptOptions" placeholder="请选择系统提示词（可选）" filterable clearable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="启用思考:">
+                  <n-switch v-model:value="stockAnalysisParamsData.thinking" size="large">
+                    <template #checked>开启</template>
+                    <template #unchecked>关闭</template>
+                  </n-switch>
+                </n-form-item>
+                <n-form-item label-placement="top" label="Agent模式:">
+                  <n-select v-model:value="stockAnalysisParamsData.agentMode" :options="agentModeOptions" placeholder="请选择Agent模式" />
+                </n-form-item>
+                <n-form-item label-placement="top" label="股票代码:">
+                  <n-input v-model:value="stockAnalysisParamsData.stockCode" placeholder="如：600519" clearable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="股票名称:">
+                  <n-input v-model:value="stockAnalysisParamsData.stockName" placeholder="如：贵州茅台" clearable />
+                </n-form-item>
+              </n-space>
+            </n-card>
+
+            <!-- 市场分析参数 -->
+            <n-card v-else-if="formData.taskType === 'market_analysis'" size="small" style="width: 100%">
+              <n-space :vertical="true" :size="10">
+                <n-form-item label-placement="top" label="提示词模板:">
+                  <n-select v-model:value="marketAnalysisParamsData.promptId" :options="promptTemplateOptions" placeholder="请选择提示词模板" filterable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="AI 配置:">
+                  <n-select v-model:value="marketAnalysisParamsData.aiConfigId" :options="aiConfigOptions" placeholder="请选择 AI 配置" filterable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="系统提示词:">
+                  <n-select v-model:value="marketAnalysisParamsData.sysPromptId" :options="sysPromptOptions" placeholder="请选择系统提示词（可选）" filterable clearable />
+                </n-form-item>
+                <n-form-item label-placement="top" label="启用思考:">
+                  <n-switch v-model:value="marketAnalysisParamsData.thinking" size="large">
+                    <template #checked>开启</template>
+                    <template #unchecked>关闭</template>
+                  </n-switch>
+                </n-form-item>
+                <n-form-item label-placement="top" label="Agent模式:">
+                  <n-select v-model:value="marketAnalysisParamsData.agentMode" :options="agentModeOptions" placeholder="请选择Agent模式" />
+                </n-form-item>
+              </n-space>
+            </n-card>
+
+            <!-- 其他任务：JSON 文本框 -->
+            <n-input v-else v-model:value="formData.params" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" placeholder='JSON 格式，如：{"stock_codes":["600519"],"ai_config_id":1}' show-count />
+          </n-form-item>
+
+          <n-form-item label="任务描述" path="description">
+            <n-input v-model:value="formData.description" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }" placeholder="请输入任务描述（可选）" show-count maxlength="500" />
+          </n-form-item>
+          <n-form-item label="启用状态" path="enable">
+            <n-switch v-model:value="formData.enable" size="large">
+              <template #checked><n-icon :component="PlayCircleOutline" /> 启用</template>
+              <template #unchecked><n-icon :component="StopCircleOutline" /> 禁用</template>
+            </n-switch>
+          </n-form-item>
+        </n-form>
+        <div class="cron-form-sheet__actions">
+          <n-button @click="showCreateModal = false">取消</n-button>
+          <n-button type="primary" @click="handleSubmit" :loading="submitting">{{ editingTask ? '修改' : '创建' }}</n-button>
+        </div>
+      </div>
+    </BottomSheet>
+
+    <!-- Cron 表达式配置器（移动端底部抽屉） -->
+    <BottomSheet v-if="isMobile && showCronBuilder" :show="showCronBuilder" title="Cron 表达式配置器" height="90vh" @update:show="(v) => showCronBuilder = v">
+      <div class="cron-builder-sheet">
+        <div class="cron-field">
+          <span class="cron-field__label">秒</span>
+          <n-radio-group v-model:value="cronSecond.type" name="secondTypeM">
+            <n-radio value="*">每秒</n-radio>
+            <n-radio value="interval">周期</n-radio>
+            <n-radio value="loop">循环</n-radio>
+            <n-radio value="appoint">指定</n-radio>
+          </n-radio-group>
+          <n-space v-if="cronSecond.type==='interval'" :size="6" align="center">
+            <n-input-number v-model:value="cronSecond.start" :min="0" :max="59" size="small" style="width: 80px" />-
+            <n-input-number v-model:value="cronSecond.end" :min="0" :max="59" size="small" style="width: 80px" />
+          </n-space>
+          <n-space v-if="cronSecond.type==='loop'" :size="6" align="center">
+            <n-input-number v-model:value="cronSecond.loopStart" :min="0" :max="59" size="small" style="width: 80px" />/
+            <n-input-number v-model:value="cronSecond.loopStep" :min="1" :max="59" size="small" style="width: 80px" />
+          </n-space>
+          <n-select v-if="cronSecond.type==='appoint'" v-model:value="cronSecond.appoint" multiple :options="secondOptions" size="small" placeholder="选择具体的秒" />
+        </div>
+
+        <div class="cron-field">
+          <span class="cron-field__label">分</span>
+          <n-radio-group v-model:value="cronMinute.type" name="minuteTypeM">
+            <n-radio value="*">每分</n-radio>
+            <n-radio value="interval">周期</n-radio>
+            <n-radio value="loop">循环</n-radio>
+            <n-radio value="appoint">指定</n-radio>
+          </n-radio-group>
+          <n-space v-if="cronMinute.type==='interval'" :size="6" align="center">
+            <n-input-number v-model:value="cronMinute.start" :min="0" :max="59" size="small" style="width: 80px" />-
+            <n-input-number v-model:value="cronMinute.end" :min="0" :max="59" size="small" style="width: 80px" />
+          </n-space>
+          <n-space v-if="cronMinute.type==='loop'" :size="6" align="center">
+            <n-input-number v-model:value="cronMinute.loopStart" :min="0" :max="59" size="small" style="width: 80px" />/
+            <n-input-number v-model:value="cronMinute.loopStep" :min="1" :max="59" size="small" style="width: 80px" />
+          </n-space>
+          <n-select v-if="cronMinute.type==='appoint'" v-model:value="cronMinute.appoint" multiple :options="minuteOptions" size="small" placeholder="选择具体的分" />
+        </div>
+
+        <div class="cron-field">
+          <span class="cron-field__label">时</span>
+          <n-radio-group v-model:value="cronHour.type" name="hourTypeM">
+            <n-radio value="*">每小时</n-radio>
+            <n-radio value="interval">周期</n-radio>
+            <n-radio value="loop">循环</n-radio>
+            <n-radio value="appoint">指定</n-radio>
+          </n-radio-group>
+          <n-space v-if="cronHour.type==='interval'" :size="6" align="center">
+            <n-input-number v-model:value="cronHour.start" :min="0" :max="23" size="small" style="width: 80px" />-
+            <n-input-number v-model:value="cronHour.end" :min="0" :max="23" size="small" style="width: 80px" />
+          </n-space>
+          <n-space v-if="cronHour.type==='loop'" :size="6" align="center">
+            <n-input-number v-model:value="cronHour.loopStart" :min="0" :max="23" size="small" style="width: 80px" />/
+            <n-input-number v-model:value="cronHour.loopStep" :min="1" :max="23" size="small" style="width: 80px" />
+          </n-space>
+          <n-select v-if="cronHour.type==='appoint'" v-model:value="cronHour.appoint" multiple :options="hourOptions" size="small" placeholder="选择具体的时" />
+        </div>
+
+        <div class="cron-field">
+          <span class="cron-field__label">日</span>
+          <n-radio-group v-model:value="cronDay.type" name="dayTypeM">
+            <n-radio value="*">每日</n-radio>
+            <n-radio value="interval">周期</n-radio>
+            <n-radio value="?">不指定</n-radio>
+          </n-radio-group>
+          <n-space v-if="cronDay.type==='interval'" :size="6" align="center">
+            <n-input-number v-model:value="cronDay.start" :min="1" :max="31" size="small" style="width: 80px" />-
+            <n-input-number v-model:value="cronDay.end" :min="1" :max="31" size="small" style="width: 80px" />
+          </n-space>
+        </div>
+
+        <div class="cron-field">
+          <span class="cron-field__label">月</span>
+          <n-radio-group v-model:value="cronMonth.type" name="monthTypeM">
+            <n-radio value="*">每月</n-radio>
+            <n-radio value="interval">周期</n-radio>
+          </n-radio-group>
+          <n-space v-if="cronMonth.type==='interval'" :size="6" align="center">
+            <n-input-number v-model:value="cronMonth.start" :min="1" :max="12" size="small" style="width: 80px" />-
+            <n-input-number v-model:value="cronMonth.end" :min="1" :max="12" size="small" style="width: 80px" />
+          </n-space>
+        </div>
+
+        <div class="cron-field">
+          <span class="cron-field__label">周</span>
+          <n-radio-group v-model:value="cronWeek.type" name="weekTypeM">
+            <n-radio value="*">每周</n-radio>
+            <n-radio value="interval">周期</n-radio>
+            <n-radio value="?">不指定</n-radio>
+          </n-radio-group>
+          <n-select v-if="cronWeek.type==='interval'" v-model:value="cronWeek.days" multiple :options="weekOptions" size="small" placeholder="选择周几" />
+        </div>
+
+        <n-alert type="info" title="生成的 Cron 表达式" style="margin-top: 8px">
+          <n-text strong style="font-size: 15px; font-family: monospace; display: block; margin-bottom: 6px">{{ generatedCronExpr }}</n-text>
+          <n-button size="small" @click="copyCronExpr" style="margin-bottom: 8px">
+            <template #icon><n-icon :component="CreateOutline" /></template>复制
+          </n-button>
+          <n-text strong style="font-size: 13px; display: block">未来 5 次执行时间：</n-text>
+          <n-text v-if="!nextRunTimes.length" depth="3" style="font-size: 12px">暂无可用时间，请检查 Cron 表达式。</n-text>
+          <n-text v-for="(time, index) in nextRunTimes" :key="index" strong style="font-size: 13px; font-family: monospace; display: block">
+            {{ index + 1 }}. {{ time }}
+          </n-text>
+        </n-alert>
+
+        <div class="cron-form-sheet__actions" style="margin-top: 12px">
+          <n-button @click="showCronBuilder = false">取消</n-button>
+          <n-button type="primary" @click="saveCronExpr">确定</n-button>
+        </div>
+      </div>
+    </BottomSheet>
    </div>
 </template>
 
@@ -593,8 +811,11 @@ import {
   CalculateNextRunTimes,
   GetPromptTemplates
 } from '../api/app'
+import {useDevice} from '../composables/useDevice'
+import BottomSheet from './mobile/BottomSheet.vue'
 
 const message = useMessage()
+const {isMobile} = useDevice()
 
 // 表单引用
 const formRef = ref(null)
@@ -1692,5 +1913,66 @@ onMounted(async () => {
   .cron-row :deep(.n-select) {
     width: 100% !important;
   }
+}
+
+/* ============ 移动端抽屉（仅在 isMobile 渲染） ============ */
+.cron-form-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.cron-form-sheet :deep(.n-form-item) {
+  display: block;
+}
+
+.cron-form-sheet :deep(.n-form-item-label) {
+  align-items: flex-start;
+  display: flex;
+  margin-bottom: 6px;
+  min-height: auto;
+  padding: 0;
+}
+
+.cron-form-sheet__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cron-form-sheet__actions :deep(.n-button) {
+  flex: 1 1 0;
+}
+
+.cron-builder-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.cron-field {
+  align-items: flex-start;
+  background: var(--n-color-target, #f5f7fa);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.cron-field__label {
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cron-field :deep(.n-radio-group) {
+  flex-wrap: wrap;
+}
+
+.cron-builder-sheet :deep(.n-alert__content) {
+  text-align: left;
 }
 </style>

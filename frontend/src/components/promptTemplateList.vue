@@ -12,10 +12,13 @@ import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../a
 import {NButton, NInput, NTag, NText, NSwitch, useMessage, useNotification,useDialog, NModal, NCard, NForm, NFormItem, NSpace, NPopover} from "naive-ui";
 import { MdEditor, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
 
 const notify = useNotification()
 const message = useMessage()
 const dialog = useDialog()
+const {isMobile} = useDevice()
 const editorDataRef = reactive({
   darkTheme: false
 })
@@ -420,8 +423,8 @@ async function handleShare() {
       </n-space>
     </div>
 
-    <!-- 编辑/新增模态框 -->
-    <n-modal class="prompt-template-edit-modal" v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
+    <!-- 编辑/新增模态框（桌面端） -->
+    <n-modal v-if="!isMobile" class="prompt-template-edit-modal" v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
       <n-form :model="modalDataRef.formData" label-placement="left" label-width="80">
         <n-form-item label="模板名称" required>
           <n-input v-model:value="modalDataRef.formData.name" placeholder="请输入模板名称" />
@@ -448,7 +451,36 @@ async function handleShare() {
       </template>
     </n-modal>
 
-    <n-modal class="prompt-template-share-modal" v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
+    <!-- 编辑/新增（移动端底部抽屉） -->
+    <BottomSheet v-else :show="modalDataRef.visible" :title="(modalDataRef.formData.ID>0?'修改':'新增') + ' Prompt模板'" height="86vh" @update:show="(v) => modalDataRef.visible = v">
+      <div class="pt-edit-sheet">
+        <n-form :model="modalDataRef.formData" label-placement="top">
+          <n-form-item label="模板名称" required>
+            <n-input v-model:value="modalDataRef.formData.name" placeholder="请输入模板名称" />
+          </n-form-item>
+          <n-form-item label="模板类型" required>
+            <n-select v-model:value="modalDataRef.formData.type" :options="promptTypeOptions" placeholder="请选择提示词类型"/>
+          </n-form-item>
+          <n-form-item label="模板内容" required>
+            <MdEditor
+                v-model="modalDataRef.formData.content"
+                style="height: 320px"
+                :theme="editorTheme"
+                :preview="true"
+                :toolbarsExclude="['github', 'htmlPreview', 'catalog', 'save']"
+                placeholder="请输入模板内容"
+            />
+          </n-form-item>
+        </n-form>
+        <div class="pt-edit-sheet__actions">
+          <n-button @click="modalDataRef.visible = false">取消</n-button>
+          <n-button type="primary" @click="savePromptTemplate">保存</n-button>
+        </div>
+      </div>
+    </BottomSheet>
+
+    <!-- 分享模态框（桌面端） -->
+    <n-modal v-if="!isMobile" class="prompt-template-share-modal" v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
       <n-form :model="shareDataRef" label-placement="left" label-width="80">
         <n-form-item label="标题" required>
           <n-input v-model:value="shareDataRef.title" placeholder="提示词标题" />
@@ -480,6 +512,38 @@ async function handleShare() {
         </n-space>
       </template>
     </n-modal>
+
+    <!-- 分享（移动端底部抽屉） -->
+    <BottomSheet v-else :show="shareDataRef.visible" title="分享到提示词广场" height="82vh" @update:show="(v) => shareDataRef.visible = v">
+      <div class="pt-edit-sheet">
+        <n-form :model="shareDataRef" label-placement="top">
+          <n-form-item label="标题" required>
+            <n-input v-model:value="shareDataRef.title" placeholder="提示词标题" />
+          </n-form-item>
+          <n-form-item label="分类">
+            <n-input v-model:value="shareDataRef.category" placeholder="如: AI编程, 数据分析" />
+          </n-form-item>
+          <n-form-item label="标签">
+            <n-input v-model:value="shareDataRef.tags" placeholder="逗号分隔" />
+          </n-form-item>
+          <n-form-item label="描述">
+            <n-input v-model:value="shareDataRef.description" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" placeholder="简短描述提示词用途" />
+          </n-form-item>
+          <n-form-item label="内容" required>
+            <n-input v-model:value="shareDataRef.content" type="textarea" :autosize="{ minRows: 5, maxRows: 12 }" placeholder="提示词内容" />
+          </n-form-item>
+          <n-form-item label="公开">
+            <n-space align="center">
+              <n-switch v-model:value="shareDataRef.isPublic" />
+            </n-space>
+          </n-form-item>
+        </n-form>
+        <div class="pt-edit-sheet__actions">
+          <n-button @click="shareDataRef.visible = false">取消</n-button>
+          <n-button type="primary" :loading="shareDataRef.loading" @click="handleShare">分享</n-button>
+        </div>
+      </div>
+    </BottomSheet>
   </div>
 </template>
 
@@ -620,5 +684,42 @@ async function handleShare() {
   :deep(.prompt-template-share-modal .n-space > .n-form-item) {
     width: 100% !important;
   }
+}
+
+/* ============ 移动端表单抽屉（仅在 isMobile 渲染） ============ */
+.pt-edit-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.pt-edit-sheet :deep(.n-form-item) {
+  display: block;
+}
+
+.pt-edit-sheet :deep(.n-form-item-label) {
+  align-items: flex-start;
+  display: flex;
+  margin-bottom: 6px;
+  min-height: auto;
+  padding: 0;
+  white-space: normal;
+}
+
+.pt-edit-sheet :deep(.n-form-item-blank) {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+}
+
+.pt-edit-sheet__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.pt-edit-sheet__actions :deep(.n-button) {
+  flex: 1 1 0;
 }
 </style>

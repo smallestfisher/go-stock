@@ -5,9 +5,12 @@ import {useMessage, useDialog} from "naive-ui"
 import {MdPreview} from 'md-editor-v3'
 import 'md-editor-v3/lib/preview.css'
 import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../api/promptPlaza";
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
 const dialog = useDialog()
+const {isMobile} = useDevice()
 
 const darkTheme = ref(false)
 const editorTheme = ref('light')
@@ -320,7 +323,8 @@ function timeAgo(timeStr) {
         </n-space>
       </n-space>
 
-      <n-spin :show="loading">
+      <!-- ===================== 桌面端：列表 ===================== -->
+      <n-spin v-if="!isMobile" :show="loading">
         <n-list class="prompt-qa-list" bordered>
           <n-list-item v-for="item in questions" :key="item.id" style="cursor: pointer" @click="showDetail(item.id)">
             <n-thing>
@@ -348,6 +352,32 @@ function timeAgo(timeStr) {
         <n-empty v-if="!loading && questions.length === 0" description="暂无问题，快来提问吧" style="margin-top: 40px" />
       </n-spin>
 
+      <!-- ===================== 移动端：卡片列表 ===================== -->
+      <div v-else class="pqa-mobile">
+        <n-spin :show="loading">
+          <button
+              v-for="item in questions"
+              :key="item.id"
+              type="button"
+              class="pqa-card"
+              :class="'pqa-card--' + (item.isResolved ? 'done' : 'open')"
+              @click="showDetail(item.id)"
+          >
+            <div class="pqa-card__head">
+              <n-tag v-if="item.isResolved" type="success" size="small" round>已解决</n-tag>
+              <n-tag v-else type="warning" size="small" round>待解决</n-tag>
+              <span class="pqa-card__title">{{ item.title }}</span>
+            </div>
+            <div class="pqa-card__meta">
+              <span>{{ item.user?.nickname || item.user?.username || '匿名' }}</span>
+              <span>· {{ timeAgo(item.createdAt) }}</span>
+              <span class="pqa-card__answers">💬 {{ item.answersCount || 0 }} 回答</span>
+            </div>
+          </button>
+          <n-empty v-if="!loading && questions.length === 0" description="暂无问题，快来提问吧" style="margin-top: 40px" />
+        </n-spin>
+      </div>
+
       <n-space justify="center" style="margin-top: 12px" v-if="pagination.pageCount > 1">
         <n-pagination
           v-model:page="pagination.page"
@@ -358,7 +388,8 @@ function timeAgo(timeStr) {
       </n-space>
     </n-space>
 
-    <n-modal class="prompt-qa-detail-modal" v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.question?.title || '问题详情'">
+    <!-- ===================== 桌面端：详情弹窗 ===================== -->
+    <n-modal v-if="!isMobile" class="prompt-qa-detail-modal" v-model:show="detailModal.show" preset="card" style="width: 1100px; max-width: 95vw" :title="detailModal.question?.title || '问题详情'">
       <template v-if="detailModal.question">
         <n-space vertical :size="16">
           <n-space align="center" justify="space-between">
@@ -442,7 +473,67 @@ function timeAgo(timeStr) {
       </template>
     </n-modal>
 
-    <n-modal class="prompt-qa-ask-modal" v-model:show="askModal.show" preset="card" style="width: 800px; max-width: 95vw" title="提问">
+    <!-- ===================== 移动端：详情底部抽屉 ===================== -->
+    <BottomSheet v-else :show="detailModal.show" :title="detailModal.question?.title || '问题详情'" height="88vh" @update:show="(v) => detailModal.show = v">
+      <div v-if="detailModal.question" class="pqa-detail">
+        <div class="pqa-detail__head">
+          <n-tag v-if="detailModal.question.isResolved" type="success" size="small">已解决</n-tag>
+          <n-tag v-else type="warning" size="small">待解决</n-tag>
+          <n-text depth="3" class="pqa-detail__who">
+            {{ detailModal.question.user?.nickname || detailModal.question.user?.username || '匿名' }} · {{ formatTime(detailModal.question.createdAt) }}
+          </n-text>
+          <n-button
+            v-if="currentUser && detailModal.question.userId === currentUser.id"
+            size="tiny" type="error" ghost
+            @click="handleDeleteQuestion(detailModal.question)"
+          >删除问题</n-button>
+        </div>
+
+        <div class="pqa-detail__content">
+          <MdPreview :model-value="detailModal.question.content" :theme="editorTheme" />
+        </div>
+
+        <n-divider style="margin: 4px 0" />
+        <n-text strong>{{ detailModal.answers.length || 0 }} 个回答</n-text>
+
+        <n-space vertical :size="8" style="width: 100%; margin-top: 4px">
+          <n-input v-model:value="detailModal.newAnswer" type="textarea" placeholder="写下你的回答..." :rows="3" />
+          <n-space justify="end">
+            <n-button size="small" type="primary" @click="submitAnswer">提交回答</n-button>
+          </n-space>
+        </n-space>
+
+        <div class="pqa-detail__answers">
+          <div v-for="answer in detailModal.answers" :key="answer.id" class="pqa-answer" :class="{ 'pqa-answer--accepted': answer.isAccepted }">
+            <div class="pqa-answer__head">
+              <n-text strong>{{ answer.user?.nickname || answer.user?.username }}</n-text>
+              <n-text depth="3" class="pqa-answer__time">{{ timeAgo(answer.createdAt) }}</n-text>
+              <n-tag v-if="answer.isAccepted" type="success" size="tiny">✅ 已采纳</n-tag>
+            </div>
+            <div class="pqa-answer__content">
+              <MdPreview :model-value="answer.content" :theme="editorTheme" />
+            </div>
+            <div class="pqa-answer__actions">
+              <n-button text size="tiny" @click="handleAnswerLike(answer)">
+                {{ answer.isLiked ? '❤️' : '🤍' }} {{ answer.likesCount || 0 }}
+              </n-button>
+              <n-button
+                v-if="currentUser && detailModal.question.userId === currentUser.id && !detailModal.question.isResolved"
+                text size="tiny" type="success" @click="handleAcceptAnswer(answer)"
+              >采纳</n-button>
+              <n-button
+                v-if="currentUser && answer.userId === currentUser.id"
+                text size="tiny" type="error" @click="handleDeleteAnswer(answer)"
+              >删除</n-button>
+            </div>
+          </div>
+          <n-empty v-if="detailModal.answers.length === 0" description="暂无回答，来写下第一个回答吧" size="small" />
+        </div>
+      </div>
+    </BottomSheet>
+
+    <!-- ===================== 桌面端：提问弹窗 ===================== -->
+    <n-modal v-if="!isMobile" class="prompt-qa-ask-modal" v-model:show="askModal.show" preset="card" style="width: 800px; max-width: 95vw" title="提问">
       <n-space vertical :size="12">
         <n-input v-model:value="askModal.title" placeholder="问题标题" />
         <n-input
@@ -457,6 +548,23 @@ function timeAgo(timeStr) {
         </n-space>
       </n-space>
     </n-modal>
+
+    <!-- ===================== 移动端：提问底部抽屉 ===================== -->
+    <BottomSheet v-else :show="askModal.show" title="提问" height="70vh" @update:show="(v) => askModal.show = v">
+      <n-space vertical :size="12" style="padding: 4px 12px calc(var(--safe-bottom) + 8px)">
+        <n-input v-model:value="askModal.title" placeholder="问题标题" />
+        <n-input
+          v-model:value="askModal.content"
+          type="textarea"
+          placeholder="详细描述你的问题..."
+          :autosize="{ minRows: 6, maxRows: 14 }"
+        />
+        <n-space justify="end">
+          <n-button @click="askModal.show = false">取消</n-button>
+          <n-button type="primary" :loading="askModal.loading" @click="handleAsk">提交问题</n-button>
+        </n-space>
+      </n-space>
+    </BottomSheet>
   </div>
 </template>
 
@@ -550,5 +658,128 @@ function timeAgo(timeStr) {
   :deep(.prompt-qa-detail-modal .n-space) {
     flex-wrap: wrap !important;
   }
+}
+
+/* ============ 移动端卡片 / 抽屉（仅在 isMobile 渲染） ============ */
+.pqa-mobile {
+  display: flex;
+  flex-direction: column;
+}
+
+.pqa-card {
+  appearance: none;
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-left: 4px solid #f0a020;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.pqa-card--done {
+  border-left-color: #18a058;
+}
+
+.pqa-card:active {
+  background: var(--n-color-hover, #f8fafc);
+}
+
+.pqa-card__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.pqa-card__title {
+  flex: 1 1 auto;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pqa-card__meta {
+  color: var(--n-text-color-3, #98a2b3);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 4px 8px;
+}
+
+.pqa-card__answers {
+  color: var(--n-text-color-2, #666);
+  font-weight: 600;
+}
+
+.pqa-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.pqa-detail__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pqa-detail__who {
+  flex: 1 1 auto;
+  font-size: 12px;
+}
+
+.pqa-detail__content {
+  background: var(--n-color-target, #f7f8fa);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pqa-detail__answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pqa-answer {
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+
+.pqa-answer--accepted {
+  border-color: #63e2b7;
+}
+
+.pqa-answer__head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pqa-answer__time {
+  font-size: 11px;
+}
+
+.pqa-answer__content {
+  font-size: 13px;
+}
+
+.pqa-answer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
 }
 </style>

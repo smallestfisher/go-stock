@@ -42,6 +42,8 @@ import BKFundFlowChart from "./bkFundFlowChart.vue";
 import ConceptFundFlowChart from "./conceptFundFlowChart.vue";
 
 const route = useRoute()
+import {useDevice} from "../composables/useDevice";
+const {isMobile} = useDevice()
 const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/master/build/appicon.png');
 
 const message = useMessage()
@@ -80,6 +82,25 @@ const promptTemplates = ref([])
 const industryRanks = ref([])
 const sort = ref("0")
 const nowTab = ref("市场快讯")
+// 移动端：分组导航（两级：分类 → 具体功能），避免一行十几个横向滚动标签
+const marketMobileGroups = [
+  { category: '行情', icon: '📰', tabs: ['市场快讯', '当前热门'] },
+  { category: '指数', icon: '🌐', tabs: ['全球股指', '重大指数'] },
+  { category: '资金', icon: '💰', tabs: ['行业排名', '个股资金流向', '板块资金流向', '概念资金流向'] },
+  { category: '研报', icon: '📊', tabs: ['龙虎榜', '个股研报', '公司公告', '行业研究', '名站优选'] },
+]
+const marketMobileActiveGroup = ref('行情')
+function marketGroupOf(tabName) {
+  const g = marketMobileGroups.find(g => g.tabs.includes(tabName))
+  return g ? g.category : marketMobileGroups[0].category
+}
+const marketMobileCurrentTabs = computed(() => {
+  const g = marketMobileGroups.find(g => g.category === marketMobileActiveGroup.value)
+  return g ? g.tabs : []
+})
+function selectMarketMobileGroup(category) {
+  marketMobileActiveGroup.value = category
+}
 const indexInterval = ref(null)
 const indexIndustryRank = ref(null)
 const tradingCheckInterval = ref(null)
@@ -104,6 +125,7 @@ function getIndex() {
 
 onBeforeMount(() => {
   nowTab.value = route.query.name
+  marketMobileActiveGroup.value = marketGroupOf(nowTab.value)
   stockCode.value = route.query.stockCode
   GetConfig().then(result => {
     summaryBTN.value = result.openAiEnable
@@ -298,6 +320,7 @@ function getAiSummary() {
 function updateTab(name) {
   summaryBTN.value = (name === "市场快讯");
   nowTab.value = name
+  marketMobileActiveGroup.value = marketGroupOf(name)
 }
 
 EventsOn("summaryStockNews", async (msg) => {
@@ -414,7 +437,35 @@ function ReFlesh(source) {
 
 <template>
   <n-card class="market-page-shell">
-    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
+    <!-- 移动端：分类 + 功能两级菜单（替换原生横向滚动标签栏） -->
+    <div v-if="isMobile" class="market-mobile-nav">
+      <div class="market-mobile-nav__groups">
+        <button
+            v-for="g in marketMobileGroups"
+            :key="g.category"
+            type="button"
+            class="market-group-tile"
+            :class="{ 'market-group-tile--active': marketMobileActiveGroup === g.category }"
+            @click="selectMarketMobileGroup(g.category)"
+        >
+          <span class="market-group-tile__icon">{{ g.icon }}</span>
+          <span class="market-group-tile__name">{{ g.category }}</span>
+        </button>
+      </div>
+      <div class="market-mobile-nav__tabs">
+        <button
+            v-for="tab in marketMobileCurrentTabs"
+            :key="tab"
+            type="button"
+            class="market-tab-chip"
+            :class="{ 'market-tab-chip--active': nowTab === tab }"
+            @click="updateTab(tab)"
+        >
+          {{ tab }}
+        </button>
+      </div>
+    </div>
+    <n-tabs :class="{ 'market-mobile-tabs--native-hidden': isMobile }" type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="市场快讯" tab="市场快讯">
         <n-grid :cols="1" :y-gap="0">
           <n-gi>
@@ -879,6 +930,11 @@ function ReFlesh(source) {
     min-width: max-content;
   }
 
+  /* 移动端用自定义两级菜单，隐藏原生横向滚动标签栏 */
+  .market-mobile-tabs--native-hidden :deep(.n-tabs-nav) {
+    display: none !important;
+  }
+
   .market-mobile-heat-panel,
   .market-mobile-news-tabs {
     display: block !important;
@@ -982,5 +1038,72 @@ function ReFlesh(source) {
     flex: 1 1 calc(50% - 8px);
     min-width: 120px;
   }
+}
+
+/* ============ 移动端两级导航（仅在 isMobile 渲染） ============ */
+.market-mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.market-mobile-nav__groups {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.market-group-tile {
+  align-items: center;
+  appearance: none;
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 10px;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: 2px;
+  padding: 8px 4px;
+}
+
+.market-group-tile--active {
+  background: var(--n-color-target, rgba(32, 128, 240, 0.1));
+  border-color: #2080f0;
+  color: #2080f0;
+}
+
+.market-group-tile__icon {
+  font-size: 18px;
+}
+
+.market-group-tile__name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.market-mobile-nav__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-tab-chip {
+  appearance: none;
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 16px;
+  color: var(--n-text-color, #333);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+}
+
+.market-tab-chip--active {
+  background: #2080f0;
+  border-color: #2080f0;
+  color: #fff;
+  font-weight: 700;
 }
 </style>

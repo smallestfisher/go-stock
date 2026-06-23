@@ -10,6 +10,10 @@ import {
 import {NAvatar, NButton, NEllipsis, NSwitch, NTag, NText, useMessage, useNotification} from "naive-ui";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 import sparkLine from "./stockSparkLine.vue"
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
+
+const {isMobile} = useDevice()
 
 const notify = useNotification()
 
@@ -563,7 +567,8 @@ function toggleAlert(row, newEnableAlert) {
     </n-space>
   </div>
 
-  <n-modal class="ai-recommend-detail-modal" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
+  <!-- 详情弹窗（桌面端） -->
+  <n-modal v-if="!isMobile" class="ai-recommend-detail-modal" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
     <n-gradient-text :size="16" type="warning">{{modalDataRef.remarks}}</n-gradient-text>
     <n-card size="small">
       <StockLightweightKlineChart
@@ -583,6 +588,27 @@ function toggleAlert(row, newEnableAlert) {
     <n-text type="error">{{modalDataRef.riskRemarks}}</n-text>
     </n-card>
   </n-modal>
+
+  <!-- 详情（移动端底部抽屉） -->
+  <BottomSheet v-else :show="modalDataRef.visible" :title="modalDataRef.title" height="88vh" @update:show="(v) => modalDataRef.visible = v">
+    <div class="ai-detail-sheet">
+      <n-gradient-text :size="14" type="warning">{{modalDataRef.remarks}}</n-gradient-text>
+      <StockLightweightKlineChart
+          style="width: 100%;"
+          :code="modalDataRef.stockCode"
+          :chart-height="340"
+          :stock-name="modalDataRef.stockName"
+          :dark-theme="editorDataRef.darkTheme"
+          v-model:long-entry-price="modalDataRef.longEntryPrice"
+          v-model:long-stop-loss-price="modalDataRef.longStopLossPrice"
+          v-model:long-take-profit-price="modalDataRef.longTakeProfitPrice"
+      />
+      <n-divider><n-gradient-text type="error">分析说明</n-gradient-text></n-divider>
+      <n-text type="info" class="ai-detail-sheet__text">{{modalDataRef.content}}</n-text>
+      <n-divider><n-gradient-text type="error">风险提示</n-gradient-text></n-divider>
+      <n-text type="error" class="ai-detail-sheet__text">{{modalDataRef.riskRemarks}}</n-text>
+    </div>
+  </BottomSheet>
   </div>
 </template>
 
@@ -690,5 +716,20 @@ function toggleAlert(row, newEnableAlert) {
   :deep(.ai-recommend-detail-modal .n-card__content) {
     padding: 10px 12px;
   }
+}
+
+/* ============ 移动端详情抽屉（仅在 isMobile 渲染） ============ */
+.ai-detail-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.ai-detail-sheet__text {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 </style>

@@ -3,6 +3,7 @@ import {computed, h, onBeforeMount, onBeforeUnmount, onMounted,onUnmounted, ref,
 import {GetAIResponseResultList, GetConfig, SaveAsMarkdown, ShareAnalysis,DeleteAIResponseResult} from "../api/app";
 import {NAvatar, NButton, NEllipsis, NText, useMessage} from "naive-ui";
 import {MdEditor, MdPreview} from 'md-editor-v3';
+import {useDevice} from "../composables/useDevice";
 
 
 
@@ -31,6 +32,7 @@ onMounted(() => {
   })
 })
 const message = useMessage()
+const {isMobile} = useDevice()
 const mdPreviewRef = ref(null)
 const mdEditorRef = ref(null)
 const editorDataRef = reactive({
@@ -131,6 +133,15 @@ function showReport(row) {
   editorDataRef.question = row.question
   editorDataRef.content = row.content
   editorDataRef.loading = false
+}
+
+function formatCreatedAt(value) {
+  return value ? value.substring(0, 19).replace('T', ' ') : '-'
+}
+
+function getStockTitle(row) {
+  const name = row.stockName || '未命名对象'
+  return row.stockCode ? `${name} ${row.stockCode}` : name
 }
 
 function query({
@@ -274,6 +285,7 @@ function deleteAIResponseResult(id){
       </n-button>
     </n-input-group>
     <n-data-table
+        v-if="!isMobile"
         class="research-report-table"
         remote
         size="small"
@@ -286,6 +298,41 @@ function deleteAIResponseResult(id){
         flex-height
         style="height: calc(100vh - 210px);margin-top: 10px"
     />
+
+    <div v-else class="research-report-mobile-list">
+      <n-spin :show="loadingRef">
+        <div v-if="dataRef.length > 0" class="research-report-mobile-cards">
+          <article v-for="row in dataRef" :key="row.ID" class="research-report-mobile-card">
+            <div class="research-report-mobile-card__header">
+              <div class="research-report-mobile-card__title">{{ getStockTitle(row) }}</div>
+              <div class="research-report-mobile-card__time">{{ formatCreatedAt(row.CreatedAt) }}</div>
+            </div>
+            <div class="research-report-mobile-card__meta">
+              <span>{{ row.modelName || '未知模型' }}</span>
+              <span v-if="row.chatId" :title="row.chatId">{{ row.chatId }}</span>
+            </div>
+            <div class="research-report-mobile-card__question">
+              {{ row.question || '无提示词内容' }}
+            </div>
+            <div class="research-report-mobile-card__actions">
+              <n-button size="small" type="warning" secondary @click="showReport(row)">查看分析</n-button>
+              <n-button size="small" type="error" secondary @click="deleteAIResponseResult(row.ID)">删除</n-button>
+            </div>
+          </article>
+        </div>
+        <n-empty v-else-if="!loadingRef" description="暂无AI分析报告" />
+      </n-spin>
+      <n-pagination
+          v-if="paginationReactive.pageCount > 1"
+          v-model:page="paginationReactive.page"
+          class="research-report-mobile-pagination"
+          :page-count="paginationReactive.pageCount"
+          :page-size="paginationReactive.pageSize"
+          :item-count="paginationReactive.itemCount"
+          size="small"
+          @update:page="handlePageChange"
+      />
+    </div>
 
 
 
@@ -347,6 +394,89 @@ function deleteAIResponseResult(id){
   .research-report-table :deep(.n-data-table-th),
   .research-report-table :deep(.n-data-table-td) {
     white-space: nowrap;
+  }
+
+  .research-report-mobile-list {
+    margin-top: 10px;
+    min-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 230px);
+  }
+
+  .research-report-mobile-cards {
+    display: grid;
+    gap: 10px;
+  }
+
+  .research-report-mobile-card {
+    background: var(--n-card-color, #fff);
+    border: 1px solid var(--n-border-color, #efeff5);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    padding: 12px;
+  }
+
+  .research-report-mobile-card__header {
+    align-items: flex-start;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .research-report-mobile-card__title {
+    color: var(--n-text-color, #1f2329);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .research-report-mobile-card__time,
+  .research-report-mobile-card__meta {
+    color: var(--n-text-color-3, #667085);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .research-report-mobile-card__meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    min-width: 0;
+  }
+
+  .research-report-mobile-card__meta span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .research-report-mobile-card__question {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: var(--n-text-color-2, #344054);
+    display: -webkit-box;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .research-report-mobile-card__actions {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 12px;
+  }
+
+  .research-report-mobile-card__actions :deep(.n-button) {
+    width: 100%;
+  }
+
+  .research-report-mobile-pagination {
+    justify-content: center;
+    margin-top: 12px;
   }
 
   :deep(.research-ai-modal.n-modal) {

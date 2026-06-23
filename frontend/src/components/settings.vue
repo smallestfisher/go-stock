@@ -15,8 +15,11 @@ import {NTag, NTooltip, NIcon, useMessage} from "naive-ui";
 import {data, models} from "../api/models";
 import {EventsEmit} from "../api/runtime";
 import {HelpCircleFilledIcon, HelpIcon} from "tdesign-icons-vue-next";
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
+const {isMobile} = useDevice()
 
 const formRef = ref(null)
 const formValue = ref({
@@ -751,7 +754,8 @@ function deletePrompt(ID) {
     </n-form>
   </n-flex>
 
-  <n-modal v-model:show="showManagePromptsModal" closable :mask-closable="false">
+  <!-- 提示词管理弹窗（桌面端） -->
+  <n-modal v-if="!isMobile" v-model:show="showManagePromptsModal" closable :mask-closable="false">
     <n-card class="settings-prompt-modal" style="width: 800px; height: 600px; text-align: left" :bordered="false"
             :title="(formPrompt.ID > 0 ? '修改' : '添加') + '提示词'" size="huge" role="dialog" aria-modal="true">
       <n-form ref="formPromptRef" :label-placement="'left'" :label-align="'left'">
@@ -774,6 +778,27 @@ function deletePrompt(ID) {
       </template>
     </n-card>
   </n-modal>
+
+  <!-- 提示词管理（移动端底部抽屉） -->
+  <BottomSheet v-else :show="showManagePromptsModal" :title="(formPrompt.ID > 0 ? '修改' : '添加') + '提示词'" height="80vh" @update:show="(v) => showManagePromptsModal = v">
+    <div class="settings-prompt-sheet">
+      <n-form ref="formPromptRef" label-placement="top">
+        <n-form-item label="名称">
+          <n-input v-model:value="formPrompt.Name" placeholder="请输入提示词名称"/>
+        </n-form-item>
+        <n-form-item label="类型">
+          <n-select v-model:value="formPrompt.Type" :options="promptTypeOptions" placeholder="请选择提示词类型"/>
+        </n-form-item>
+        <n-form-item label="内容">
+          <n-input v-model:value="formPrompt.Content" type="textarea" :show-count="true" placeholder="请输入prompt" :autosize="{ minRows: 6, maxRows: 14 }"/>
+        </n-form-item>
+      </n-form>
+      <div class="settings-prompt-sheet__actions">
+        <n-button type="warning" @click="showManagePromptsModal = false">取消</n-button>
+        <n-button type="primary" @click="savePrompt">保存</n-button>
+      </div>
+    </div>
+  </BottomSheet>
 </template>
 
 <style scoped>
@@ -887,5 +912,35 @@ function deletePrompt(ID) {
     max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     width: calc(100vw - 12px) !important;
   }
+}
+
+/* ============ 移动端提示词抽屉（仅在 isMobile 渲染） ============ */
+.settings-prompt-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px calc(var(--safe-bottom) + 8px);
+}
+
+.settings-prompt-sheet :deep(.n-form-item) {
+  display: block;
+}
+
+.settings-prompt-sheet :deep(.n-form-item-label) {
+  align-items: flex-start;
+  display: flex;
+  margin-bottom: 6px;
+  min-height: auto;
+  padding: 0;
+}
+
+.settings-prompt-sheet__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-prompt-sheet__actions :deep(.n-button) {
+  flex: 1 1 0;
 }
 </style>

@@ -9,8 +9,11 @@ import {NButton, NInput, NTag, NText, useMessage, NDataTable, NSpace, NPaginatio
 import sparkLine from "./stockSparkLine.vue"
 import klineChart from "./KLineChart.vue"
 import KLineChart from "./KLineChart.vue";
+import {useDevice} from "../composables/useDevice";
+import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
+const {isMobile} = useDevice()
 
 const editorDataRef = reactive({
   darkTheme: false
@@ -672,11 +675,19 @@ function formatConceptPreview(concept) {
 <!--      />-->
 <!--    </div>-->
 
-  <n-modal v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="width: 850px;max-width: calc(100vw - 32px);">
+  <!-- K 线弹窗（桌面端） -->
+  <n-modal v-if="!isMobile" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="width: 850px;max-width: calc(100vw - 32px);">
     <n-card size="small">
       <KLineChart style="width: 100%;max-width: 800px;" :code="getStockCode(modalDataRef.stockCode)" :chart-height="500" :stock-name="modalDataRef.stockName" :k-days="30" :dark-theme="editorDataRef.darkTheme"></KLineChart>
     </n-card>
   </n-modal>
+
+  <!-- K 线（移动端底部抽屉） -->
+  <BottomSheet v-else :show="modalDataRef.visible" :title="modalDataRef.title" height="80vh" @update:show="(v) => modalDataRef.visible = v">
+    <div class="asl-kline-wrap">
+      <KLineChart style="width: 100%;" :code="getStockCode(modalDataRef.stockCode)" :chart-height="440" :stock-name="modalDataRef.stockName" :k-days="30" :dark-theme="editorDataRef.darkTheme"></KLineChart>
+    </div>
+  </BottomSheet>
   </div>
 </template>
 
@@ -805,5 +816,10 @@ function formatConceptPreview(concept) {
     max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
     overflow: auto;
   }
+}
+
+/* ============ 移动端 K 线抽屉（仅在 isMobile 渲染） ============ */
+.asl-kline-wrap {
+  padding: 4px 8px 8px;
 }
 </style>
