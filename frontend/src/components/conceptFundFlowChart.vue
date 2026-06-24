@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {onBeforeUnmount, onMounted, ref, watch, computed} from "vue";
 import {GetConceptFundFlowListByDate, GetConceptFundFlowTopListByDate, GetAllConceptCodes} from "../api/app";
+import {registerFeed, stopFeed} from "../api/scheduler";
 import * as echarts from "echarts";
 
 const props = defineProps({
@@ -17,7 +18,6 @@ const props = defineProps({
 const chartRef = ref(null)
 const topList = ref<any[]>([])
 const loading = ref(false)
-const refreshInterval = ref<any>(null)
 let chart: echarts.ECharts | null = null
 
 // 临时添加的概念
@@ -66,21 +66,19 @@ onMounted(async () => {
     if (codes && Array.isArray(codes)) allConceptCodes.value = codes
 
     await loadAllData()
-    // 交易时间每分钟刷新（仅当天）
-    refreshInterval.value = setInterval(async () => {
-      if (isToday.value && isTradingTime()) {
-        await loadAllData()
-      }
-    }, 60000)
+    // 交易时间每分钟刷新（仅当天）；轮询交给统一调度器，页面恢复时自动重刷。
+    registerFeed("conceptFundFlow", {
+      fetch: loadAllData,
+      intervalMs: 60000,
+      activeWhen: () => isToday.value && isTradingTime(),
+    })
   } catch (e) {
     console.error('onMounted error:', e)
   }
 })
 
 onBeforeUnmount(() => {
-  if (refreshInterval.value) {
-    clearInterval(refreshInterval.value)
-  }
+  stopFeed("conceptFundFlow")
   stopPlay()
   if (chart) {
     chart.dispose()
@@ -507,7 +505,7 @@ watch(() => props.chartHeight, () => {
 <template>
   <div style="width: 100%">
     <!-- 控制栏 -->
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+    <div class="fundflow-toolbar fundflow-toolbar--date">
       <n-tag :bordered="false" type="error" size="small">红色系 = 流入前20</n-tag>
       <n-tag :bordered="false" type="success" size="small">绿色系 = 流出前20</n-tag>
       <n-date-picker
@@ -548,7 +546,7 @@ watch(() => props.chartHeight, () => {
     </div>
 
     <!-- 播放控制栏 -->
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+    <div class="fundflow-toolbar fundflow-toolbar--play">
       <n-button size="small" :type="isPlaying ? 'warning' : 'primary'" @click="togglePlay">
         {{ isPlaying ? '暂停' : '播放' }}
       </n-button>
@@ -587,9 +585,9 @@ watch(() => props.chartHeight, () => {
     <div ref="chartRef" style="width: 100%;" :style="{height: chartHeight + 'px'}"></div>
 
     <!-- 概念资金排名表格 - 并排展示 -->
-    <div style="margin-top: 20px; display: flex; gap: 20px; align-items: flex-start;">
+    <div class="fundflow-ranks">
       <!-- 流入排名 -->
-      <div style="flex: 1; min-width: 0;">
+      <div class="fundflow-rank-col">
         <n-h3 :style="{color: '#ee6666'}">流入 Top 20</n-h3>
         <n-table striped size="small">
           <n-thead>
@@ -616,7 +614,7 @@ watch(() => props.chartHeight, () => {
         </n-table>
       </div>
       <!-- 流出排名 -->
-      <div style="flex: 1; min-width: 0;">
+      <div class="fundflow-rank-col">
         <n-h3 :style="{color: '#00da3c'}">流出 Top 20</n-h3>
         <n-table striped size="small">
           <n-thead>
@@ -647,4 +645,58 @@ watch(() => props.chartHeight, () => {
 </template>
 
 <style scoped>
+/* 控制栏（桌面：单行 flex，控件保持各自内联宽度） */
+.fundflow-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.fundflow-toolbar--play {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* 流入/流出排名（桌面：左右并排） */
+.fundflow-ranks {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
+.fundflow-rank-col {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  /* 控制栏：移动端控件占满宽度，竖向堆叠更清晰 */
+  .fundflow-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  /* 让日期/选择/滑块等内联宽度控件在移动端撑满 */
+  .fundflow-toolbar :deep(.n-date-picker),
+  .fundflow-toolbar :deep(.n-select),
+  .fundflow-toolbar :deep(.n-slider),
+  .fundflow-toolbar :deep(.n-input) {
+    width: 100% !important;
+  }
+
+  /* 刷新/播放按钮整行平铺，避免小按钮挤在一角 */
+  .fundflow-toolbar :deep(.n-button) {
+    flex: 1 1 auto;
+  }
+
+  /* 流入/流出排名：移动端上下堆叠，各自占满宽度 */
+  .fundflow-ranks {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
 </style>
