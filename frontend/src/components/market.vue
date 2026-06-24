@@ -48,6 +48,10 @@ const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/maste
 
 const message = useMessage()
 const notify = useNotification()
+const neutralTagColor = { color: '#f2f4f7', textColor: '#344054', borderColor: '#d0d5dd' }
+const bearishTagColor = { color: '#f2f4f7', textColor: '#0f7a43', borderColor: '#d6dde7' }
+const sourceTagColor = (source) => source === '财联社' ? neutralTagColor : undefined
+const sentimentTagColor = (sentiment) => sentiment === '看跌' ? bearishTagColor : undefined
 
 // 指数图表高度：桌面按视口算；移动端固定一个可读高度(避免全屏手机算出超高，
 // 或减 130 后负数)。移动端用 visualViewport，并夹在 320~560。
@@ -615,17 +619,18 @@ function ReFlesh(source) {
                   :class="{'mkt-news-item--red': item.isRed}"
               >
                 <div class="mkt-news-item__top">
-                  <n-tag size="tiny" :bordered="false" :type="sourceTagType(item.__source)">{{ item.__source }}</n-tag>
+                  <n-tag size="tiny" :bordered="false" :type="sourceTagType(item.__source)" :color="sourceTagColor(item.__source)">{{ item.__source }}</n-tag>
                   <span v-if="item.time" class="mkt-news-item__time">{{ item.time }}</span>
                   <n-tag v-if="item.sentimentResult" size="tiny" :bordered="false"
-                         :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'">
+                         :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'"
+                         :color="sentimentTagColor(item.sentimentResult)">
                     {{ item.sentimentResult }}
                   </n-tag>
                 </div>
                 <div v-if="item.title" class="mkt-news-item__title" :class="{'text-error': item.isRed}">{{ item.title }}</div>
                 <div v-if="item.content" class="mkt-news-item__content">{{ item.content }}</div>
                 <div v-if="item.subjects || item.stocks || item.url" class="mkt-news-item__tags">
-                  <n-tag v-for="sub in (item.subjects||[])" :key="'s'+sub" :bordered="false" type="success" size="tiny">{{ sub }}</n-tag>
+                  <n-tag v-for="sub in (item.subjects||[])" :key="'s'+sub" :bordered="false" type="success" size="tiny" :color="neutralTagColor">{{ sub }}</n-tag>
                   <n-tag v-for="sub in (item.stocks||[])" :key="'k'+sub" :bordered="false" type="warning" size="tiny">{{ sub }}</n-tag>
                   <a v-if="item.url" :href="item.url" target="_blank" class="mkt-news-item__link">原文 ›</a>
                 </div>
@@ -833,7 +838,8 @@ function ReFlesh(source) {
       <n-tab-pane name="行业排名" tab="行业排名">
         <n-tabs type="card" animated>
           <n-tab-pane name="行业涨幅排名" tab="行业涨幅排名">
-            <n-table striped>
+            <!-- 桌面端：表格 -->
+            <n-table v-if="!isMobile" striped>
               <n-thead>
                 <n-tr>
                   <n-th>行业名称</n-th>
@@ -876,49 +882,49 @@ function ReFlesh(source) {
                 </n-tr>
               </n-tbody>
             </n-table>
-            <n-table striped>
-              <n-thead>
-                <n-tr>
-                  <n-th>行业名称</n-th>
-                  <n-th @click="changeIndustryRankSort">行业涨幅
-                    <n-icon v-if="sort==='0'" :component="CaretDown"/>
-                    <n-icon v-if="sort==='1'" :component="CaretUp"/>
-                  </n-th>
-                  <n-th>行业5日涨幅</n-th>
-                  <n-th>行业20日涨幅</n-th>
-                  <n-th>领涨股</n-th>
-                  <n-th>涨幅</n-th>
-                  <n-th>最新价</n-th>
-                </n-tr>
-              </n-thead>
-              <n-tbody>
-                <n-tr v-for="item in industryRanks" :key="item.bd_code">
-                  <n-td>
-                    <n-tag :bordered=false type="info">{{ item.bd_name }}</n-tag>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.bd_zdf>0?'error':'success'">{{ item.bd_zdf }}%</n-text>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.bd_zdf5>0?'error':'success'">{{ item.bd_zdf5 }}%</n-text>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.bd_zdf20>0?'error':'success'">{{ item.bd_zdf20 }}%</n-text>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.nzg_zdf>0?'error':'success'"> {{ item.nzg_name }}
-                      <n-text type="info">{{ item.nzg_code }}</n-text>
-                    </n-text>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.nzg_zdf>0?'error':'success'"> {{ item.nzg_zdf }}%</n-text>
-                  </n-td>
-                  <n-td>
-                    <n-text :type="item.nzg_zdf>0?'error':'success'">{{ item.nzg_zxj }}</n-text>
-                  </n-td>
-                </n-tr>
-              </n-tbody>
-            </n-table>
+
+            <!-- 移动端：行业涨幅卡片 -->
+            <div v-else class="ind-rank-mobile">
+              <div class="ind-rank-mobile__hint">
+                <span>点击表头"行业涨幅"可排序</span>
+                <n-button size="tiny" tertiary @click="changeIndustryRankSort">
+                  排序
+                  <n-icon v-if="sort==='0'" :component="CaretDown"/>
+                  <n-icon v-if="sort==='1'" :component="CaretUp"/>
+                </n-button>
+              </div>
+              <article
+                  v-for="item in industryRanks"
+                  :key="item.bd_code"
+                  class="ind-card"
+                  :class="'ind-card--' + (item.bd_zdf>0?'up':'down')"
+              >
+                <div class="ind-card__head">
+                  <n-tag size="small" :bordered="false" type="info">{{ item.bd_name }}</n-tag>
+                  <span class="ind-card__main-zdf" :class="'bg-' + (item.bd_zdf>0?'error':'success')">
+                    {{ item.bd_zdf }}%
+                  </span>
+                </div>
+                <div class="ind-card__periods">
+                  <div class="ind-period">
+                    <span class="ind-period__label">5日</span>
+                    <span class="ind-period__value" :class="'text-' + (item.bd_zdf5>0?'error':'success')">{{ item.bd_zdf5 }}%</span>
+                  </div>
+                  <div class="ind-period">
+                    <span class="ind-period__label">20日</span>
+                    <span class="ind-period__value" :class="'text-' + (item.bd_zdf20>0?'error':'success')">{{ item.bd_zdf20 }}%</span>
+                  </div>
+                </div>
+                <div v-if="item.nzg_name" class="ind-card__leader">
+                  <span class="ind-card__leader-label">领涨</span>
+                  <span class="ind-card__leader-name" :class="'text-' + (item.nzg_zdf>0?'error':'success')">{{ item.nzg_name }}</span>
+                  <span class="ind-card__leader-code">{{ item.nzg_code }}</span>
+                  <span class="ind-card__leader-zdf" :class="'text-' + (item.nzg_zdf>0?'error':'success')">{{ item.nzg_zdf }}%</span>
+                  <span class="ind-card__leader-price">{{ item.nzg_zxj }}</span>
+                </div>
+              </article>
+              <n-empty v-if="!industryRanks.length" description="暂无行业排名数据" style="padding: 32px 0" />
+            </div>
           </n-tab-pane>
           <n-tab-pane name="行业资金排名(净流入)" tab="行业资金排名">
             <industryMoneyRank :fenlei="'0'" :header-title="'行业资金排名(净流入)'" :sort="'netamount'"/>
@@ -1453,7 +1459,8 @@ function ReFlesh(source) {
 }
 
 .bg-success {
-  background: #0f7a43;
+  background: #f2f4f7;
+  color: #0f7a43;
 }
 
 /* ============ 移动端"指数"板块：网格选择 + 单图 ============ */
@@ -1501,5 +1508,123 @@ function ReFlesh(source) {
   margin: 0 8px;
   overflow: hidden;
   padding: 6px;
+}
+
+/* ============ 移动端"行业涨幅排名"卡片 ============ */
+.ind-rank-mobile {
+  padding: 4px 0 calc(var(--safe-bottom) + 8px);
+}
+
+.ind-rank-mobile__hint {
+  align-items: center;
+  color: var(--n-text-color-3, #98a2b3);
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 4px 12px 8px;
+}
+
+.ind-card {
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-left: 4px solid #d0d5dd;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 8px 8px;
+  padding: 10px 12px;
+}
+
+.ind-card--up {
+  border-left-color: #d03050;
+}
+
+.ind-card--down {
+  border-left-color: #18a058;
+}
+
+.ind-card__head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ind-card__main-zdf {
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 64px;
+  padding: 2px 8px;
+  text-align: center;
+}
+
+.ind-card__periods {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ind-period {
+  align-items: center;
+  background: var(--n-color-target, #f5f7fa);
+  border-radius: 6px;
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  padding: 5px 9px;
+}
+
+.ind-period__label {
+  color: var(--n-text-color-3, #98a2b3);
+}
+
+.ind-period__value {
+  font-weight: 700;
+}
+
+.ind-card__leader {
+  align-items: center;
+  background: var(--n-color-target, #f5f7fa);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  padding: 6px 9px;
+}
+
+.ind-card__leader-label {
+  background: var(--n-color, #fff);
+  border-radius: 3px;
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 10px;
+  padding: 1px 5px;
+}
+
+.ind-card__leader-name {
+  flex: 0 1 auto;
+  font-weight: 700;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ind-card__leader-code {
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 11px;
+}
+
+.ind-card__leader-zdf {
+  flex: 1 1 auto;
+  font-weight: 700;
+  text-align: right;
+}
+
+.ind-card__leader-price {
+  color: var(--n-text-color-2, #666);
 }
 </style>

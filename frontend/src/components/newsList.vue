@@ -15,6 +15,9 @@ const { headerTitle,newsList } = defineProps({
 })
 
 const emits = defineEmits(['update:message'])
+const neutralTagColor = { color: '#f2f4f7', textColor: '#344054', borderColor: '#d0d5dd' }
+const bearishTagColor = { color: '#f2f4f7', textColor: '#0f7a43', borderColor: '#d6dde7' }
+const sentimentTagColor = (sentiment) => sentiment === '看跌' ? bearishTagColor : undefined
 
 const updateMessage = () => {
   emits('update:message', headerTitle)
@@ -49,7 +52,7 @@ onUnmounted(() => {
   <n-list bordered>
     <template #header>
       <n-flex justify="space-between">
-        <n-tag :bordered="false" size="large" type="success" >{{ headerTitle }}</n-tag>
+        <n-tag :bordered="false" size="large" type="success" :color="neutralTagColor">{{ headerTitle }}</n-tag>
         <n-tag :bordered="false" size="large" type="info"  v-if="headerTitle==='财联社电报'"> <n-time :time="time"/></n-tag>
         <n-button  :bordered="false" @click="updateMessage"><n-icon color="#409EFF" size="25" :component="RefreshCircleSharp"/></n-button>
       </n-flex>
@@ -78,7 +81,7 @@ onUnmounted(() => {
         </n-text>
       </n-space>
       <n-space v-if="item.subjects" style="margin-top: 2px">
-        <n-tag :bordered="false" type="success" size="small" v-for="sub in item.subjects">
+        <n-tag :bordered="false" type="success" size="small" v-for="sub in item.subjects" :color="neutralTagColor">
           {{ sub }}
         </n-tag>
         <n-space v-if="item.stocks">
@@ -91,7 +94,7 @@ onUnmounted(() => {
             <n-text type="warning">查看原文</n-text>
           </a>
         </n-tag>
-        <n-tag v-if="item.sentimentResult" :bordered="false" :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'" size="small">
+        <n-tag v-if="item.sentimentResult" :bordered="false" :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'" :color="sentimentTagColor(item.sentimentResult)" size="small">
           {{ item.sentimentResult }}
         </n-tag>
       </n-space>
