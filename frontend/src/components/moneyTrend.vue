@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue";
+import {onMounted, onUnmounted, ref} from "vue";
 import {GetStockMoneyTrendByDay} from "../api/app";
 import * as echarts from "echarts";
+import {useDevice} from "../composables/useDevice";
+
+const {isMobile} = useDevice()
 
 const {code, name, darkTheme, days, chartHeight} = defineProps({
   code: {
@@ -26,16 +29,26 @@ const {code, name, darkTheme, days, chartHeight} = defineProps({
   }
 })
 const LineChartRef = ref(null);
+let chartInstance = null
+let resizeObs = null
 
 onMounted(
     () => {
       handleLine(code, days)
+      if (LineChartRef.value && window.ResizeObserver) {
+        resizeObs = new ResizeObserver(() => { if (chartInstance) chartInstance.resize() })
+        resizeObs.observe(LineChartRef.value)
+      }
     }
 )
+onUnmounted(() => {
+  if (resizeObs) resizeObs.disconnect()
+  if (chartInstance) chartInstance.dispose()
+})
 const handleLine = (code, days) => {
   GetStockMoneyTrendByDay(code, days).then(result => {
-    //console.log("GetStockMoneyTrendByDay", result)
     const chart = echarts.init(LineChartRef.value);
+    chartInstance = chart
     const categoryData = [];
     const netamount_values = [];
     const r0_net_values = [];
@@ -92,9 +105,11 @@ const handleLine = (code, days) => {
         borderWidth: 2,
         borderColor: darkTheme?'#456':'#ccc',
         backgroundColor: darkTheme?'#456':'#fff',
-        padding: 10,
+        padding: isMobile ? 6 : 10,
+        confine: true,
         textStyle: {
-          color: darkTheme?'#ccc':'#456'
+          color: darkTheme?'#ccc':'#456',
+          fontSize: isMobile ? 11 : 12
         },
       },
       axisPointer: {
@@ -116,11 +131,14 @@ const handleLine = (code, days) => {
           '累计净流入': true,
           '股价': true,
         },
-        //orient: 'vertical',
         textStyle: {
-          color: darkTheme ? 'rgb(253,252,252)' : '#456'
+          color: darkTheme ? 'rgb(253,252,252)' : '#456',
+          fontSize: isMobile ? 10 : 12
         },
-        right: 150,
+        right: isMobile ? 8 : 150,
+        itemWidth: isMobile ? 14 : 25,
+        itemHeight: isMobile ? 8 : 14,
+        itemGap: isMobile ? 6 : 10,
       },
       dataZoom: [
         {
@@ -134,19 +152,22 @@ const handleLine = (code, days) => {
           xAxisIndex: [0, 1],
           type: 'slider',
           top: '90%',
+          height: isMobile ? 22 : 16,
+          handleSize: isMobile ? 22 : undefined,
           start: 86,
           end: 100
         }
       ],
       grid: [
         {
-          left: '8%',
-          right: '8%',
+          left: isMobile ? '14%' : '8%',
+          right: isMobile ? '6%' : '8%',
+          top: isMobile ? '18%' : '8%',
           height: '50%',
         },
         {
-          left: '8%',
-          right: '8%',
+          left: isMobile ? '14%' : '8%',
+          right: isMobile ? '6%' : '8%',
           top: '74%',
           height: '15%'
         },
@@ -158,7 +179,7 @@ const handleLine = (code, days) => {
           axisPointer: {
             z: 100
           },
-
+          axisLabel: { rotate: isMobile ? 45 : 0, fontSize: isMobile ? 10 : 12 },
           boundaryGap: false,
           axisLine: { onZero: false },
           splitLine: { show: false },

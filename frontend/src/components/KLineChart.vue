@@ -2,8 +2,11 @@
 
 import {GetStockKLine} from "../api/app";
 import * as echarts from "echarts";
-import {onMounted, ref} from "vue";
+import {onMounted, onUnmounted, ref} from "vue";
 import _ from "lodash";
+import {useDevice} from "../composables/useDevice";
+
+const {isMobile} = useDevice()
 const { code,stockName,darkTheme,kDays ,chartHeight} = defineProps({
   code: {
     type: String,
@@ -32,13 +35,29 @@ const downColor = '#00da3c';
 const downBorderColor = '';
 const kLineChartRef = ref(null);
 
+let chartInstance = null
+let resizeObs = null
+
 onMounted(() => {
   handleKLine(code,stockName)
+  // 容器尺寸变化(isMobile切换/旋转/抽屉展开)时让 echarts 重绘
+  if (kLineChartRef.value && window.ResizeObserver) {
+    resizeObs = new ResizeObserver(() => {
+      if (chartInstance) chartInstance.resize()
+    })
+    resizeObs.observe(kLineChartRef.value)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObs) resizeObs.disconnect()
+  if (chartInstance) chartInstance.dispose()
 })
 
 function  handleKLine(code,stockName){
   console.log("handleKLine",code,stockName)
   const chart = echarts.init(kLineChartRef.value);
+  chartInstance = chart
   chart.showLoading()
   GetStockKLine(code,stockName,365).then(result => {
     //console.log("GetStockKLine",result)
@@ -69,20 +88,22 @@ function  handleKLine(code,stockName){
         left: '0px',
         textStyle: {
           color: Number(values[values.length-1][1])>Number(values[values.length-2][1])?'red':'green',
-          fontSize: 14
+          fontSize: isMobile ? 12 : 14
         },
       },
       darkMode: darkTheme,
-      //backgroundColor: '#1c1c1c',
-      // color:['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'],
       animation: false,
       legend: {
         right: 20,
         top: 0,
         data: ['日K', 'MA5', 'MA10', 'MA20', 'MA30'],
         textStyle: {
-          color: darkTheme?'#ccc':'#456'
+          color: darkTheme?'#ccc':'#456',
+          fontSize: isMobile ? 10 : 12
         },
+        itemWidth: isMobile ? 14 : 25,
+        itemHeight: isMobile ? 8 : 14,
+        itemGap: isMobile ? 6 : 10,
       },
       tooltip: {
         trigger: 'axis',
@@ -97,9 +118,11 @@ function  handleKLine(code,stockName){
         borderWidth: 2,
         borderColor: darkTheme?'#456':'#ccc',
         backgroundColor: darkTheme?'#456':'#fff',
-        padding: 10,
+        padding: isMobile ? 6 : 10,
+        confine: true,
         textStyle: {
-          color: darkTheme?'#ccc':'#456'
+          color: darkTheme?'#ccc':'#456',
+          fontSize: isMobile ? 11 : 12
         },
         formatter: function (params) {//修改鼠标划过显示为中文
           //console.log("params",params)
@@ -148,15 +171,16 @@ function  handleKLine(code,stockName){
       },
       grid: [
         {
-          left: '8%',
-          right: '8%',
-          height: '50%',
+          left: isMobile ? '14%' : '8%',
+          right: isMobile ? '6%' : '8%',
+          top: isMobile ? '16%' : '8%',
+          height: isMobile ? '52%' : '50%',
         },
         {
-          left: '8%',
-          right: '8%',
-          top: '66%',
-          height: '18%'
+          left: isMobile ? '14%' : '8%',
+          right: isMobile ? '6%' : '8%',
+          top: isMobile ? '72%' : '66%',
+          height: isMobile ? '16%' : '18%'
         }
       ],
       xAxis: [
@@ -168,6 +192,7 @@ function  handleKLine(code,stockName){
           splitLine: { show: false },
           min: 'dataMin',
           max: 'dataMax',
+          axisLabel: { rotate: isMobile ? 45 : 0 },
           axisPointer: {
             z: 100
           }
@@ -217,9 +242,13 @@ function  handleKLine(code,stockName){
           show: true,
           xAxisIndex: [0, 1],
           type: 'slider',
-          top: '85%',
+          top: isMobile ? '90%' : '85%',
+          height: isMobile ? 22 : 16,
           start: 100-kDays,
-          end: 100
+          end: 100,
+          handleSize: isMobile ? 22 : undefined,
+          textStyle: { fontSize: isMobile ? 10 : 12 },
+          labelFormatter: isMobile ? (v) => String(v).substring(5) : undefined,
         }
       ],
 

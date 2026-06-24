@@ -47,7 +47,17 @@ const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/maste
 
 const message = useMessage()
 const notify = useNotification()
-const panelHeight = ref(window.innerHeight - 240)
+
+// 指数图表高度：桌面按视口算；移动端固定一个可读高度(避免全屏手机算出超高，
+// 或减 130 后负数)。移动端用 visualViewport，并夹在 320~560。
+function computePanelHeight() {
+  const vh = Math.round(window.visualViewport?.height || window.innerHeight)
+  if (isMobile.value) {
+    return Math.max(320, Math.min(560, vh - 180))
+  }
+  return Math.max(360, vh - 240)
+}
+const panelHeight = ref(computePanelHeight())
 
 const telegraphList = ref([])
 const sinaNewsList = ref([])
@@ -216,10 +226,42 @@ EventsOn("tradingViewNews", (data) => {
   }
 })
 
-//获取页面高度
-window.onresize = () => {
-  panelHeight.value = window.innerHeight - 240
+//获取页面高度（窗口/方向变化时重算，移动端旋转也覆盖）
+window.addEventListener('resize', () => { panelHeight.value = computePanelHeight() })
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => { panelHeight.value = computePanelHeight() })
 }
+watch(isMobile, () => { panelHeight.value = computePanelHeight() })
+
+// ===================== 移动端"指数"板块：网格选择 + 单图 =====================
+// type: 'kline' = KLineChart(echarts), 'lw' = StockLightweightKlineChart
+const mobileGlobalIndexList = [
+  {name:'上证指数', code:'sh000001', type:'kline'},
+  {name:'深证成指', code:'sz399001', type:'kline'},
+  {name:'创业板指', code:'sz399006', type:'kline'},
+  {name:'恒生指数', code:'hkHSI', type:'kline'},
+  {name:'纳斯达克', code:'us.IXIC', type:'kline'},
+  {name:'道琼斯', code:'us.DJI', type:'kline'},
+  {name:'标普500', code:'us.INX', type:'kline'},
+]
+const mobileMajorIndexList = [
+  {name:'上证指数', code:'000001.SH', type:'lw'},
+  {name:'深证指数', code:'399001.SZ', type:'lw'},
+  {name:'创业板指', code:'399006.SZ', type:'lw'},
+  {name:'恒生指数', code:'100.HSI', type:'lw'},
+  {name:'道琼斯', code:'100.DJIA', type:'lw'},
+  {name:'标普500', code:'100.SPX', type:'lw'},
+  {name:'纳斯达克', code:'100.NDX', type:'lw'},
+  {name:'沪深300', code:'000300.SH', type:'lw'},
+  {name:'上证50', code:'000016.SH', type:'lw'},
+  {name:'中证A500', code:'000510.SH', type:'lw'},
+  {name:'中证1000', code:'000852.SH', type:'lw'},
+  {name:'科创50', code:'000688.SH', type:'lw'},
+  {name:'中证银行', code:'399986.SZ', type:'lw'},
+  {name:'中证白酒', code:'399997.SZ', type:'lw'},
+]
+const mobileGlobalIndex = ref(mobileGlobalIndexList[0])
+const mobileMajorIndex = ref(mobileMajorIndexList[0])
 
 function getAreaName(code) {
   switch (code) {
@@ -592,7 +634,31 @@ function ReFlesh(source) {
 
       </n-tab-pane>
       <n-tab-pane name="全球股指" tab="全球股指">
-        <n-tabs type="segment" animated>
+        <!-- 移动端：指数网格选择 + 选中指数单图全宽 -->
+        <div v-if="isMobile" class="mkt-index-mobile">
+          <div class="mkt-index-mobile__title">选择指数</div>
+          <div class="mkt-index-grid">
+            <button
+                v-for="item in mobileGlobalIndexList"
+                :key="item.code"
+                type="button"
+                class="mkt-index-grid__tile"
+                :class="{'mkt-index-grid__tile--active': mobileGlobalIndex.code === item.code}"
+                @click="mobileGlobalIndex = item"
+            >{{ item.name }}</button>
+          </div>
+          <div class="mkt-index-chart-wrap">
+            <k-line-chart
+                :key="mobileGlobalIndex.code"
+                :code="mobileGlobalIndex.code"
+                :chart-height="panelHeight"
+                :stockName="mobileGlobalIndex.name"
+                :k-days="20"
+                :dark-theme="true"
+            />
+          </div>
+        </div>
+        <n-tabs v-else type="segment" animated>
           <n-tab-pane name="全球指数" tab="全球指数">
             <n-grid class="market-mobile-scroll" :cols="5" :y-gap="0">
               <n-gi v-for="(val, key) in globalStockIndexes" :key="key">
@@ -659,7 +725,30 @@ function ReFlesh(source) {
         </n-tabs>
       </n-tab-pane>
       <n-tab-pane name="重大指数" tab="重大指数">
-        <n-tabs type="segment" animated>
+        <!-- 移动端：指数网格选择 + 选中指数单图全宽 -->
+        <div v-if="isMobile" class="mkt-index-mobile">
+          <div class="mkt-index-mobile__title">选择指数</div>
+          <div class="mkt-index-grid">
+            <button
+                v-for="item in mobileMajorIndexList"
+                :key="item.code"
+                type="button"
+                class="mkt-index-grid__tile"
+                :class="{'mkt-index-grid__tile--active': mobileMajorIndex.code === item.code}"
+                @click="mobileMajorIndex = item"
+            >{{ item.name }}</button>
+          </div>
+          <div class="mkt-index-chart-wrap">
+            <StockLightweightKlineChart
+                :key="mobileMajorIndex.code"
+                :code="mobileMajorIndex.code"
+                :chart-height="panelHeight"
+                :stock-name="mobileMajorIndex.name"
+                :dark-theme="true"
+            />
+          </div>
+        </div>
+        <n-tabs v-else type="segment" animated>
 
 <!--          <n-tab-pane name="西部数据" tab="西部数据">-->
 <!--            <StockLightweightKlineChart code="105.WDC" :chart-height="panelHeight" stock-name="西部数据"-->
@@ -1361,5 +1450,52 @@ function ReFlesh(source) {
 
 .bg-success {
   background: #18a058;
+}
+
+/* ============ 移动端"指数"板块：网格选择 + 单图 ============ */
+.mkt-index-mobile {
+  padding: 4px 0 calc(var(--safe-bottom) + 8px);
+}
+
+.mkt-index-mobile__title {
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
+.mkt-index-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0 12px 12px;
+}
+
+.mkt-index-grid__tile {
+  appearance: none;
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 8px;
+  color: var(--n-text-color, #333);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.mkt-index-grid__tile--active {
+  background: #2080f0;
+  border-color: #2080f0;
+  color: #fff;
+}
+
+.mkt-index-chart-wrap {
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 10px;
+  margin: 0 8px;
+  overflow: hidden;
+  padding: 6px;
 }
 </style>
