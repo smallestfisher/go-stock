@@ -44,7 +44,8 @@ const changeTypeChartRef = ref(null);
 const changeRankStockRef = ref(null);
 const changeRankIndustryRef = ref(null);
 const changeRankConceptRef = ref(null);
-const showTreemap = ref(false);
+// 移动端默认展开热词(市场快讯主内容)，桌面端保持默认收起由用户点开
+const showTreemap = ref(isMobile);
 const showDailyChart = ref(false);
 const showChangeStats = ref(false);
 const showChangeRank = ref(false);
@@ -76,10 +77,13 @@ const effectiveTreemapHeight = computed(() => isMobile ? 340 : chartHeight)
 
 onMounted(() => {
   handleChart()
-  handleTreemap()
   handleDailyChart()
   handleChangeRank()
   getIndex()
+  // treemap 在 n-collapse-transition 内，展开动画期间容器高度/宽度可能为 0，
+  // echarts 拿不到尺寸会画空。延迟 + nextTick 重试，确保展开后再画。
+  nextTick(() => { setTimeout(handleTreemap, 200) })
+  nextTick(() => { setTimeout(handleTreemap, 600) })
   handleChartInterval=setInterval(function () {
     handleChart()
   }, 1000 * 60)
@@ -88,11 +92,15 @@ onMounted(() => {
     getIndex()
     handleTreemap()
   }, 1000 * 10)
+
+  window.addEventListener('resize', onWinResize)
 })
 
 onUnmounted(()=>{
   clearInterval(handleChartInterval)
   clearInterval(handleIndexInterval)
+  window.removeEventListener('resize', onWinResize)
+  if (resizeTimer) clearTimeout(resizeTimer)
 })
 
 watch(showTreemap, (newVal) => {
@@ -157,13 +165,6 @@ function onWinResize() {
   if (resizeTimer) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(redrawVisibleCharts, 300)
 }
-onMounted(() => {
-  window.addEventListener('resize', onWinResize)
-})
-onUnmounted(() => {
-  window.removeEventListener('resize', onWinResize)
-  if (resizeTimer) clearTimeout(resizeTimer)
-})
 
 watch(bullBearDays, () => {
   handleBullBearRank()
@@ -1850,8 +1851,12 @@ function renderBullBearChart(chartRefVal, title, items, direction, dimension) {
 }
 
 function handleTreemap() {
+  if (!treemapRef.value) return
+  // 容器尚未展开(宽度 0)时，echarts 会画成空白，跳过等下次重试
+  if (treemapRef.value.clientWidth === 0 || treemapRef.value.clientHeight === 0) return
   const formatUtil = echarts.format;
   AnalyzeSentimentWithFreqWeight("").then((res) => {
+    if (!treemapRef.value) return
     treemapchart = echarts.init(treemapRef.value);
     let data = res['frequencies'].map(item => ({
       name: item.Word,
