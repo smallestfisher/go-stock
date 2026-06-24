@@ -2217,6 +2217,6 @@ function handleTreemap() {
 }
 
 .bg-success {
-  background: #18a058;
+  background: #0f7a43;
 }
 </style>

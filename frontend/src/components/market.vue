@@ -1453,7 +1453,7 @@ function ReFlesh(source) {
 }
 
 .bg-success {
-  background: #18a058;
+  background: #0f7a43;
 }
 
 /* ============ 移动端"指数"板块：网格选择 + 单图 ============ */

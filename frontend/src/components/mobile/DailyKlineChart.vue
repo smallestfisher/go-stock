@@ -68,7 +68,7 @@ async function renderChart() {
             darkMode: props.darkTheme,
             animation: false,
             legend: {
-                bottom: 10,
+                top: 0,
                 left: 'center',
                 data: ['日K', 'MA5', 'MA10', 'MA20', 'MA30'],
                 textStyle: {
@@ -142,13 +142,14 @@ async function renderChart() {
                 {
                     left: '10%',
                     right: '8%',
-                    height: '50%',
+                    top: 42,
+                    height: '48%',
                 },
                 {
                     left: '10%',
                     right: '8%',
-                    top: '63%',
-                    height: '16%'
+                    top: '66%',
+                    height: '13%'
                 }
             ],
             xAxis: [
@@ -205,7 +206,8 @@ async function renderChart() {
                     show: true,
                     xAxisIndex: [0, 1],
                     type: 'slider',
-                    top: '85%',
+                    bottom: 8,
+                    height: 24,
                     start: 86,
                     end: 100
                 }

@@ -42,9 +42,10 @@ const drawerStyle = computed(() => ({
 </template>
 
 <style scoped>
-.mobile-bottom-sheet {
+:global(.mobile-bottom-sheet) {
     border-radius: 12px 12px 0 0;
     overflow: hidden;
+    z-index: 10001 !important;
 }
 
 .mobile-bottom-sheet :deep(.n-drawer-content) {
