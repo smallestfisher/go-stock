@@ -2,7 +2,7 @@
 
 import {AnalyzeSentimentWithFreqWeight,GlobalStockIndexes,GetTodayMarketStatistic,GetRecentDaysMarketStatistic,GetDailyChangeStats,GetChangeTypeDailyStats,GetChangeRank,GetDailyDimensionStats,GetTypeStatsByDate,IsTradingTime} from "../api/app";
 import * as echarts from "echarts";
-import {onMounted,onUnmounted, ref, watch, nextTick} from "vue";
+import {computed, onMounted,onUnmounted, ref, watch, nextTick} from "vue";
 import _ from "lodash";
 import {useDevice} from "../composables/useDevice";
 import BottomSheet from "./mobile/BottomSheet.vue";
@@ -45,7 +45,7 @@ const changeRankStockRef = ref(null);
 const changeRankIndustryRef = ref(null);
 const changeRankConceptRef = ref(null);
 // 移动端默认展开热词(市场快讯主内容)，桌面端保持默认收起由用户点开
-const showTreemap = ref(isMobile);
+const showTreemap = ref(isMobile.value);
 const showDailyChart = ref(false);
 const showChangeStats = ref(false);
 const showChangeRank = ref(false);
@@ -72,8 +72,8 @@ let treemapchart =null;
 
 // 移动端：图表单列全宽时，固定 prop 的高度太小会导致多 series/多 y 轴重叠，
 // 这里统一放大有效高度。treemap(热词)单独给更大空间。
-const effectiveChartHeight = computed(() => isMobile ? Math.max(chartHeight || 220, 260) : chartHeight)
-const effectiveTreemapHeight = computed(() => isMobile ? 340 : chartHeight)
+const effectiveChartHeight = computed(() => isMobile.value ? Math.max(chartHeight || 220, 260) : chartHeight)
+const effectiveTreemapHeight = computed(() => isMobile.value ? 340 : chartHeight)
 
 onMounted(() => {
   handleChart()

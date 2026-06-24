@@ -1,6 +1,6 @@
 <script setup>
 import * as echarts from "echarts";
-import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, onMounted,onUnmounted, ref} from 'vue'
+import {computed, h, nextTick, onBeforeMount, onBeforeUnmount, onMounted,onUnmounted, ref, watch} from 'vue'
 import {
   GetAIResponseResult,
   GetConfig,
@@ -39,6 +39,7 @@ import ClsCalendarTimeLine from "./ClsCalendarTimeLine.vue";
 import Stockhotmap from "./stockhotmap.vue";
 import BKFundFlowChart from "./bkFundFlowChart.vue";
 import ConceptFundFlowChart from "./conceptFundFlowChart.vue";
+import AnalyzeMartket from "./AnalyzeMartket.vue";
 
 const route = useRoute()
 import {useDevice} from "../composables/useDevice";
@@ -73,7 +74,7 @@ const summaryBTN = ref(true)
 const darkTheme = ref(false)
 const httpProxyEnabled = ref(false)
 const theme = computed(() => {
-  return darkTheme ? 'dark' : 'light'
+  return darkTheme.value ? 'dark' : 'light'
 })
 const aiSummary = ref(``)
 const aiSummaryTime = ref("")
@@ -135,7 +136,7 @@ function getIndex() {
 }
 
 onBeforeMount(() => {
-  nowTab.value = route.query.name
+  nowTab.value = route.query.name || "市场快讯"
   marketMobileActiveGroup.value = marketGroupOf(nowTab.value)
   stockCode.value = route.query.stockCode
   GetConfig().then(result => {
@@ -382,6 +383,9 @@ function getAiSummary() {
 }
 
 function updateTab(name) {
+  if (!name) {
+    name = "市场快讯"
+  }
   summaryBTN.value = (name === "市场快讯");
   nowTab.value = name
   marketMobileActiveGroup.value = marketGroupOf(name)
