@@ -69,6 +69,11 @@ let handleChartInterval=null
 let handleIndexInterval=null
 let treemapchart =null;
 
+// 移动端：图表单列全宽时，固定 prop 的高度太小会导致多 series/多 y 轴重叠，
+// 这里统一放大有效高度。treemap(热词)单独给更大空间。
+const effectiveChartHeight = computed(() => isMobile ? Math.max(chartHeight || 220, 260) : chartHeight)
+const effectiveTreemapHeight = computed(() => isMobile ? 340 : chartHeight)
+
 onMounted(() => {
   handleChart()
   handleTreemap()
@@ -132,6 +137,32 @@ watch(showBullBearRank, (newVal) => {
       handleBullBearRank()
     })
   }
+})
+
+// 移动端/桌面切换、或窗口尺寸变化时，重画当前已展开的图表，
+// 否则 echarts 会沿用旧宽度导致挤压重叠。
+let resizeTimer = null
+function redrawVisibleCharts() {
+  nextTick(() => {
+    handleChart()
+    if (showTreemap.value) handleTreemap()
+    if (showDailyChart.value) handleDailyChart()
+    if (showChangeStats.value) handleChangeStats()
+    if (showChangeRank.value) handleChangeRank()
+    if (showBullBearRank.value) handleBullBearRank()
+  })
+}
+watch(isMobile, redrawVisibleCharts)
+function onWinResize() {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(redrawVisibleCharts, 300)
+}
+onMounted(() => {
+  window.addEventListener('resize', onWinResize)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', onWinResize)
+  if (resizeTimer) clearTimeout(resizeTimer)
 })
 
 watch(bullBearDays, () => {
@@ -1923,146 +1954,168 @@ function handleTreemap() {
 </script>
 
 <template>
-  <n-collapse class="analyze-market" :trigger-areas="triggerAreas" :default-expanded-names="['1']" display-directive="show">
-    <n-collapse-item  name="1" >
-      <template #header>
+  <div class="analyze-market" :class="{'analyze-market--mobile': isMobile}">
+    <!-- 移动端：主要股指横滑卡片 -->
+    <div v-if="isMobile" class="am-index-rail">
+      <div
+          v-for="(item, index) in mainIndex"
+          :key="index"
+          class="am-index-card"
+          :class="'am-index-card--' + (item.zdf>0?'up':'down')"
+      >
+        <div class="am-index-card__head">
+          <n-image :width="14" :src="item.img" preview-disabled />
+          <span class="am-index-card__name">{{ item.name }}</span>
+        </div>
+        <div class="am-index-card__price" :class="'text-' + (item.zdf>0?'error':'success')">{{ item.zxj }}</div>
+        <div class="am-index-card__zdf" :class="'bg-' + (item.zdf>0?'error':'success')">
+          <n-number-animation :precision="2" :from="0" :to="item.zdf"/>%
+        </div>
+      </div>
+    </div>
+
+    <n-collapse :trigger-areas="triggerAreas" :default-expanded-names="['1']" display-directive="show">
+      <n-collapse-item  name="1" >
+        <!-- 桌面端：主要股指 tag 行 -->
+        <template v-if="!isMobile" #header>
           <n-flex>
-              <n-tag size="small" :bordered="false" v-for="(item, index) in mainIndex" :type="item.zdf>0?'error':'success'">
-                <n-flex>
-                  <n-image :width="20" :src="item.img" />
-                  <n-text style="font-size: 14px" :type="item.zdf>0?'error':'success'">{{item.name}}&nbsp;{{item.zxj}}</n-text>
-                  <n-number-animation :precision="2" :from="0" :to="item.zdf" style="font-size: 14px"/>
-                  <n-text style="margin-left: -12px;font-size: 14px" :type="item.zdf>0?'error':'success'">%</n-text>
-                </n-flex>
-              </n-tag>
+            <n-tag size="small" :bordered="false" v-for="(item, index) in mainIndex" :type="item.zdf>0?'error':'success'">
+              <n-flex>
+                <n-image :width="20" :src="item.img" />
+                <n-text style="font-size: 14px" :type="item.zdf>0?'error':'success'">{{item.name}}&nbsp;{{item.zxj}}</n-text>
+                <n-number-animation :precision="2" :from="0" :to="item.zdf" style="font-size: 14px"/>
+                <n-text style="margin-left: -12px;font-size: 14px" :type="item.zdf>0?'error':'success'">%</n-text>
+              </n-flex>
+            </n-tag>
           </n-flex>
-      </template>
-      <template #header-extra>
-        主要股指
-      </template>
-      <n-flex justify="end" style="margin-bottom: 4px">
-        <n-button-group size="tiny">
-          <n-button :type="changeRankDays===1?'primary':'default'" @click="changeRankDays=1">当日</n-button>
-          <n-button :type="changeRankDays===3?'primary':'default'" @click="changeRankDays=3">近3日</n-button>
-          <n-button :type="changeRankDays===5?'primary':'default'" @click="changeRankDays=5">近5日</n-button>
-          <n-button :type="changeRankDays===10?'primary':'default'" @click="changeRankDays=10">近10日</n-button>
-        </n-button-group>
-      </n-flex>
-      <n-grid :cols="24" :y-gap="0">
-        <n-gi span="8">
-          <div v-if="hasMarketStatistic" ref="chartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
-            <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
-          </div>
-        </n-gi>
-        <n-gi span="8">
-          <div v-if="hasMarketStatistic" ref="limitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
-            <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
-          </div>
-        </n-gi>
-        <n-gi span="8">
-          <div v-if="hasChangeRankConcept" ref="changeRankConceptRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          <div v-else class="market-chart-empty" :style="{height:chartHeight+'px'}">
-            <n-empty size="small" :description="changeRankLoading ? '加载异动排行中' : '暂无异动排行数据'" />
-          </div>
-        </n-gi>
-      </n-grid>
-      <n-flex class="analyze-toggle-row" justify="center" style="margin: 8px 0" :wrap="!isMobile">
-        <n-button text @click="showTreemap = !showTreemap" :type="showTreemap?'primary':''">
-          {{ showTreemap ? '隐藏热词' : '查看热词' }}
-        </n-button>
-        <n-divider vertical />
-        <n-button text @click="showDailyChart = !showDailyChart" :type="showDailyChart?'primary':''">
-          {{ showDailyChart ? '隐藏按天分析' : '按天涨跌/涨跌停分析' }}
-        </n-button>
-        <n-divider vertical />
-        <n-button text @click="showChangeStats = !showChangeStats" :type="showChangeStats?'primary':''">
-          {{ showChangeStats ? '隐藏异动分析' : '历史异动分析' }}
-        </n-button>
-        <n-divider vertical />
-        <n-button text @click="showChangeRank = !showChangeRank" :type="showChangeRank?'primary':''">
-          {{ showChangeRank ? '隐藏异动排行' : '异动排行' }}
-        </n-button>
-        <n-divider vertical />
-        <n-button text @click="showBullBearRank = !showBullBearRank" :type="showBullBearRank?'primary':''">
-          {{ showBullBearRank ? '隐藏利好/利空排行' : '利好/利空排行' }}
-        </n-button>
-      </n-flex>
-      <n-collapse-transition :show="showTreemap">
-        <div ref="treemapRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-      </n-collapse-transition>
-      <n-collapse-transition :show="showDailyChart">
-        <n-grid :cols="24" :y-gap="0">
-          <n-gi span="12">
-            <div ref="dailyUpDownChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-          <n-gi span="12">
-            <div ref="dailyLimitChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-        </n-grid>
-      </n-collapse-transition>
-      <n-collapse-transition :show="showChangeStats">
-        <n-grid :cols="24" :y-gap="0">
-          <n-gi span="12">
-            <div ref="changeStatsChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-          <n-gi span="12">
-            <div ref="changeTypeChartRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-        </n-grid>
-      </n-collapse-transition>
-      <n-collapse-transition :show="showChangeRank">
-        <n-grid :cols="24" :y-gap="0">
-          <n-gi span="12">
-            <div ref="changeRankStockRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-          <n-gi span="12">
-            <div ref="changeRankIndustryRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-        </n-grid>
-      </n-collapse-transition>
-      <n-collapse-transition :show="showBullBearRank">
+        </template>
+        <template #header-extra>
+          {{ isMobile ? '市场统计' : '主要股指' }}
+        </template>
         <n-flex justify="end" style="margin-bottom: 4px">
           <n-button-group size="tiny">
-            <n-button :type="bullBearDays===1?'primary':'default'" @click="bullBearDays=1">当日</n-button>
-            <n-button :type="bullBearDays===3?'primary':'default'" @click="bullBearDays=3">近3日</n-button>
-            <n-button :type="bullBearDays===5?'primary':'default'" @click="bullBearDays=5">近5日</n-button>
-            <n-button :type="bullBearDays===10?'primary':'default'" @click="bullBearDays=10">近10日</n-button>
-            <n-button :type="bullBearDays===30?'primary':'default'" @click="bullBearDays=30">近30日</n-button>
+            <n-button :type="changeRankDays===1?'primary':'default'" @click="changeRankDays=1">当日</n-button>
+            <n-button :type="changeRankDays===3?'primary':'default'" @click="changeRankDays=3">近3日</n-button>
+            <n-button :type="changeRankDays===5?'primary':'default'" @click="changeRankDays=5">近5日</n-button>
+            <n-button :type="changeRankDays===10?'primary':'default'" @click="changeRankDays=10">近10日</n-button>
           </n-button-group>
         </n-flex>
-        <n-grid :cols="24" :y-gap="0">
-          <n-gi span="8">
-            <div ref="bullBearStockUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+        <n-grid :cols="isMobile?1:24" :y-gap="0">
+          <n-gi :span="isMobile?1:8">
+            <div v-if="hasMarketStatistic" ref="chartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            <div v-else class="market-chart-empty" :style="{height:effectiveChartHeight+'px'}">
+              <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
+            </div>
           </n-gi>
-          <n-gi span="8">
-            <div ref="bullBearIndustryUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <n-gi :span="isMobile?1:8">
+            <div v-if="hasMarketStatistic" ref="limitChartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            <div v-else class="market-chart-empty" :style="{height:effectiveChartHeight+'px'}">
+              <n-empty size="small" :description="marketStatisticLoading ? '加载市场统计中' : '暂无市场统计数据'" />
+            </div>
           </n-gi>
-          <n-gi span="8">
-            <div ref="bullBearConceptUpRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-        </n-grid>
-        <n-grid :cols="24" :y-gap="0">
-          <n-gi span="8">
-            <div ref="bullBearStockDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-          <n-gi span="8">
-            <div ref="bullBearIndustryDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
-          </n-gi>
-          <n-gi span="8">
-            <div ref="bullBearConceptDownRef" style="width: 100%;height: auto" :style="{height:chartHeight+'px'}" ></div>
+          <n-gi :span="isMobile?1:8">
+            <div v-if="hasChangeRankConcept" ref="changeRankConceptRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            <div v-else class="market-chart-empty" :style="{height:effectiveChartHeight+'px'}">
+              <n-empty size="small" :description="changeRankLoading ? '加载异动排行中' : '暂无异动排行数据'" />
+            </div>
           </n-gi>
         </n-grid>
-      </n-collapse-transition>
-    </n-collapse-item>
-  </n-collapse>
-  <n-modal v-if="!isMobile" v-model:show="showDimensionModal" preset="card" :title="dimensionModalTitle" style="width: 800px;max-width: calc(100vw - 32px);" :mask-closable="true">
-    <div ref="dimensionDetailChartRef" style="width: 100%;height: 450px"></div>
-  </n-modal>
-  <BottomSheet v-else :show="showDimensionModal" :title="dimensionModalTitle" height="78vh" @update:show="(v) => showDimensionModal = v">
-    <div ref="dimensionDetailChartRef" style="width: 100%;height: 420px"></div>
-  </BottomSheet>
+        <n-flex class="analyze-toggle-row" justify="center" style="margin: 8px 0" :wrap="isMobile">
+          <n-button text @click="showTreemap = !showTreemap" :type="showTreemap?'primary':''">
+            {{ showTreemap ? '隐藏热词' : '查看热词' }}
+          </n-button>
+          <n-divider v-if="!isMobile" vertical />
+          <n-button text @click="showDailyChart = !showDailyChart" :type="showDailyChart?'primary':''">
+            {{ showDailyChart ? '隐藏按天分析' : '按天涨跌/涨跌停分析' }}
+          </n-button>
+          <n-divider v-if="!isMobile" vertical />
+          <n-button text @click="showChangeStats = !showChangeStats" :type="showChangeStats?'primary':''">
+            {{ showChangeStats ? '隐藏异动分析' : '历史异动分析' }}
+          </n-button>
+          <n-divider v-if="!isMobile" vertical />
+          <n-button text @click="showChangeRank = !showChangeRank" :type="showChangeRank?'primary':''">
+            {{ showChangeRank ? '隐藏异动排行' : '异动排行' }}
+          </n-button>
+          <n-divider v-if="!isMobile" vertical />
+          <n-button text @click="showBullBearRank = !showBullBearRank" :type="showBullBearRank?'primary':''">
+            {{ showBullBearRank ? '隐藏利好/利空排行' : '利好/利空排行' }}
+          </n-button>
+        </n-flex>
+        <n-collapse-transition :show="showTreemap">
+          <div ref="treemapRef" class="am-treemap" :style="{height:effectiveTreemapHeight+'px'}" ></div>
+        </n-collapse-transition>
+        <n-collapse-transition :show="showDailyChart">
+          <n-grid :cols="isMobile?1:24" :y-gap="0">
+            <n-gi :span="isMobile?1:12">
+              <div ref="dailyUpDownChartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:12">
+              <div ref="dailyLimitChartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+          </n-grid>
+        </n-collapse-transition>
+        <n-collapse-transition :show="showChangeStats">
+          <n-grid :cols="isMobile?1:24" :y-gap="0">
+            <n-gi :span="isMobile?1:12">
+              <div ref="changeStatsChartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:12">
+              <div ref="changeTypeChartRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+          </n-grid>
+        </n-collapse-transition>
+        <n-collapse-transition :show="showChangeRank">
+          <n-grid :cols="isMobile?1:24" :y-gap="0">
+            <n-gi :span="isMobile?1:12">
+              <div ref="changeRankStockRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:12">
+              <div ref="changeRankIndustryRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+          </n-grid>
+        </n-collapse-transition>
+        <n-collapse-transition :show="showBullBearRank">
+          <n-flex justify="end" style="margin-bottom: 4px">
+            <n-button-group size="tiny">
+              <n-button :type="bullBearDays===1?'primary':'default'" @click="bullBearDays=1">当日</n-button>
+              <n-button :type="bullBearDays===3?'primary':'default'" @click="bullBearDays=3">近3日</n-button>
+              <n-button :type="bullBearDays===5?'primary':'default'" @click="bullBearDays=5">近5日</n-button>
+              <n-button :type="bullBearDays===10?'primary':'default'" @click="bullBearDays=10">近10日</n-button>
+              <n-button :type="bullBearDays===30?'primary':'default'" @click="bullBearDays=30">近30日</n-button>
+            </n-button-group>
+          </n-flex>
+          <n-grid :cols="isMobile?1:24" :y-gap="0">
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearStockUpRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearIndustryUpRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearConceptUpRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+          </n-grid>
+          <n-grid :cols="isMobile?1:24" :y-gap="0">
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearStockDownRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearIndustryDownRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+            <n-gi :span="isMobile?1:8">
+              <div ref="bullBearConceptDownRef" class="am-chart" :style="{height:effectiveChartHeight+'px'}" ></div>
+            </n-gi>
+          </n-grid>
+        </n-collapse-transition>
+      </n-collapse-item>
+    </n-collapse>
+    <n-modal v-if="!isMobile" v-model:show="showDimensionModal" preset="card" :title="dimensionModalTitle" style="width: 800px;max-width: calc(100vw - 32px);" :mask-closable="true">
+      <div ref="dimensionDetailChartRef" style="width: 100%;height: 450px"></div>
+    </n-modal>
+    <BottomSheet v-else :show="showDimensionModal" :title="dimensionModalTitle" height="78vh" @update:show="(v) => showDimensionModal = v">
+      <div ref="dimensionDetailChartRef" style="width: 100%;height: 420px"></div>
+    </BottomSheet>
+  </div>
 </template>
 
 <style scoped>
@@ -2073,32 +2126,92 @@ function handleTreemap() {
   width: 100%;
 }
 
-/* ============ 移动端：图表单列堆叠、切换行换行 ============ */
-@media (max-width: 768px) {
-  /* 所有 n-grid 内的图表项强制单列全宽，避免 span=8/12 在窄屏挤成窄条 */
-  .analyze-market :deep(.n-grid) > * {
-    grid-column: 1 / -1 !important;
-  }
+/* echarts 容器：保证有明确高度且可缩放，不被父网格挤压成 0 */
+.am-chart,
+.am-treemap {
+  min-width: 0;
+  width: 100%;
+}
 
-  /* 主要股指标签行允许换行 */
-  .analyze-market :deep(.n-collapse-item__header-main .n-flex) {
-    flex-wrap: wrap;
-  }
+/* ============ 移动端：横滑股指卡 + 单列图表 ============ */
+.am-index-rail {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
 
-  /* 切换按钮行换行 + 按钮等宽 */
-  .analyze-toggle-row {
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    row-gap: 6px;
-  }
+.am-index-card {
+  background: var(--n-color-target, #f5f7fa);
+  border-radius: 10px;
+  flex: 0 0 92px;
+  padding: 8px 9px;
+  scroll-snap-align: start;
+}
 
-  .analyze-toggle-row :deep(.n-divider) {
-    display: none;
-  }
+.am-index-card--up {
+  border-left: 3px solid #d03050;
+}
 
-  .analyze-market :deep(.n-number-animation),
-  .analyze-market :deep(.n-tag .n-text) {
-    font-size: 12px;
-  }
+.am-index-card--down {
+  border-left: 3px solid #18a058;
+}
+
+.am-index-card__head {
+  align-items: center;
+  display: flex;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.am-index-card__name {
+  color: var(--n-text-color-2, #555);
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.am-index-card__price {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.am-index-card__zdf {
+  border-radius: 4px;
+  color: #fff;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 3px;
+  padding: 1px 5px;
+}
+
+/* 移动端切换按钮行换行 */
+.analyze-market--mobile .analyze-toggle-row {
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 6px;
+}
+
+/* 涨跌色工具类（移动端股指卡用） */
+.text-error {
+  color: #d03050;
+}
+
+.text-success {
+  color: #18a058;
+}
+
+.bg-error {
+  background: #d03050;
+}
+
+.bg-success {
+  background: #18a058;
 }
 </style>
