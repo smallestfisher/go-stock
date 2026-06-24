@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import {onBeforeMount, onBeforeUnmount, ref} from 'vue'
-import {HotStock, IsTradingTime} from "../api/app";
+import {HotStock} from "../api/app";
 import KLineChart from "./KLineChart.vue";
 import {ArrowDown, ArrowUp} from "@vicons/ionicons5";
+import {registerFeed, stopFeed} from "../api/scheduler";
+import {anyOpen} from "../api/marketClock";
 
 const {marketType}=defineProps(
     {
@@ -12,8 +14,6 @@ const {marketType}=defineProps(
       }
     }
 )
-const task =ref()
-const checkTask = ref()
 const list  = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
@@ -35,59 +35,18 @@ async function fetchHotStock() {
   }
 }
 
-function startRefresh() {
-  stopRefresh()
-  fetchHotStock()
-  task.value = setInterval(fetchHotStock, 5000)
-  checkTask.value = setInterval(() => {
-    IsTradingTime().then(trading => {
-      if (!trading) {
-        stopRefresh()
-        startCheckLoop()
-      }
-    }).catch(() => {})
-  }, 60000)
-}
-
-function startCheckLoop() {
-  stopCheck()
-  checkTask.value = setInterval(() => {
-    IsTradingTime().then(trading => {
-      if (trading) {
-        stopCheck()
-        startRefresh()
-      }
-    }).catch(() => {})
-  }, 60000)
-}
-
-function stopRefresh() {
-  if (task.value) {
-    clearInterval(task.value)
-    task.value = null
-  }
-}
-
-function stopCheck() {
-  if (checkTask.value) {
-    clearInterval(checkTask.value)
-    checkTask.value = null
-  }
-}
-
 onBeforeMount(async () => {
-  const trading = await IsTradingTime().catch(() => true)
-  if (trading) {
-    startRefresh()
-  } else {
-    fetchHotStock()
-    startCheckLoop()
-  }
+  await fetchHotStock()
+  // 任意市场开市(交易时段)才轮询；页面恢复时自动重刷。
+  registerFeed("hotStock." + marketType, {
+    fetch: fetchHotStock,
+    intervalMs: 5000,
+    activeWhen: () => anyOpen.value,
+  })
 })
 
 onBeforeUnmount(()=>{
-  stopRefresh()
-  stopCheck()
+  stopFeed("hotStock." + marketType)
 })
 
 function getMarketCode(item) {

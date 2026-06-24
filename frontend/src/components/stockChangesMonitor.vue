@@ -2,6 +2,7 @@
 import {computed, h, onBeforeMount, onBeforeUnmount, onMounted, onUnmounted, ref, reactive} from 'vue'
 import {GetStockChanges, GetConfig, GetStockChangeHistory, SaveStockChangesToHistory, GetAllStockChangesWithPaging} from "../api/app";
 import {NButton, NTag, NText, useMessage, useNotification} from "naive-ui";
+import {onResume} from "../api/lifecycle";
 
 const notify = useNotification()
 const message = useMessage()
@@ -587,6 +588,14 @@ onMounted(() => {
   if (viewMode.value === 'realtime' && isTrading.value && autoRefresh.value) {
     startAutoRefresh()
   }
+  // 后台/休眠后 1s 倒计时 interval 被浏览器节流，回到前台时重新 arm 并立即刷新一次。
+  onResume(() => {
+    if (viewMode.value === 'realtime' && isTrading.value && autoRefresh.value) {
+      checkTradingTime()
+      fetchData()
+      startAutoRefresh()
+    }
+  })
 })
 
 onBeforeUnmount(() => {

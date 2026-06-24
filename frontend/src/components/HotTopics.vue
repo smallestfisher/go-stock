@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import {onBeforeMount, onUnmounted, ref} from 'vue'
 import {HotTopic, OpenURL} from "../api/app";
+import {registerFeed, stopFeed} from "../api/scheduler";
 const list  = ref([])
-const task =ref()
+
+async function loadHotTopics() { list.value = await HotTopic(10) }
 
 onBeforeMount(async () => {
-  list.value = await HotTopic(10)
-  setInterval(async ()=>{
-    list.value = await HotTopic(10)
-  }, 1000*10)
+  await loadHotTopics()
+  // 轮询交给统一调度器，页面恢复时自动重刷（原 setInterval 结果未赋值导致无法清理，一并修复）。
+  registerFeed("hotTopics", { fetch: loadHotTopics, intervalMs: 1000 * 10 })
 })
-onUnmounted(()=>{
-  clearInterval(task.value)
+onUnmounted(() => {
+  stopFeed("hotTopics")
 })
 
 function openCenteredWindow(url, width, height) {

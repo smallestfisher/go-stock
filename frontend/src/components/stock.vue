@@ -53,6 +53,7 @@ import {
   EventsOff,
   EventsOn
 } from '../api/runtime'
+import {registerFeed, stopFeed} from '../api/scheduler'
 import {Add, ChatboxOutline,} from '@vicons/ionicons5'
 
 import vueDanmaku from 'vue3-danmaku'
@@ -174,7 +175,6 @@ const data = reactive({
   darkTheme: false,
   changePercent: 0
 })
-const feishiInterval = ref(null)
 const aiAnalysisTimeout = ref(null)
 const aiAnalysisInProgress = ref(false)
 const aiAnalysisSaved = ref(false)
@@ -601,7 +601,7 @@ onBeforeUnmount(() => {
   ws.value.close()
   message.destroyAll()
   notify.destroyAll()
-  clearInterval(feishiInterval.value)
+  stopFeed("stock.feishi")
   // 清理 AI 分析超时定时器
   if (aiAnalysisTimeout.value) {
     clearTimeout(aiAnalysisTimeout.value)
@@ -1034,7 +1034,7 @@ function setStock(code, name) {
 
 function clearFeishi() {
   //console.log("clearFeishi")
-  clearInterval(feishiInterval.value)
+  stopFeed("stock.feishi")
 }
 
 async function showFsChart(code, name) {
@@ -1284,9 +1284,11 @@ function showFenshi(code, name, changePercent) {
 
 function handleFeishi() {
   showFsChart(data.code, data.name);
-  feishiInterval.value = setInterval(() => {
-    showFsChart(data.code, data.name);
-  }, 1000 * 10)
+  // 分时图轮询交给统一调度器，页面恢复（切回前台/休眠唤醒）时自动重刷。
+  registerFeed("stock.feishi", {
+    fetch: () => showFsChart(data.code, data.name),
+    intervalMs: 1000 * 10,
+  });
 }
 
 function calculateMA(dayCount, values) {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type eventPayload struct {
@@ -99,10 +100,19 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(": connected\n\n"))
 	flusher.Flush()
 
+	// 心跳：每 15s 写一行注释。EventSource 会忽略 ":" 开头的内容，仅重置"最后收到时间"。
+	// 既防止反代（nginx 默认 60s、Cloudflare 100s）空闲超时掐断连接，
+	// 也让客户端在连接静默死亡后更快被发现并重连。
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-ticker.C:
+			_, _ = w.Write([]byte(": ping\n\n"))
+			flusher.Flush()
 		case p, ok := <-s.ch:
 			if !ok {
 				return

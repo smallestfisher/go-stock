@@ -8,9 +8,6 @@ import {
   GetPromptTemplates,
   GetTelegraphList,
   GlobalStockIndexes,
-  IsTradingTime,
-  IsHKTradingTime,
-  IsUSTradingTime,
   ReFleshTelegraphList,
   SaveAIResponseResult,
   SaveAsMarkdown,
@@ -19,6 +16,8 @@ import {
   GetAiConfigs,
 } from "../api/app";
 import {EventsOff, EventsOn} from "../api/runtime";
+import {registerFeed, stopFeed} from "../api/scheduler";
+import {anyOpen} from "../api/marketClock";
 import NewsList from "./newsList.vue";
 import KLineChart from "./KLineChart.vue";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
@@ -106,9 +105,6 @@ function selectMarketMobileGroup(category) {
     updateTab(g.tabs[0])
   }
 }
-const indexInterval = ref(null)
-const indexIndustryRank = ref(null)
-const tradingCheckInterval = ref(null)
 const mdPreviewRef = ref(null)
 const aiResultScrollRef = ref(null)
 const stockCode= ref('')
@@ -158,21 +154,22 @@ onBeforeMount(() => {
   })
   getIndex();
   industryRank();
-  startTradingTimers();
-
-  tradingCheckInterval.value = setInterval(async () => {
-    const [cn, hk, us] = await Promise.all([
-      IsTradingTime().catch(() => false),
-      IsHKTradingTime().catch(() => false),
-      IsUSTradingTime().catch(() => false)
-    ])
-    const anyTrading = cn || hk || us
-    if (anyTrading && !indexInterval.value) {
-      startTradingTimers()
-    } else if (!anyTrading && indexInterval.value) {
-      stopTradingTimers()
-    }
-  }, 60000)
+  // 行情轮询交给统一调度器：任意市场开市(交易时段)才拉取，页面恢复时自动重连重刷。
+  registerFeed("market.index", {
+    fetch: getIndex,
+    intervalMs: 3000,
+    activeWhen: () => anyOpen.value,
+  });
+  registerFeed("market.industry", {
+    fetch: () => {
+      industryRank();
+      ReFlesh("财联社电报");
+      ReFlesh("新浪财经");
+      ReFlesh("外媒");
+    },
+    intervalMs: 10000,
+    activeWhen: () => anyOpen.value,
+  });
 })
 
 
@@ -181,35 +178,9 @@ onBeforeUnmount(() => {
   EventsOff("newTelegraph")
   EventsOff("newSinaNews")
   EventsOff("summaryStockNews")
-  stopTradingTimers()
-  if (tradingCheckInterval.value) {
-    clearInterval(tradingCheckInterval.value)
-  }
+  stopFeed("market.index");
+  stopFeed("market.industry");
 })
-
-function startTradingTimers() {
-  stopTradingTimers()
-  indexInterval.value = setInterval(() => {
-    getIndex()
-  }, 3000)
-  indexIndustryRank.value = setInterval(() => {
-    industryRank()
-    ReFlesh("财联社电报")
-    ReFlesh("新浪财经")
-    ReFlesh("外媒")
-  }, 1000 * 10)
-}
-
-function stopTradingTimers() {
-  if (indexInterval.value) {
-    clearInterval(indexInterval.value)
-    indexInterval.value = null
-  }
-  if (indexIndustryRank.value) {
-    clearInterval(indexIndustryRank.value)
-    indexIndustryRank.value = null
-  }
-}
 
 onUnmounted(() => {
 

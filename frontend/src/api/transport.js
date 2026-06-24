@@ -1,5 +1,7 @@
 // go-stock Web 端统一传输层：RPC 调用 + SSE 事件总线 + 访问令牌管理。
-// 
+//
+import { onResume } from "./lifecycle";
+
 const BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE) || "";
 const TOKEN_KEY = "go_stock_token";
 const CLIENT_ID_KEY = "go_stock_client_id";
@@ -165,6 +167,14 @@ function reconnectEvents() {
   }
   if (listeners.size > 0) ensureConnected();
 }
+
+// 页面恢复（切回前台 / 网络恢复 / bfcache 回退）时，若 SSE 未处于 OPEN 则重连。
+// 这是"切走/切回或休眠后推送类事件（新闻/AI 流式）不再更新"的修复。
+onResume(() => {
+  if (!es || es.readyState !== 1 /* EventSource.OPEN */) {
+    reconnectEvents();
+  }
+});
 
 export function openURL(url) {
   if (typeof window !== "undefined" && url) {

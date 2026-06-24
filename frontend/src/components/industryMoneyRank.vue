@@ -7,6 +7,7 @@ import {GetIndustryMoneyRankSina} from "../api/app";
 import KLineChart from "./KLineChart.vue";
 import BottomSheet from "./mobile/BottomSheet.vue";
 import {useDevice} from "../composables/useDevice";
+import {registerFeed, stopFeed} from "../api/scheduler";
 
 const props = defineProps({
   headerTitle: {
@@ -30,17 +31,15 @@ const fenlei= ref(props.fenlei)
 const activeKline = ref(null)
 const klineVisible = ref(false)
 
-const interval = ref(null)
 onMounted(()=>{
   sort.value=props.sort
   fenlei.value=props.fenlei
   GetRankData()
-  interval.value=setInterval(()=>{
-    GetRankData()
-  },1000*60)
+  // 轮询交给统一调度器，页面恢复时自动重刷。
+  registerFeed("industryMoneyRank." + props.fenlei + "." + props.sort, { fetch: GetRankData, intervalMs: 1000 * 60 })
 })
 onBeforeUnmount(()=>{
-  clearInterval(interval)
+  stopFeed("industryMoneyRank." + props.fenlei + "." + props.sort)
 })
 function GetRankData(){
   message.loading("正在刷新数据...")

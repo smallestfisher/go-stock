@@ -7,6 +7,7 @@ import {GetMoneyRankSina} from "../api/app";
 import KLineChart from "./KLineChart.vue";
 import BottomSheet from "./mobile/BottomSheet.vue";
 import {useDevice} from "../composables/useDevice";
+import {registerFeed, stopFeed} from "../api/scheduler";
 
 const props = defineProps({
   headerTitle: {
@@ -22,7 +23,6 @@ const {isMobile} = useDevice()
 const message = useMessage()
 const dataList= ref([])
 const sort = ref(props.sort)
-const interval = ref(null)
 // 移动端点击查看 K 线的当前标的
 const activeKline = ref(null)
 const klineVisible = ref(false)
@@ -30,12 +30,11 @@ const klineVisible = ref(false)
 onMounted(()=>{
   sort.value=props.sort
   GetMoneyRankSinaData()
-  interval.value=setInterval(()=>{
-    GetMoneyRankSinaData()
-  },1000*60)
+  // 轮询交给统一调度器，页面恢复时自动重刷。
+  registerFeed("rankTable." + props.sort, { fetch: GetMoneyRankSinaData, intervalMs: 1000 * 60 })
 })
 onBeforeUnmount(()=>{
-  clearInterval(interval)
+  stopFeed("rankTable." + props.sort)
 })
 function GetMoneyRankSinaData(){
   message.loading("正在刷新数据...")

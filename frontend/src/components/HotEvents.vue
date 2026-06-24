@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import {onBeforeMount, onUnmounted, ref} from 'vue'
 import {HotEvent} from "../api/app";
+import {registerFeed, stopFeed} from "../api/scheduler";
 const list  = ref([])
 
-const task =ref()
+async function loadHotEvents() { list.value = await HotEvent(50) }
+
 onBeforeMount(async () => {
-  list.value = await HotEvent(50)
-  task.value=setInterval(async ()=>{
-    list.value = await HotEvent(50)
-  }, 1000*10)
+  await loadHotEvents()
+  // 轮询交给统一调度器，页面恢复时自动重刷。
+  registerFeed("hotEvents", { fetch: loadHotEvents, intervalMs: 1000 * 10 })
 })
 
-onUnmounted(async ()=>{
-  clearInterval(task.value)
+onUnmounted(() => {
+  stopFeed("hotEvents")
 })
 </script>
 

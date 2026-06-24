@@ -13,6 +13,7 @@ import {
   GetFundHistoryNetValue,
   GetFundTop10Holdings
 } from "../api/app";
+import {registerFeed, stopFeed} from "../api/scheduler";
 import vueDanmaku from 'vue3-danmaku'
 import FundKlineChart from "./FundKlineChart.vue";
 
@@ -50,7 +51,6 @@ const followLoading = ref(false)
 const followKeyword = ref('')
 let followSearchTimer = null
 const options = ref([])
-const ticker = ref({})
 const REFRESH_INTERVAL = 60
 const countdown = ref(REFRESH_INTERVAL)
 const refreshing = ref(false)
@@ -141,9 +141,8 @@ onMounted(() => {
   ws.value.onerror = (error) => { console.error('WebSocket 错误:', error) }
   ws.value.onclose = () => {}
 
-  ticker.value = setInterval(() => {
-    refreshAllFunds()
-  }, 1000 * REFRESH_INTERVAL)
+  // 基金轮询交给统一调度器，页面恢复时自动重刷（并重置倒计时）。
+  registerFeed("fundFollow", { fetch: refreshAllFunds, intervalMs: 1000 * REFRESH_INTERVAL })
 
   countdownTimer.value = setInterval(() => {
     if (countdown.value > 0) {
@@ -153,7 +152,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  clearInterval(ticker.value)
+  stopFeed("fundFollow")
   clearInterval(countdownTimer.value)
   if (ws.value) ws.value.close()
   message.destroyAll()

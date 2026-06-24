@@ -25,8 +25,10 @@ import {
   StatsChartOutline,
   Wallet, WarningOutline, TimeOutline, SearchOutline,
 } from '@vicons/ionicons5'
-import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo, IsTradingTime, IsHKTradingTime, IsUSTradingTime} from "./api/app";
+import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo} from "./api/app";
 import {useDevice} from "./composables/useDevice";
+import {cnOpen, hkOpen, usOpen} from "./api/marketClock";
+import {registerFeed, stopFeed} from "./api/scheduler";
 import {Dragon, Fire, FirefoxBrowser, Gripfire, Robot} from "@vicons/fa";
 import {Prompt, ReportAnalytics, ReportMoney, ReportSearch, TrendingUp} from "@vicons/tabler";
 import {LocalFireDepartmentRound} from "@vicons/material";
@@ -54,7 +56,6 @@ const telegraph = ref([])
 const groupList = ref([])
 const officialStatement= ref("")
 const marketStatus = ref('')
-let marketStatusTimer = null
 // 全局单例设备状态，替代组件内 matchMedia 监听
 const {isMobile} = useDevice()
 const mobileMenuVisible = ref(false)
@@ -109,19 +110,18 @@ function refreshMotto() {
 }
 
 function updateMarketStatus() {
-  Promise.all([
-    IsTradingTime().catch(() => false),
-    IsHKTradingTime().catch(() => false),
-    IsUSTradingTime().catch(() => false)
-  ]).then(([cn, hk, us]) => {
-    const parts = []
-    parts.push(cn ? 'A股交易中' : 'A股休市')
-    parts.push(hk ? '港股交易中' : '港股休市')
-    parts.push(us ? '美股交易中' : '美股休市')
-    marketStatus.value = parts.join(' | ')
-    document.title = "go-stock " + marketStatus.value
-  })
+  // 交易时段状态由 marketClock 统一维护（收口原散落各处的 IsTradingTime().catch(()=>false)，
+  // 并修复其 bug：网络失败不再被误判为"收盘→停轮询"）。
+  const parts = []
+  parts.push(cnOpen.value ? 'A股交易中' : 'A股休市')
+  parts.push(hkOpen.value ? '港股交易中' : '港股休市')
+  parts.push(usOpen.value ? '美股交易中' : '美股休市')
+  marketStatus.value = parts.join(' | ')
+  document.title = "go-stock " + marketStatus.value
 }
+
+// 交易时段状态变化时同步标题（marketClock 自带 60s 轮询 + 页面恢复立即重判）。
+watch([cnOpen, hkOpen, usOpen], updateMarketStatus, { immediate: true })
 
 // 内容区高度随 isMobile 自动响应（设备状态由 useDevice 单例维护）
 const contentStyle = computed(() => isMobile.value
@@ -1159,10 +1159,7 @@ setTimeout(() => {
 }, 8000)
 
 onBeforeUnmount(() => {
-  if (marketStatusTimer) {
-    clearInterval(marketStatusTimer)
-    marketStatusTimer = null
-  }
+  stopFeed("app.motto")
   EventsOff("realtime_profit")
   EventsOff("loadingMsg")
   EventsOff("telegraph")
@@ -1261,11 +1258,8 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
-  updateMarketStatus()
-  marketStatusTimer = setInterval(() => {
-    refreshMotto()
-    updateMarketStatus()
-  }, 60000)
+  // 标题/交易状态由 marketClock + watch 驱动；这里只保留格言的定时刷新。
+  registerFeed("app.motto", { fetch: refreshMotto, intervalMs: 60000 })
   GetConfig().then((res) => {
     if (res.enableNews) {
       enableNews.value = true
