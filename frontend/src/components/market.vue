@@ -236,6 +236,52 @@ function getAreaName(code) {
   }
 }
 
+// ===================== 移动端"市场快讯"专属数据 =====================
+// ① 大盘速览：从全球股指里精选核心指数，按 地区→指数 展平成横滑卡片
+const mobileHotIndexCodes = ['sh000001','sz399001','sz399006','hkHSI','us.IXIC','us.DJI','us.INX','us.DX']
+const mobileIndexList = computed(() => {
+  const g = globalStockIndexes.value
+  if (!g) return []
+  const all = []
+  Object.keys(g).forEach(area => {
+    ;(g[area] || []).forEach(item => {
+      if (mobileHotIndexCodes.includes(item.qtcode) || mobileHotIndexCodes.includes(item.code)) {
+        all.push({...item, area: getAreaName(area)})
+      }
+    })
+  })
+  return all
+})
+
+// ③ 新闻流来源筛选：全部 / 财联社 / 新浪 / 外媒
+const mobileNewsSource = ref('all')
+const mobileNewsList = computed(() => {
+  const src = mobileNewsSource.value
+  const pick = (arr, name) => (arr || []).map(i => ({...i, __source: name}))
+  if (src === 'cls') return pick(telegraphList.value, '财联社')
+  if (src === 'sina') return pick(sinaNewsList.value, '新浪')
+  if (src === 'foreign') return pick(foreignNewsList.value, '外媒')
+  // all：混合三源，按时间倒序
+  return [
+    ...pick(telegraphList.value, '财联社'),
+    ...pick(sinaNewsList.value, '新浪'),
+    ...pick(foreignNewsList.value, '外媒'),
+  ].sort((a, b) => {
+    const ta = a.dataTime || a.time || ''
+    const tb = b.dataTime || b.time || ''
+    return tb.localeCompare(ta)
+  })
+})
+const mobileNewsSourceOptions = computed(() => {
+  const opts = [{label:'全部', value:'all'}]
+  if (telegraphList.value.length) opts.push({label:`财联社 ${telegraphList.value.length}`, value:'cls'})
+  if (sinaNewsList.value.length) opts.push({label:`新浪 ${sinaNewsList.value.length}`, value:'sina'})
+  if (foreignNewsList.value.length) opts.push({label:`外媒 ${foreignNewsList.value.length}`, value:'foreign'})
+  return opts
+})
+const sourceTagType = (s) => s === '财联社' ? 'success' : s === '新浪' ? 'info' : 'warning'
+
+
 function changeIndustryRankSort() {
   if (sort.value === "0") {
     sort.value = "1"
@@ -443,29 +489,15 @@ function ReFlesh(source) {
     </div>
     <n-tabs :class="{ 'market-mobile-tabs--native-hidden': isMobile }" type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="市场快讯" tab="市场快讯">
-        <n-grid :cols="1" :y-gap="0">
+
+        <!-- ============ 桌面端：热词 + 三栏新闻 ============ -->
+        <n-grid v-if="!isMobile" :cols="1" :y-gap="0">
           <n-gi>
             <div class="market-desktop-heat-panel desktop-only">
               <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
             </div>
-            <n-collapse class="market-mobile-heat-panel mobile-only">
-              <n-collapse-item title="最近24小时热词" name="market-hot-words">
-                <AnalyzeMartket :dark-theme="darkTheme" :chart-height="220" :kDays="1" :name="'最近24小时热词'" />
-              </n-collapse-item>
-            </n-collapse>
           </n-gi>
           <n-gi>
-            <n-tabs class="market-mobile-news-tabs mobile-only" type="segment" animated size="small">
-              <n-tab-pane name="财联社" tab="财联社">
-                <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-              <n-tab-pane name="新浪" tab="新浪">
-                <news-list :newsList="sinaNewsList" :header-title="'新浪财经'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-              <n-tab-pane v-if="foreignNewsList.length>0" name="外媒" tab="外媒">
-                <news-list :newsList="foreignNewsList" :header-title="'外媒'" @update:message="ReFlesh"></news-list>
-              </n-tab-pane>
-            </n-tabs>
             <n-grid class="market-news-grid market-desktop-news-grid" :cols="foreignNewsList.length?3:2" :y-gap="0">
               <n-gi>
                 <news-list :newsList="telegraphList" :header-title="'财联社电报'" @update:message="ReFlesh"></news-list>
@@ -476,10 +508,87 @@ function ReFlesh(source) {
               <n-gi v-if="foreignNewsList.length>0">
                 <news-list :newsList="foreignNewsList" :header-title="'外媒'" @update:message="ReFlesh"></news-list>
               </n-gi>
-
             </n-grid>
           </n-gi>
         </n-grid>
+
+        <!-- ============ 移动端：重新设计的快讯布局 ============ -->
+        <div v-else class="mkt-brief">
+
+          <!-- ① 大盘速览：核心指数横滑卡片 -->
+          <section class="mkt-section">
+            <div class="mkt-section__title">📊 大盘速览</div>
+            <div v-if="mobileIndexList.length" class="mkt-index-rail">
+              <div
+                  v-for="item in mobileIndexList"
+                  :key="item.code"
+                  class="mkt-index-card"
+                  :class="'mkt-index-card--' + (item.zdf>0?'up':'down')"
+              >
+                <div class="mkt-index-card__head">
+                  <n-image :src="item.img" :width="16" preview-disabled />
+                  <span class="mkt-index-card__name">{{ item.name }}</span>
+                </div>
+                <div class="mkt-index-card__price" :class="'text-' + (item.zdf>0?'error':'success')">{{ item.zxj }}</div>
+                <div class="mkt-index-card__zdf" :class="'bg-' + (item.zdf>0?'error':'success')">
+                  <n-number-animation :precision="2" :from="0" :to="item.zdf"/>%
+                </div>
+                <div class="mkt-index-card__state">{{ item.state === 'open' ? '开市' : '休市' }}</div>
+              </div>
+            </div>
+            <n-empty v-else description="指数加载中" size="small" style="padding: 16px 0" />
+          </section>
+
+          <!-- ② 24h 热词：平铺，不再折叠 -->
+          <section class="mkt-section">
+            <div class="mkt-section__title">🔥 最近24小时热词</div>
+            <AnalyzeMartket :dark-theme="darkTheme" :chart-height="260" :kDays="1" :name="'最近24小时热词'" />
+          </section>
+
+          <!-- ③ 资讯流：来源吸顶筛选 + 混合时间流 -->
+          <section class="mkt-section">
+            <div class="mkt-news-sticky">
+              <div class="mkt-section__title">📰 资讯</div>
+              <div class="mkt-news-source-bar">
+                <button
+                    v-for="opt in mobileNewsSourceOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="mkt-source-chip"
+                    :class="{ 'mkt-source-chip--active': mobileNewsSource === opt.value }"
+                    @click="mobileNewsSource = opt.value"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <div class="mkt-news-list">
+              <article
+                  v-for="(item, idx) in mobileNewsList"
+                  :key="(item.ID||'') + '-' + idx"
+                  class="mkt-news-item"
+                  :class="{'mkt-news-item--red': item.isRed}"
+              >
+                <div class="mkt-news-item__top">
+                  <n-tag size="tiny" :bordered="false" :type="sourceTagType(item.__source)">{{ item.__source }}</n-tag>
+                  <span v-if="item.time" class="mkt-news-item__time">{{ item.time }}</span>
+                  <n-tag v-if="item.sentimentResult" size="tiny" :bordered="false"
+                         :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'">
+                    {{ item.sentimentResult }}
+                  </n-tag>
+                </div>
+                <div v-if="item.title" class="mkt-news-item__title" :class="{'text-error': item.isRed}">{{ item.title }}</div>
+                <div v-if="item.content" class="mkt-news-item__content">{{ item.content }}</div>
+                <div v-if="item.subjects || item.stocks || item.url" class="mkt-news-item__tags">
+                  <n-tag v-for="sub in (item.subjects||[])" :key="'s'+sub" :bordered="false" type="success" size="tiny">{{ sub }}</n-tag>
+                  <n-tag v-for="sub in (item.stocks||[])" :key="'k'+sub" :bordered="false" type="warning" size="tiny">{{ sub }}</n-tag>
+                  <a v-if="item.url" :href="item.url" target="_blank" class="mkt-news-item__link">原文 ›</a>
+                </div>
+              </article>
+              <n-empty v-if="!mobileNewsList.length" description="暂无资讯" size="small" style="padding: 24px 0" />
+            </div>
+          </section>
+
+        </div>
 
       </n-tab-pane>
       <n-tab-pane name="全球股指" tab="全球股指">
@@ -913,30 +1022,6 @@ function ReFlesh(source) {
     display: none !important;
   }
 
-  .market-mobile-heat-panel,
-  .market-mobile-news-tabs {
-    display: block !important;
-    width: 100%;
-  }
-
-  .market-mobile-heat-panel {
-    margin-bottom: 8px;
-  }
-
-  .market-mobile-heat-panel :deep(.n-collapse-item__content-inner) {
-    padding: 6px 0 0;
-  }
-
-  .market-mobile-news-tabs :deep(.n-tabs-nav) {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-
-  .market-mobile-news-tabs :deep(.n-tabs-pane-wrapper) {
-    margin-top: 8px;
-  }
-
   .market-news-grid {
     display: block !important;
   }
@@ -1083,5 +1168,198 @@ function ReFlesh(source) {
   border-color: #2080f0;
   color: #fff;
   font-weight: 700;
+}
+
+/* ============ 移动端"市场快讯"重新设计（仅在 isMobile 渲染） ============ */
+.mkt-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 calc(var(--safe-bottom) + 8px);
+  text-align: left;
+}
+
+.mkt-section {
+  background: var(--n-color, #fff);
+  border: 1px solid var(--n-border-color, #edf0f5);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mkt-section__title {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 12px 8px;
+}
+
+/* ① 大盘速览横滑 */
+.mkt-index-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 12px 12px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mkt-index-card {
+  background: var(--n-color-target, #f5f7fa);
+  border-radius: 10px;
+  flex: 0 0 108px;
+  padding: 9px 10px;
+  scroll-snap-align: start;
+}
+
+.mkt-index-card--up {
+  border-left: 3px solid #d03050;
+}
+
+.mkt-index-card--down {
+  border-left: 3px solid #18a058;
+}
+
+.mkt-index-card__head {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.mkt-index-card__name {
+  color: var(--n-text-color-2, #555);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mkt-index-card__price {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mkt-index-card__zdf {
+  border-radius: 4px;
+  color: #fff;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+  padding: 1px 6px;
+}
+
+.mkt-index-card__state {
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+/* ③ 资讯流 */
+.mkt-news-sticky {
+  background: var(--n-color, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.mkt-news-source-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 12px 10px;
+}
+
+.mkt-source-chip {
+  appearance: none;
+  background: var(--n-color-target, #f5f7fa);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  color: var(--n-text-color-2, #555);
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 14px;
+  white-space: nowrap;
+}
+
+.mkt-source-chip--active {
+  background: #2080f0;
+  color: #fff;
+  font-weight: 700;
+}
+
+.mkt-news-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mkt-news-item {
+  border-top: 1px solid var(--n-border-color, #f0f1f5);
+  padding: 10px 12px;
+}
+
+.mkt-news-item:first-child {
+  border-top: 0;
+}
+
+.mkt-news-item--red {
+  background: rgba(208, 48, 80, 0.04);
+}
+
+.mkt-news-item__top {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mkt-news-item__time {
+  color: var(--n-text-color-3, #98a2b3);
+  font-size: 11px;
+}
+
+.mkt-news-item__title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+
+.mkt-news-item__content {
+  color: var(--n-text-color-2, #555);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.mkt-news-item__tags {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.mkt-news-item__link {
+  color: #f0a020;
+  font-size: 12px;
+}
+
+/* 涨跌色工具类 */
+.text-error {
+  color: #d03050;
+}
+
+.text-success {
+  color: #18a058;
+}
+
+.bg-error {
+  background: #d03050;
+}
+
+.bg-success {
+  background: #18a058;
 }
 </style>
