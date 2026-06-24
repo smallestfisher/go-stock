@@ -131,11 +131,14 @@ const handleLine = (code, days) => {
           '累计净流入': true,
           '股价': true,
         },
+        // 移动端：顶部一行 + 可滚动分页，避免 4 个图例项在窄屏重叠
+        ...(isMobile
+          ? { top: 0, left: 0, right: 0, type: 'scroll', pageIconSize: 10 }
+          : { top: 'auto', right: 150 }),
         textStyle: {
           color: darkTheme ? 'rgb(253,252,252)' : '#456',
           fontSize: isMobile ? 10 : 12
         },
-        right: isMobile ? 8 : 150,
         itemWidth: isMobile ? 14 : 25,
         itemHeight: isMobile ? 8 : 14,
         itemGap: isMobile ? 6 : 10,

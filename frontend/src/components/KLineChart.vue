@@ -86,6 +86,7 @@ function  handleKLine(code,stockName){
       title: {
         text: stockName+" "+categoryData[values.length-1]+"  "+values[values.length-1][1]+" "+((values[values.length-1][1]-values[values.length-2][1])/values[values.length-2][1]*100).toFixed(2)+"%",
         left: '0px',
+        top: isMobile ? 0 : undefined,
         textStyle: {
           color: Number(values[values.length-1][1])>Number(values[values.length-2][1])?'red':'green',
           fontSize: isMobile ? 12 : 14
@@ -94,8 +95,10 @@ function  handleKLine(code,stockName){
       darkMode: darkTheme,
       animation: false,
       legend: {
-        right: 20,
-        top: 0,
+        // 桌面：右上角；移动端：title 下方独立一行 + 可滚动，避免 MA 标签与标题/蜡烛重叠
+        ...(isMobile
+          ? { top: 20, left: 0, right: 0, type: 'scroll', pageIconSize: 10 }
+          : { right: 20, top: 0 }),
         data: ['日K', 'MA5', 'MA10', 'MA20', 'MA30'],
         textStyle: {
           color: darkTheme?'#ccc':'#456',
@@ -173,8 +176,8 @@ function  handleKLine(code,stockName){
         {
           left: isMobile ? '14%' : '8%',
           right: isMobile ? '6%' : '8%',
-          top: isMobile ? '16%' : '8%',
-          height: isMobile ? '52%' : '50%',
+          top: isMobile ? '22%' : '8%',
+          height: isMobile ? '48%' : '50%',
         },
         {
           left: isMobile ? '14%' : '8%',
