@@ -31,6 +31,7 @@ const {code, name, darkTheme, days, chartHeight} = defineProps({
 const LineChartRef = ref(null);
 let chartInstance = null
 let resizeObs = null
+let visibleObs = null
 
 onMounted(
     () => {
@@ -39,10 +40,25 @@ onMounted(
         resizeObs = new ResizeObserver(() => { if (chartInstance) chartInstance.resize() })
         resizeObs.observe(LineChartRef.value)
       }
+      // tab 切换/抽屉展开导致容器 display:none→block 时，ResizeObserver 不一定触发，
+      // 用 IntersectionObserver 监听可见性，可见即 resize（解决资金图在 tab 内画错尺寸）
+      if (LineChartRef.value && window.IntersectionObserver) {
+        visibleObs = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (e.isIntersecting && chartInstance) {
+              chartInstance.resize()
+            }
+          })
+        })
+        visibleObs.observe(LineChartRef.value)
+      }
+      // 兜底：延迟重画一次，应对容器晚展开
+      setTimeout(() => { if (chartInstance) chartInstance.resize() }, 400)
     }
 )
 onUnmounted(() => {
   if (resizeObs) resizeObs.disconnect()
+  if (visibleObs) visibleObs.disconnect()
   if (chartInstance) chartInstance.dispose()
 })
 const handleLine = (code, days) => {
@@ -202,17 +218,18 @@ const handleLine = (code, days) => {
       ],
       yAxis: [
         {
-          name: '当日净流入/万',
+          name: isMobile ? '' : '当日净流入/万',
           type: 'value',
           axisLine: {
             show: true
           },
+          axisLabel: { fontSize: isMobile ? 10 : 12 },
           splitLine: {
             show: false
           },
         },
         {
-          name: '股价',
+          name: isMobile ? '' : '股价',
           type: 'value',
           min: min - 1,
           max: max + 1,
@@ -220,17 +237,19 @@ const handleLine = (code, days) => {
           axisLine: {
             show: true
           },
+          axisLabel: { fontSize: isMobile ? 10 : 12 },
           splitLine: {
             show: false
           },
         },
         {
           gridIndex: 1,
-          name: '累计净流入/万',
+          name: isMobile ? '' : '累计净流入/万',
           type: 'value',
           axisLine: {
             show: true
           },
+          axisLabel: { fontSize: isMobile ? 10 : 12 },
           splitLine: {
             show: false
           },
@@ -256,6 +275,7 @@ const handleLine = (code, days) => {
             },
             label: {
               position: 'right',
+              show: !isMobile,
             },
             data: [
               {type: 'max', name: 'Max'},
@@ -263,6 +283,8 @@ const handleLine = (code, days) => {
             ]
           },
           markLine: {
+            symbol: isMobile ? 'none' : undefined,
+            label: { show: !isMobile },
             data: [
               {
                 type: 'average',

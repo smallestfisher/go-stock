@@ -91,7 +91,7 @@ const orderLevels = computed(() => {
             </div>
 
             <!-- 4 个 Tab -->
-            <n-tabs v-model:value="activeTab" type="line" animated size="small" class="stock-detail__tabs">
+            <n-tabs v-model:value="activeTab" type="line" animated size="small" display-directive="show" class="stock-detail__tabs">
                 <n-tab-pane name="fenshi" tab="分时">
                     <FenshiChart
                         :key="'fenshi-' + result['股票代码']"
@@ -235,9 +235,25 @@ const orderLevels = computed(() => {
 }
 
 .stock-detail__tabs {
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
     padding: 0 8px;
+}
+
+.stock-detail__tabs :deep(.n-tabs-pane-wrapper) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.stock-detail__tabs :deep(.n-tab-pane) {
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 0 12px;
 }
 
 .stock-detail__order {
