@@ -1,5 +1,7 @@
 <script setup>
 // 移动端独立入口，无桌面端布局
+// 导入移动端设计系统变量
+import './styles/variables.css'
 </script>
 
 <template>
