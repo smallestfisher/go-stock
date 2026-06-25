@@ -5,10 +5,7 @@ const HomePage = () => import('./pages/HomePage.vue')
 const StockListPage = () => import('./pages/stock/StockListPage.vue')
 const MarketPage = () => import('./pages/market/MarketPage.vue')
 const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
-
-// TODO: 后续添加的页面
-// const ResearchPage = () => import('./pages/research/ResearchPage.vue')
-// ...
+const ResearchPage = () => import('./pages/research/ResearchPage.vue')
 
 const routes = [
   {
@@ -35,7 +32,12 @@ const routes = [
     component: KlineAnalysisPage,
     meta: { title: 'K线分析' }
   },
-  // TODO: 后续添加更多路由
+  {
+    path: '/mobile/research',
+    name: 'MobileResearch',
+    component: ResearchPage,
+    meta: { title: '研究中心' }
+  },
 ]
 
 const router = createRouter({
