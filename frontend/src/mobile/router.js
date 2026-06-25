@@ -6,6 +6,8 @@ const StockListPage = () => import('./pages/stock/StockListPage.vue')
 const MarketPage = () => import('./pages/market/MarketPage.vue')
 const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
 const ResearchPage = () => import('./pages/research/ResearchPage.vue')
+const SettingsPage = () => import('./pages/settings/SettingsPage.vue')
+const AboutPage = () => import('./pages/about/AboutPage.vue')
 
 const routes = [
   {
@@ -37,6 +39,18 @@ const routes = [
     name: 'MobileResearch',
     component: ResearchPage,
     meta: { title: '研究中心' }
+  },
+  {
+    path: '/mobile/settings',
+    name: 'MobileSettings',
+    component: SettingsPage,
+    meta: { title: '设置' }
+  },
+  {
+    path: '/mobile/about',
+    name: 'MobileAbout',
+    component: AboutPage,
+    meta: { title: '关于' }
   },
 ]
 
