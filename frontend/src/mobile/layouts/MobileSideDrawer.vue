@@ -136,31 +136,32 @@ function close() {
 
 .drawer-header {
   padding: calc(var(--m-safe-top) + var(--m-space-xl)) var(--m-space-xl) var(--m-space-xl);
-  background: linear-gradient(135deg, var(--m-color-rise), var(--m-color-rise-hover));
-  color: white;
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
 }
 
 .user-avatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, var(--m-color-rise), var(--m-color-rise-hover));
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: var(--m-space-md);
-  backdrop-filter: blur(10px);
+  color: white;
 }
 
 .user-name {
   font-size: var(--m-font-lg);
   font-weight: var(--m-font-weight-medium);
   margin-bottom: var(--m-space-xs);
+  color: var(--m-text-primary);
 }
 
 .user-profit {
   font-size: var(--m-font-sm);
-  opacity: 0.95;
+  color: var(--m-text-secondary);
 }
 
 .drawer-nav {
