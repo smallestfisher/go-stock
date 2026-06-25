@@ -53,7 +53,7 @@ watch(activeTab, (newVal) => {
 <template>
   <div class="market-page">
     <!-- 顶部导航 -->
-    <PageHeader title="市场行情" show-back />
+    <PageHeader title="市场行情" />
 
     <!-- Tab切换栏 -->
     <div class="market-tabs">

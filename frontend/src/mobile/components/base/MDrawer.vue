@@ -13,12 +13,11 @@ const emit = defineEmits(['update:show'])
 
 const router = useRouter()
 
+// 「更多」抽屉：放次级功能（dock 已常驻首页/自选/市场/研究）
 const menuItems = [
-  { label: '首页', icon: '🏠', path: '/mobile' },
-  { label: '自选股票', icon: '⭐', path: '/mobile/stock' },
-  { label: '市场行情', icon: '📊', path: '/mobile/market' },
   { label: 'K线分析', icon: '📈', path: '/mobile/kline' },
-  { label: '研究中心', icon: '🔬', path: '/mobile/research' },
+  { label: '基金中心', icon: '💰', path: '/mobile/fund' },
+  { label: 'AI智能体', icon: '🤖', path: '/mobile/agent' },
   { label: '设置', icon: '⚙️', path: '/mobile/settings' },
   { label: '关于', icon: 'ℹ️', path: '/mobile/about' },
 ]
@@ -40,7 +39,7 @@ function handleNavigate(path) {
         <div class="drawer-content" @click.stop>
           <!-- 头部 -->
           <div class="drawer-header">
-            <h2 class="drawer-title">go-stock</h2>
+            <h2 class="drawer-title">更多功能</h2>
             <button class="drawer-close" @click="handleClose">✕</button>
           </div>
 

@@ -6,10 +6,48 @@ const StockListPage = () => import('./pages/stock/StockListPage.vue')
 const MarketPage = () => import('./pages/market/MarketPage.vue')
 const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
 const ResearchPage = () => import('./pages/research/ResearchPage.vue')
+const FundPage = () => import('./pages/fund/FundPage.vue')
+const AgentPage = () => import('./pages/agent/AgentPage.vue')
 const SettingsPage = () => import('./pages/settings/SettingsPage.vue')
 const AboutPage = () => import('./pages/about/AboutPage.vue')
 
 const routes = [
+  {
+    path: '/',
+    redirect: '/mobile'
+  },
+  {
+    path: '/stock',
+    redirect: '/mobile/stock'
+  },
+  {
+    path: '/market',
+    redirect: '/mobile/market'
+  },
+  {
+    path: '/kline-analysis',
+    redirect: '/mobile/kline'
+  },
+  {
+    path: '/research',
+    redirect: '/mobile/research'
+  },
+  {
+    path: '/fund',
+    redirect: '/mobile/fund'
+  },
+  {
+    path: '/agent',
+    redirect: '/mobile/agent'
+  },
+  {
+    path: '/settings',
+    redirect: '/mobile/settings'
+  },
+  {
+    path: '/about',
+    redirect: '/mobile/about'
+  },
   {
     path: '/mobile',
     name: 'MobileHome',
@@ -41,6 +79,18 @@ const routes = [
     meta: { title: '研究中心' }
   },
   {
+    path: '/mobile/fund',
+    name: 'MobileFund',
+    component: FundPage,
+    meta: { title: '基金中心' }
+  },
+  {
+    path: '/mobile/agent',
+    name: 'MobileAgent',
+    component: AgentPage,
+    meta: { title: 'AI智能体' }
+  },
+  {
     path: '/mobile/settings',
     name: 'MobileSettings',
     component: SettingsPage,
@@ -51,6 +101,10 @@ const routes = [
     name: 'MobileAbout',
     component: AboutPage,
     meta: { title: '关于' }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/mobile'
   },
 ]
 

@@ -87,6 +87,15 @@ export default defineConfig({
           devOptions: { enabled: false }
       }),
   ],
+  server: {
+      port: 5173,
+      proxy: {
+          '/api': {
+              target: 'http://localhost:18888',
+              changeOrigin: true
+          }
+      }
+  },
   build: {
       chunkSizeWarningLimit: 2000,
       rollupOptions: {

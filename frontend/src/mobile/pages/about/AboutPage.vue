@@ -1,84 +1,160 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onBeforeMount } from 'vue'
+import PageHeader from '../../components/widgets/PageHeader.vue'
 import MCard from '../../components/base/MCard.vue'
+import MLoading from '../../components/base/MLoading.vue'
+import { GetVersionInfo } from '../../../api/app'
 
-const router = useRouter()
+// 应用信息（后续接 GetVersionInfo 填充，对齐桌面端 about.vue）
+// 返回字段：{ version, content(更新日志), icon, alipay, wxpay, wxgzh }
+const versionInfo = ref(null)
+const updateLog = ref('')
+const icon = ref('')
+const loading = ref(false)
 
-const appInfo = ref({
-  name: 'go-stock',
-  version: '1.0.0',
-  buildTime: '2024-06-20',
-  description: '移动端股票分析工具'
-})
-
-function handleBack() {
-  router.back()
+async function loadInfo() {
+  loading.value = true
+  try {
+    const res = await GetVersionInfo()
+    versionInfo.value = res
+    updateLog.value = res?.content || ''
+    icon.value = res?.icon || ''
+  } catch (error) {
+    console.error('加载版本信息失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
+
+onBeforeMount(loadInfo)
 </script>
 
 <template>
   <div class="about-page">
     <!-- 顶部导航 -->
-    <div class="page-header">
-      <button class="back-btn" @click="handleBack">←</button>
-      <h1 class="page-title">关于</h1>
-      <div class="header-placeholder" />
-    </div>
+    <PageHeader title="关于" />
 
     <!-- 内容 -->
     <div class="about-content">
-      <!-- 应用信息 -->
-      <MCard>
-        <div class="app-logo">📈</div>
-        <h2 class="app-name">{{ appInfo.name }}</h2>
-        <p class="app-version">版本 {{ appInfo.version }}</p>
-        <p class="app-desc">{{ appInfo.description }}</p>
-      </MCard>
+      <MLoading v-if="loading" text="加载中..." />
 
-      <!-- 详细信息 -->
-      <MCard>
-        <div class="info-item">
-          <span class="info-label">构建时间</span>
-          <span class="info-value">{{ appInfo.buildTime }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">技术栈</span>
-          <span class="info-value">Vue 3 + Vite</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">开源协议</span>
-          <span class="info-value">MIT</span>
-        </div>
-      </MCard>
+      <template v-else>
+        <!-- 应用信息 -->
+        <MCard>
+          <img v-if="icon" :src="icon" class="app-logo" alt="logo">
+          <div v-else class="app-logo-emoji">📈</div>
+          <h2 class="app-name">go-stock</h2>
+          <p v-if="versionInfo?.version" class="app-version">
+            版本 {{ versionInfo.version }}
+          </p>
+          <p class="app-desc">基于大语言模型的 AI 赋能股票分析工具，支持 A股、港股、美股</p>
+        </MCard>
 
-      <!-- 链接 -->
-      <MCard>
-        <div class="link-item">用户协议</div>
-        <div class="link-item">隐私政策</div>
-        <div class="link-item">问题反馈</div>
-      </MCard>
+        <!-- 更新日志 -->
+        <MCard v-if="updateLog">
+          <h3 class="section-title">更新日志</h3>
+          <div class="update-log" v-html="updateLog" />
+        </MCard>
+
+        <!-- 链接 -->
+        <MCard>
+          <div class="info-item">
+            <span class="info-label">开源协议</span>
+            <span class="info-value">GPLv3</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">项目地址</span>
+            <span class="info-value">GitHub</span>
+          </div>
+        </MCard>
+      </template>
     </div>
   </div>
 </template>
 
 <style scoped>
-.about-page { display: flex; flex-direction: column; height: 100%; background: var(--m-bg-primary); }
-.page-header { display: flex; align-items: center; justify-content: space-between; padding: var(--m-space-md); background: var(--m-bg-card); border-bottom: 1px solid var(--m-divider-color); }
-.back-btn { width: var(--m-touch-min); height: var(--m-touch-min); display: flex; align-items: center; justify-content: center; background: transparent; border: none; font-size: 24px; color: var(--m-text-primary); cursor: pointer; }
-.back-btn:active { opacity: 0.6; }
-.page-title { font-size: var(--m-font-xl); font-weight: var(--m-font-weight-medium); color: var(--m-text-primary); }
-.header-placeholder { width: var(--m-touch-min); }
-.about-content { flex: 1; overflow-y: auto; padding: var(--m-space-md); display: flex; flex-direction: column; gap: var(--m-space-md); }
-.app-logo { font-size: 64px; text-align: center; margin-bottom: var(--m-space-lg); }
-.app-name { font-size: var(--m-font-2xl); font-weight: var(--m-font-weight-bold); text-align: center; margin-bottom: var(--m-space-xs); }
-.app-version { text-align: center; color: var(--m-text-tertiary); font-size: var(--m-font-sm); margin-bottom: var(--m-space-md); }
-.app-desc { text-align: center; color: var(--m-text-secondary); font-size: var(--m-font-sm); }
-.info-item { display: flex; justify-content: space-between; padding: var(--m-space-lg) 0; border-bottom: 1px solid var(--m-divider-color); }
-.info-item:last-child { border-bottom: none; }
-.info-label { color: var(--m-text-secondary); }
-.info-value { color: var(--m-text-primary); font-weight: var(--m-font-weight-medium); }
-.link-item { padding: var(--m-space-lg) 0; color: var(--m-text-primary); border-bottom: 1px solid var(--m-divider-color); cursor: pointer; }
-.link-item:last-child { border-bottom: none; }
-.link-item:active { opacity: 0.6; }
+.about-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--m-bg-primary);
+}
+
+.about-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--m-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-md);
+}
+
+.app-logo {
+  width: 80px;
+  height: 80px;
+  display: block;
+  margin: 0 auto var(--m-space-lg);
+  border-radius: var(--m-radius-lg);
+}
+
+.app-logo-emoji {
+  font-size: 64px;
+  text-align: center;
+  margin-bottom: var(--m-space-lg);
+}
+
+.app-name {
+  font-size: var(--m-font-2xl);
+  font-weight: var(--m-font-weight-bold);
+  text-align: center;
+  margin-bottom: var(--m-space-xs);
+}
+
+.app-version {
+  text-align: center;
+  color: var(--m-text-tertiary);
+  font-size: var(--m-font-sm);
+  margin-bottom: var(--m-space-md);
+}
+
+.app-desc {
+  text-align: center;
+  color: var(--m-text-secondary);
+  font-size: var(--m-font-sm);
+  line-height: var(--m-line-height-normal);
+}
+
+.section-title {
+  font-size: var(--m-font-lg);
+  font-weight: var(--m-font-weight-medium);
+  margin-bottom: var(--m-space-md);
+}
+
+.update-log {
+  font-size: var(--m-font-sm);
+  color: var(--m-text-secondary);
+  line-height: var(--m-line-height-loose);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--m-space-lg) 0;
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--m-text-secondary);
+}
+
+.info-value {
+  color: var(--m-text-primary);
+  font-weight: var(--m-font-weight-medium);
+}
 </style>

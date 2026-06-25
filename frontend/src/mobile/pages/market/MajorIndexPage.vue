@@ -5,17 +5,11 @@ import MCard from '../../components/base/MCard.vue'
 import PercentTag from '../../components/widgets/PercentTag.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-// 模拟重大指数数据
-const indexData = ref([
-  { name: '沪深300', code: '000300', price: 3645.23, changePercent: 0.56 },
-  { name: '中证500', code: '000905', price: 5678.45, changePercent: 0.89 },
-  { name: '中证1000', code: '000852', price: 6234.67, changePercent: 1.23 },
-  { name: '科创50', code: '000688', price: 923.45, changePercent: -0.45 },
-  { name: '上证50', code: '000016', price: 2456.78, changePercent: 0.34 },
-])
+// 重大指数数据（后续接 GetStockRealTimePrice 批量获取，覆盖沪深300/中证500/中证1000/科创50/上证50 等）
+const indexData = ref([])
 
 async function handleRefresh() {
-  return new Promise(resolve => setTimeout(resolve, 1500))
+  // 后续接真实 API
 }
 </script>
 

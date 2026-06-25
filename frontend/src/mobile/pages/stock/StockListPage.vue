@@ -12,99 +12,29 @@ import StockDetailSheet from '../../components/sheets/StockDetailSheet.vue'
 
 const router = useRouter()
 
-// 分组数据（模拟）
+// 分组数据（后续接 GetGroupList 填充，先留「全部」）
 const groups = ref([
-  { label: '全部', value: 'all' },
-  { label: '自选', value: 'favorite' },
-  { label: '持仓', value: 'holding' },
-  { label: '关注', value: 'watch' },
+  { label: '全部', value: 0 },
 ])
 
-const activeGroup = ref('all')
+const activeGroup = ref(0)
 
-// 模拟股票数据（大量数据测试虚拟滚动）
-const stocksData = ref([
-  {
-    code: '600519',
-    name: '贵州茅台',
-    price: 1820.50,
-    changePercent: 2.34,
-    changeAmount: 41.60,
-    volume: 125000,
-    turnover: 228250000,
-    sparklineData: [1780, 1790, 1785, 1800, 1810, 1805, 1815, 1820]
-  },
-  {
-    code: '000858',
-    name: '五粮液',
-    price: 156.80,
-    changePercent: -1.23,
-    changeAmount: -1.95,
-    volume: 3450000,
-    turnover: 540860000,
-    sparklineData: [159, 158, 157.5, 157, 156.5, 157, 156.8, 156.8]
-  },
-  {
-    code: '00700',
-    name: '腾讯控股',
-    price: 358.20,
-    changePercent: 0.85,
-    changeAmount: 3.02,
-    volume: 8920000,
-    turnover: 3194644000,
-    sparklineData: [355, 356, 357, 358, 359, 358.5, 358, 358.2]
-  },
-  {
-    code: '688256',
-    name: '寒武纪',
-    price: 89.50,
-    changePercent: 10.00,
-    changeAmount: 8.14,
-    volume: 15600000,
-    turnover: 1396200000,
-    sparklineData: [81.5, 83, 85, 87, 88, 89, 89.5, 89.5]
-  },
-  {
-    code: '002594',
-    name: '比亚迪',
-    price: 256.30,
-    changePercent: 3.45,
-    changeAmount: 8.55,
-    volume: 6780000,
-    turnover: 1737714000,
-    sparklineData: [248, 250, 252, 254, 255, 256, 256.5, 256.3]
-  },
-  {
-    code: '300750',
-    name: '宁德时代',
-    price: 198.60,
-    changePercent: 5.23,
-    changeAmount: 9.87,
-    volume: 12340000,
-    turnover: 2450964000,
-    sparklineData: [189, 192, 194, 196, 197, 198, 198.5, 198.6]
-  },
-])
+// 股票列表（后续接 GetFollowList 填充）
+const stocksData = ref([])
 
 // 当前分组的股票列表
 const currentStocks = computed(() => {
-  // 这里后续可以根据 activeGroup 过滤
   return stocksData.value
 })
 
 const refreshCount = ref(0)
 const selectedStock = ref(null)
 const detailVisible = ref(false)
+const loading = ref(false)
 
-// 下拉刷新
+// 下拉刷新（后续接真实 API）
 async function handleRefresh() {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      refreshCount.value++
-      // TODO: 调用真实API刷新数据
-      resolve()
-    }, 1500)
-  })
+  refreshCount.value++
 }
 
 // 点击股票
@@ -134,17 +64,13 @@ function handleAddStock() {
 
 <template>
   <div class="stock-list-page">
-    <!-- 顶部导航 -->
-    <PageHeader title="自选股票" show-back>
-      <template #actions>
-        <button class="action-btn" @click="handleSearch">🔍</button>
-        <button class="action-btn" @click="handleAddStock">➕</button>
-      </template>
-    </PageHeader>
+    <!-- 顶部导航（只保留标题） -->
+    <PageHeader title="自选股票" />
 
-    <!-- 分组标签 -->
+    <!-- 分组标签 + 添加 -->
     <div class="stock-list-tabs">
       <MTabs v-model="activeGroup" :tabs="groups" />
+      <button class="add-stock-btn" @click="handleAddStock">➕</button>
     </div>
 
     <!-- 股票列表 -->
@@ -165,7 +91,7 @@ function handleAddStock() {
         </VirtualList>
 
         <!-- 空状态 -->
-        <MEmpty v-else description="还没有添加自选股票">
+        <MEmpty v-else-if="!loading" description="还没有添加自选股票">
           <MButton type="primary" @click="handleAddStock">
             添加自选
           </MButton>
@@ -197,6 +123,8 @@ function handleAddStock() {
 }
 
 .stock-list-tabs {
+  display: flex;
+  align-items: center;
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
   position: sticky;
@@ -204,7 +132,14 @@ function handleAddStock() {
   z-index: var(--m-z-sticky);
 }
 
-.action-btn {
+/* 让 MTabs 占满宽度 */
+.stock-list-tabs :deep(.m-tabs) {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-stock-btn {
+  flex-shrink: 0;
   width: var(--m-touch-min);
   height: var(--m-touch-min);
   display: flex;
@@ -212,11 +147,12 @@ function handleAddStock() {
   justify-content: center;
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
+  color: var(--m-text-primary);
   cursor: pointer;
 }
 
-.action-btn:active {
+.add-stock-btn:active {
   opacity: 0.6;
 }
 

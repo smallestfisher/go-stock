@@ -4,12 +4,12 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-const reports = ref([
-  { title: '贵州茅台：业绩稳健增长，维持买入评级', author: '中信证券', date: '2024-06-20', rating: '买入' },
-  { title: '宁德时代：海外业务加速拓展', author: '招商证券', date: '2024-06-19', rating: '强烈推荐' },
-])
+// 个股研报数据（后续接 GetTdxCompanyCategoryList/Content 或研报接口填充）
+const reports = ref([])
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+async function handleRefresh() {
+  // 后续接真实 API
+}
 </script>
 
 <template>

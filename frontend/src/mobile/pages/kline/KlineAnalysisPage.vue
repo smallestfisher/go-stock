@@ -1,24 +1,24 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import FenshiChart from '../../components/charts/FenshiChart.vue'
-import FullKlineChart from '../../components/charts/FullKlineChart.vue'
+import PageHeader from '../../components/widgets/PageHeader.vue'
+import MEmpty from '../../components/base/MEmpty.vue'
 import ChartControlSheet from '../../components/sheets/ChartControlSheet.vue'
 import PriceTag from '../../components/widgets/PriceTag.vue'
 import PercentTag from '../../components/widgets/PercentTag.vue'
 import { useSwipe } from '../../composables/useSwipe'
+import { SearchStock } from '../../../api/app'
 
 const router = useRouter()
 
-// 模拟股票数据
-const stockInfo = ref({
-  code: '600519',
-  name: '贵州茅台',
-  price: 1820.50,
-  preClose: 1778.90,
-  changePercent: 2.34,
-  changeAmount: 41.60,
-})
+// 当前选中的股票（后续接 SearchStock 选择后填充，先留空）
+// 字段：{ code, name, price, preClose, changePercent, changeAmount }
+const stockInfo = ref(null)
+
+// 搜索
+const searchKeyword = ref('')
+const searchResults = ref([])
+const searching = ref(false)
 
 // 当前周期
 const currentPeriod = ref('day')
@@ -32,33 +32,38 @@ const controlVisible = ref(false)
 // 容器引用
 const chartContainer = ref(null)
 
+// 图表数据（后续接 GetStockKLine / GetStockMinutePriceLineData 填充，先留空）
+const fenshiData = ref([])
+const klineData = ref([])
+
 // 是否分时图
 const isFenshi = computed(() => currentPeriod.value === 'fenshi')
 
-// 模拟分时数据
-const fenshiData = ref([
-  { time: '09:30', price: 1780, avgPrice: 1780, volume: 1000 },
-  { time: '10:00', price: 1790, avgPrice: 1785, volume: 2000 },
-  { time: '10:30', price: 1800, avgPrice: 1790, volume: 1500 },
-  { time: '11:00', price: 1810, avgPrice: 1795, volume: 1800 },
-  { time: '11:30', price: 1805, avgPrice: 1797, volume: 1200 },
-  { time: '13:00', price: 1815, avgPrice: 1800, volume: 2200 },
-  { time: '14:00', price: 1820, avgPrice: 1803, volume: 1900 },
-  { time: '15:00', price: 1820.50, avgPrice: 1805, volume: 2500 },
-])
+// 搜索股票
+async function handleSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) {
+    searchResults.value = []
+    return
+  }
+  searching.value = true
+  try {
+    // 后续接真实 API
+    searchResults.value = []
+  } catch (error) {
+    console.error('搜索股票失败:', error)
+  } finally {
+    searching.value = false
+  }
+}
 
-// 模拟K线数据
-const klineData = ref([
-  { time: '2024-06-10', open: 1750, close: 1760, high: 1770, low: 1740, volume: 100000 },
-  { time: '2024-06-11', open: 1760, close: 1755, high: 1765, low: 1750, volume: 95000 },
-  { time: '2024-06-12', open: 1755, close: 1770, high: 1780, low: 1755, volume: 110000 },
-  { time: '2024-06-13', open: 1770, close: 1785, high: 1790, low: 1765, volume: 120000 },
-  { time: '2024-06-14', open: 1785, close: 1780, high: 1795, low: 1775, volume: 105000 },
-  { time: '2024-06-17', open: 1780, close: 1795, high: 1800, low: 1778, volume: 115000 },
-  { time: '2024-06-18', open: 1795, close: 1810, high: 1815, low: 1790, volume: 125000 },
-  { time: '2024-06-19', open: 1810, close: 1805, high: 1820, low: 1800, volume: 108000 },
-  { time: '2024-06-20', open: 1805, close: 1820.50, high: 1825, low: 1800, volume: 130000 },
-])
+// 选择股票
+function handleSelectStock(stock) {
+  stockInfo.value = stock
+  searchKeyword.value = ''
+  searchResults.value = []
+  // TODO: 加载该股票的 K线/分时数据
+}
 
 // 周期标签映射
 const periodLabels = {
@@ -80,13 +85,11 @@ const currentPeriodIndex = computed(() => periods.indexOf(currentPeriod.value))
 useSwipe({
   containerRef: chartContainer,
   onSwipeLeft: () => {
-    // 下一个周期
     if (currentPeriodIndex.value < periods.length - 1) {
       currentPeriod.value = periods[currentPeriodIndex.value + 1]
     }
   },
   onSwipeRight: () => {
-    // 上一个周期
     if (currentPeriodIndex.value > 0) {
       currentPeriod.value = periods[currentPeriodIndex.value - 1]
     }
@@ -112,18 +115,38 @@ function handleIndicatorToggle(indicator) {
     currentIndicators.value.push(indicator)
   }
 }
-
-// 返回
-function handleBack() {
-  router.back()
-}
 </script>
 
 <template>
   <div class="kline-analysis-page">
-    <!-- 顶部信息栏 -->
-    <div class="page-header">
-      <button class="back-btn" @click="handleBack">←</button>
+    <!-- 顶部：只保留标题 -->
+    <PageHeader title="K线分析" />
+
+    <!-- 股票搜索区 -->
+    <div class="search-area">
+      <input
+        v-model="searchKeyword"
+        class="search-input"
+        type="text"
+        placeholder="输入股票代码/名称"
+        @input="handleSearch"
+      >
+      <!-- 搜索结果下拉 -->
+      <div v-if="searchKeyword && searchResults.length" class="search-results">
+        <div
+          v-for="stock in searchResults"
+          :key="stock.code"
+          class="search-item"
+          @click="handleSelectStock(stock)"
+        >
+          <span class="search-name">{{ stock.name }}</span>
+          <span class="search-code">{{ stock.code }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 选中股票信息 -->
+    <div v-if="stockInfo" class="stock-info-bar">
       <div class="stock-info">
         <div class="stock-name">{{ stockInfo.name }}</div>
         <div class="stock-code">{{ stockInfo.code }}</div>
@@ -145,27 +168,15 @@ function handleBack() {
       >
         {{ label }}
       </button>
-      <button class="control-btn" @click="handleOpenControl">⚙️</button>
+      <!-- 图表控制入口（指标设置） -->
+      <button class="period-btn control-entry" @click="handleOpenControl">⚙️</button>
     </div>
 
     <!-- 图表区 -->
     <div ref="chartContainer" class="chart-area">
-      <FenshiChart
-        v-if="isFenshi"
-        :data="fenshiData"
-        :pre-close="stockInfo.preClose"
-        :width="375"
-        :height="300"
-      />
-      <FullKlineChart
-        v-else
-        :data="klineData"
-        :width="375"
-        :height="400"
-        :ma-lines="[5, 10, 20, 30]"
-      />
-
-      <div class="swipe-hint">← 左右滑动切换周期 →</div>
+      <MEmpty v-if="!stockInfo" description="请先搜索选择一只股票" />
+      <MEmpty v-else-if="isFenshi ? !fenshiData.length : !klineData.length" description="暂无K线数据" />
+      <div v-else class="swipe-hint">← 左右滑动切换周期 →</div>
     </div>
 
     <!-- 图表控制抽屉 -->
@@ -187,16 +198,7 @@ function handleBack() {
   background: var(--m-bg-primary);
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: var(--m-space-md);
-  padding: var(--m-space-md);
-  background: var(--m-bg-card);
-  border-bottom: 1px solid var(--m-divider-color);
-}
-
-.back-btn {
+.action-btn {
   width: var(--m-touch-min);
   height: var(--m-touch-min);
   display: flex;
@@ -204,17 +206,89 @@ function handleBack() {
   justify-content: center;
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 18px;
   color: var(--m-text-primary);
   cursor: pointer;
 }
 
-.back-btn:active {
+.action-btn:active {
   opacity: 0.6;
 }
 
+.search-area {
+  position: relative;
+  padding: var(--m-space-sm) var(--m-space-md);
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--m-space-md);
+  border: 1px solid var(--m-border-color);
+  border-radius: var(--m-radius-md);
+  background: var(--m-bg-primary);
+  color: var(--m-text-primary);
+  font-size: var(--m-font-sm);
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--m-color-rise);
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: var(--m-space-md);
+  right: var(--m-space-md);
+  background: var(--m-bg-card);
+  border: 1px solid var(--m-divider-color);
+  border-radius: var(--m-radius-sm);
+  box-shadow: var(--m-shadow-md);
+  z-index: var(--m-z-dropdown);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--m-space-sm) var(--m-space-md);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:active {
+  background: var(--m-bg-primary);
+}
+
+.search-name {
+  color: var(--m-text-primary);
+  font-size: var(--m-font-sm);
+}
+
+.search-code {
+  color: var(--m-text-tertiary);
+  font-size: var(--m-font-xs);
+}
+
+.stock-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--m-space-md);
+  padding: var(--m-space-md);
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
 .stock-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--m-space-xs);
@@ -268,19 +342,6 @@ function handleBack() {
   background: var(--m-color-rise);
   color: white;
   border-color: var(--m-color-rise);
-}
-
-.control-btn {
-  padding: var(--m-space-xs) var(--m-space-md);
-  background: transparent;
-  border: 1px solid var(--m-border-color);
-  border-radius: var(--m-radius-sm);
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.control-btn:active {
-  opacity: 0.6;
 }
 
 .chart-area {

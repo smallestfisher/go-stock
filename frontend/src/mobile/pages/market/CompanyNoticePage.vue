@@ -4,12 +4,12 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-const notices = ref([
-  { title: '贵州茅台：关于2024年半年度业绩预告的公告', company: '贵州茅台', date: '2024-06-20', type: '业绩预告' },
-  { title: '宁德时代：关于投资建设匈牙利工厂的公告', company: '宁德时代', date: '2024-06-19', type: '重大事项' },
-])
+// 公司公告数据（后续接 GetTdxCompanyCategoryList/Content 填充）
+const notices = ref([])
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+async function handleRefresh() {
+  // 后续接真实 API
+}
 </script>
 
 <template>

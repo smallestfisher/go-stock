@@ -4,13 +4,12 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-const sites = ref([
-  { name: '东方财富', url: 'https://www.eastmoney.com', desc: '中国财经门户网站' },
-  { name: '雪球', url: 'https://xueqiu.com', desc: '投资者社交平台' },
-  { name: '同花顺', url: 'https://www.10jqka.com.cn', desc: '金融数据服务商' },
-])
+// 名站列表（后续接 GetConfig 里的 embeddedUrls 或后端站点配置填充）
+const sites = ref([])
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+async function handleRefresh() {
+  // 后续接真实 API
+}
 </script>
 
 <template>

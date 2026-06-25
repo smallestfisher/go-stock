@@ -3,21 +3,13 @@ import { ref } from 'vue'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
+import { formatMoney } from '../../composables/useFormat'
 
-const sectors = ref([
-  { name: '半导体板块', netInflow: 125000000, changePercent: 5.23 },
-  { name: '新能源汽车', netInflow: 89000000, changePercent: 3.87 },
-  { name: '白酒板块', netInflow: -45000000, changePercent: -1.23 },
-])
+// 板块资金流数据（后续接 GetBKFundFlowList / GetBKFundFlowTopList 填充）
+const sectors = ref([])
 
 async function handleRefresh() {
-  return new Promise(resolve => setTimeout(resolve, 1500))
-}
-
-function formatMoney(value) {
-  if (value >= 100000000) return `${(value / 100000000).toFixed(2)}亿`
-  if (value >= 10000) return `${(value / 10000).toFixed(2)}万`
-  return value
+  // 后续接真实 API
 }
 </script>
 

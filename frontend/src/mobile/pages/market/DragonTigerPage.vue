@@ -5,12 +5,12 @@ import MCard from '../../components/base/MCard.vue'
 import PercentTag from '../../components/widgets/PercentTag.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-const dragonData = ref([
-  { stockName: '寒武纪', stockCode: '688256', changePercent: 10.00, turnover: 139620000, reason: '日涨幅偏离值达7%' },
-  { stockName: '中芯国际', stockCode: '688981', changePercent: 8.45, turnover: 256780000, reason: '日振幅达15%' },
-])
+// 龙虎榜数据（后续接 GetChangeRank(market, date) 填充）
+const dragonData = ref([])
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+async function handleRefresh() {
+  // 后续接真实 API
+}
 </script>
 
 <template>

@@ -2,27 +2,41 @@
 import { ref } from 'vue'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
+import MTabs from '../../components/base/MTabs.vue'
 import StockCard from '../../components/cards/StockCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
+import { formatMoney } from '../../composables/useFormat'
 
-const stocks = ref([
-  { code: '600519', name: '贵州茅台', price: 1820.50, changePercent: 2.34, changeAmount: 41.60, volume: 125000, turnover: 228250000, sparklineData: [1780, 1790, 1785, 1800, 1810, 1805, 1815, 1820], netInflow: 12500000 },
-  { code: '000858', name: '五粮液', price: 156.80, changePercent: -1.23, changeAmount: -1.95, volume: 3450000, turnover: 540860000, sparklineData: [159, 158, 157.5, 157, 156.5, 157, 156.8, 156.8], netInflow: -8900000 },
-])
+// 对齐桌面端 market.vue「个股资金流向」Tab 的 9 个子分类
+// 数据后续接 GetMoneyRankSina(rankType) 按 rankType 取不同维度
+const flowTabs = [
+  { label: '净流入额', value: 'netamount' },
+  { label: '流出额', value: 'outamount' },
+  { label: '净流入率', value: 'ratioamount' },
+  { label: '主力净流入', value: 'r0_net' },
+  { label: '主力流出', value: 'r0_out' },
+  { label: '主力净流入率', value: 'r0_ratio' },
+  { label: '散户净流入', value: 'r3_net' },
+  { label: '散户流出', value: 'r3_out' },
+  { label: '散户净流入率', value: 'r3_ratio' },
+]
+
+const activeTab = ref('netamount')
+
+// 股票资金流数据（后续接 API 填充）
+const stocks = ref([])
 
 async function handleRefresh() {
-  return new Promise(resolve => setTimeout(resolve, 1500))
-}
-
-function formatMoney(value) {
-  if (value >= 100000000) return `${(value / 100000000).toFixed(2)}亿`
-  if (value >= 10000) return `${(value / 10000).toFixed(2)}万`
-  return value
+  // 后续根据 activeTab 调对应 API
 }
 </script>
 
 <template>
   <div class="stock-money-flow-page">
+    <div class="flow-tabs">
+      <MTabs v-model="activeTab" :tabs="flowTabs" />
+    </div>
+
     <MPullRefresh :on-refresh="handleRefresh">
       <div class="container">
         <MCard v-if="stocks.length">
@@ -44,7 +58,8 @@ function formatMoney(value) {
 </template>
 
 <style scoped>
-.stock-money-flow-page { height: 100%; overflow: hidden; }
+.stock-money-flow-page { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.flow-tabs { background: var(--m-bg-card); border-bottom: 1px solid var(--m-divider-color); }
 .container { padding: var(--m-space-md); }
 .stock-list { display: flex; flex-direction: column; gap: var(--m-space-md); }
 .flow-item { display: flex; flex-direction: column; gap: var(--m-space-xs); }

@@ -4,12 +4,12 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MCard from '../../components/base/MCard.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 
-const research = ref([
-  { title: '半导体行业深度报告：AI算力需求持续爆发', institution: '中金公司', date: '2024-06-20' },
-  { title: '新能源汽车行业周报：销量持续超预期', institution: '华泰证券', date: '2024-06-19' },
-])
+// 行业研究报告数据（后续接 IndustryResearchReport 填充）
+const research = ref([])
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+async function handleRefresh() {
+  // 后续接真实 API
+}
 </script>
 
 <template>

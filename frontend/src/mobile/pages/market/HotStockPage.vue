@@ -1,30 +1,73 @@
 <script setup>
 import { ref } from 'vue'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
-import HotTopicCard from '../../components/cards/HotTopicCard.vue'
+import MTabs from '../../components/base/MTabs.vue'
+import MEmpty from '../../components/base/MEmpty.vue'
 
-const topics = ref([
-  { title: 'AI芯片', heat: '1.2M', changePercent: 5.67, stocks: 23 },
-  { title: '新能源汽车', heat: '980K', changePercent: 3.45, stocks: 45 },
-  { title: 'ChatGPT概念', heat: '850K', changePercent: -2.12, stocks: 18 },
-  { title: '储能概念', heat: '720K', changePercent: 4.23, stocks: 31 },
-  { title: '氢能源', heat: '650K', changePercent: 2.89, stocks: 19 },
-])
+// 对齐桌面端 market.vue「当前热门」Tab 的 6 个子分类
+// 数据后续分别接：全球/沪深/港股/美股 → HotStock(marketType)；热门话题 → HotTopic；重大事件 → InvestCalendarTimeLine
+const hotTabs = [
+  { label: '全球', value: '10' },
+  { label: '沪深', value: '12' },
+  { label: '港股', value: '13' },
+  { label: '美股', value: '11' },
+  { label: '热门话题', value: 'topic' },
+  { label: '重大事件', value: 'event' },
+]
 
-async function handleRefresh() { return new Promise(resolve => setTimeout(resolve, 1500)) }
+const activeTab = ref('10')
+
+// 各 Tab 数据（后续接 API 填充）
+const stocksData = ref([])
+const topicsData = ref([])
+const eventsData = ref([])
+
+async function handleRefresh() {
+  // 后续根据 activeTab 调对应 API
+}
 </script>
 
 <template>
   <div class="page">
+    <div class="hot-tabs">
+      <MTabs v-model="activeTab" :tabs="hotTabs" />
+    </div>
+
     <MPullRefresh :on-refresh="handleRefresh">
       <div class="container">
-        <HotTopicCard :topics="topics" @view-more="() => {}" />
+        <!-- 热门股票排行（全球/沪深/港股/美股） -->
+        <template v-if="['10', '11', '12', '13'].includes(activeTab)">
+          <MEmpty v-if="!stocksData.length" description="暂无热门股票数据" />
+        </template>
+
+        <!-- 热门话题 -->
+        <template v-else-if="activeTab === 'topic'">
+          <MEmpty v-if="!topicsData.length" description="暂无热门话题" />
+        </template>
+
+        <!-- 重大事件时间轴 -->
+        <template v-else-if="activeTab === 'event'">
+          <MEmpty v-if="!eventsData.length" description="暂无重大事件" />
+        </template>
       </div>
     </MPullRefresh>
   </div>
 </template>
 
 <style scoped>
-.page { height: 100%; overflow: hidden; }
-.container { padding: var(--m-space-md); }
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hot-tabs {
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.container {
+  padding: var(--m-space-md);
+}
 </style>

@@ -1,35 +1,64 @@
 <script setup>
 import { ref } from 'vue'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
+import MTabs from '../../components/base/MTabs.vue'
 import IndustryCard from '../../components/cards/IndustryCard.vue'
+import MEmpty from '../../components/base/MEmpty.vue'
 
-const industries = ref([
-  { name: '半导体', changePercent: 5.23, leadingStock: '寒武纪 +10.00%' },
-  { name: '新能源汽车', changePercent: 3.87, leadingStock: '比亚迪 +6.54%' },
-  { name: '人工智能', changePercent: 2.95, leadingStock: '科大讯飞 +5.32%' },
-  { name: '白酒', changePercent: 2.34, leadingStock: '贵州茅台 +2.34%' },
-  { name: '医药生物', changePercent: 1.45, leadingStock: '恒瑞医药 +3.21%' },
-  { name: '银行', changePercent: 0.67, leadingStock: '工商银行 +1.23%' },
-  { name: '房地产', changePercent: -1.23, leadingStock: '万科A -0.89%' },
-  { name: '钢铁', changePercent: -2.34, leadingStock: '宝钢股份 -1.56%' },
-])
+// 对齐桌面端 market.vue「行业排名」Tab 的 4 个子分类
+// 数据后续分别接：行业涨幅 → GetIndustryRank；行业资金 → GetIndustryMoneyRankSina；
+// 证监会行业 → GetBKFundFlowList；概念板块 → GetConceptFundFlowTopList
+const rankTabs = [
+  { label: '行业涨幅', value: 'change' },
+  { label: '行业资金', value: 'money' },
+  { label: '证监会行业', value: 'csrc' },
+  { label: '概念板块', value: 'concept' },
+]
+
+const activeTab = ref('change')
+
+// 行业数据（后续接 API 填充）
+const industries = ref([])
 
 async function handleRefresh() {
-  return new Promise(resolve => setTimeout(resolve, 1500))
+  // 后续根据 activeTab 调对应 API
 }
 </script>
 
 <template>
   <div class="industry-rank-page">
+    <div class="rank-tabs">
+      <MTabs v-model="activeTab" :tabs="rankTabs" />
+    </div>
+
     <MPullRefresh :on-refresh="handleRefresh">
       <div class="container">
-        <IndustryCard :industries="industries" :max-show="20" @view-all="() => {}" />
+        <IndustryCard
+          v-if="industries.length"
+          :industries="industries"
+          :max-show="20"
+          @view-all="() => {}"
+        />
+        <MEmpty v-else description="暂无行业排名数据" />
       </div>
     </MPullRefresh>
   </div>
 </template>
 
 <style scoped>
-.industry-rank-page { height: 100%; overflow: hidden; }
-.container { padding: var(--m-space-md); }
+.industry-rank-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rank-tabs {
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.container {
+  padding: var(--m-space-md);
+}
 </style>
