@@ -3,10 +3,11 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 // 移动端页面（懒加载）
 const HomePage = () => import('./pages/HomePage.vue')
 const StockListPage = () => import('./pages/stock/StockListPage.vue')
+const MarketPage = () => import('./pages/market/MarketPage.vue')
 
 // TODO: 后续添加的页面
-// const MarketPage = () => import('./pages/market/MarketPage.vue')
 // const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
+// const ResearchPage = () => import('./pages/research/ResearchPage.vue')
 // ...
 
 const routes = [
@@ -22,13 +23,13 @@ const routes = [
     component: StockListPage,
     meta: { title: '自选' }
   },
+  {
+    path: '/mobile/market',
+    name: 'MobileMarket',
+    component: MarketPage,
+    meta: { title: '市场' }
+  },
   // TODO: 后续添加更多路由
-  // {
-  //   path: '/mobile/market',
-  //   name: 'MobileMarket',
-  //   component: MarketPage,
-  //   meta: { title: '市场' }
-  // },
 ]
 
 const router = createRouter({
