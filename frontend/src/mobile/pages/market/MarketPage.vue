@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, defineAsyncComponent } from 'vue'
+import PageHeader from '../../components/widgets/PageHeader.vue'
 import MTabs from '../../components/base/MTabs.vue'
 
 // 市场子页面Tab配置
@@ -51,6 +52,9 @@ watch(activeTab, (newVal) => {
 
 <template>
   <div class="market-page">
+    <!-- 顶部导航 -->
+    <PageHeader title="市场行情" show-back />
+
     <!-- Tab切换栏 -->
     <div class="market-tabs">
       <MTabs v-model="activeTab" :tabs="marketTabs" />
@@ -77,7 +81,7 @@ watch(activeTab, (newVal) => {
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
   position: sticky;
-  top: 0;
+  top: 56px;
   z-index: var(--m-z-sticky);
 }
 

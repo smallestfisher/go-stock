@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import PageHeader from '../../components/widgets/PageHeader.vue'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MTabs from '../../components/base/MTabs.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
@@ -7,6 +9,8 @@ import MButton from '../../components/base/MButton.vue'
 import StockCard from '../../components/cards/StockCard.vue'
 import VirtualList from '../../components/widgets/VirtualList.vue'
 import StockDetailSheet from '../../components/sheets/StockDetailSheet.vue'
+
+const router = useRouter()
 
 // 分组数据（模拟）
 const groups = ref([
@@ -130,13 +134,17 @@ function handleAddStock() {
 
 <template>
   <div class="stock-list-page">
-    <!-- 顶部分组标签 -->
-    <div class="stock-list-header">
-      <MTabs v-model="activeGroup" :tabs="groups" />
-      <div class="header-actions">
+    <!-- 顶部导航 -->
+    <PageHeader title="自选股票" show-back>
+      <template #actions>
         <button class="action-btn" @click="handleSearch">🔍</button>
         <button class="action-btn" @click="handleAddStock">➕</button>
-      </div>
+      </template>
+    </PageHeader>
+
+    <!-- 分组标签 -->
+    <div class="stock-list-tabs">
+      <MTabs v-model="activeGroup" :tabs="groups" />
     </div>
 
     <!-- 股票列表 -->
@@ -188,20 +196,12 @@ function handleAddStock() {
   background: var(--m-bg-primary);
 }
 
-.stock-list-header {
+.stock-list-tabs {
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
   position: sticky;
-  top: 0;
+  top: 56px;
   z-index: var(--m-z-sticky);
-  display: flex;
-  align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  padding: 0 var(--m-space-md);
-  gap: var(--m-space-sm);
 }
 
 .action-btn {

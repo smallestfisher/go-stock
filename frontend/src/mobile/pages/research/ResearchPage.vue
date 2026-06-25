@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, defineAsyncComponent } from 'vue'
+import PageHeader from '../../components/widgets/PageHeader.vue'
 import MTabs from '../../components/base/MTabs.vue'
 
 // 研究中心子页面Tab配置
@@ -31,6 +32,9 @@ const currentComponent = computed(() => {
 
 <template>
   <div class="research-page">
+    <!-- 顶部导航 -->
+    <PageHeader title="研究中心" show-back />
+
     <!-- Tab切换栏 -->
     <div class="research-tabs">
       <MTabs v-model="activeTab" :tabs="researchTabs" />
@@ -57,7 +61,7 @@ const currentComponent = computed(() => {
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
   position: sticky;
-  top: 0;
+  top: 56px;
   z-index: var(--m-z-sticky);
 }
 
