@@ -1,182 +1,189 @@
 <script setup>
 import { ref } from 'vue'
-import MCard from '../components/base/MCard.vue'
-import MButton from '../components/base/MButton.vue'
-import MSheet from '../components/base/MSheet.vue'
-import MTabs from '../components/base/MTabs.vue'
-import MLoading from '../components/base/MLoading.vue'
-import MEmpty from '../components/base/MEmpty.vue'
+import { useRouter } from 'vue-router'
 import MPullRefresh from '../components/base/MPullRefresh.vue'
+import MarketStatusBar from '../components/widgets/MarketStatusBar.vue'
+import StockSummaryCard from '../components/cards/StockSummaryCard.vue'
+import NewsCard from '../components/cards/NewsCard.vue'
+import HotTopicCard from '../components/cards/HotTopicCard.vue'
+import AlertCard from '../components/cards/AlertCard.vue'
+import IndustryCard from '../components/cards/IndustryCard.vue'
+import AiSuggestCard from '../components/cards/AiSuggestCard.vue'
+import MCard from '../components/base/MCard.vue'
 
-const deviceInfo = ref({
-  width: window.innerWidth,
-  height: window.innerHeight
+const router = useRouter()
+
+// 模拟数据（后续对接真实API）
+const stockData = ref([
+  { code: '600519', name: '贵州茅台', price: 1820.50, changePercent: 2.34 },
+  { code: '000858', name: '五粮液', price: 156.80, changePercent: -1.23 },
+  { code: '00700', name: '腾讯控股', price: 358.20, changePercent: 0.85 },
+])
+
+const newsData = ref([
+  { title: '央行宣布降准0.5个百分点', time: new Date(Date.now() - 1800000), source: '财联社' },
+  { title: 'A股三大指数集体低开，半导体板块领跌', time: new Date(Date.now() - 3600000), source: '证券时报' },
+  { title: '外资净流入50亿元，连续五日加仓', time: new Date(Date.now() - 5400000), source: '第一财经' },
+])
+
+const topicsData = ref([
+  { title: 'AI芯片', heat: '1.2M', changePercent: 5.67, stocks: 23 },
+  { title: '新能源汽车', heat: '980K', changePercent: 3.45, stocks: 45 },
+  { title: 'ChatGPT概念', heat: '850K', changePercent: -2.12, stocks: 18 },
+])
+
+const alertsData = ref([
+  { stockName: '寒武纪', stockCode: '688256', type: 'limit_up', changePercent: 10.00, time: new Date() },
+  { stockName: '中芯国际', stockCode: '688981', type: 'rapid_rise', changePercent: 7.89, time: new Date(Date.now() - 600000) },
+])
+
+const industriesData = ref([
+  { name: '半导体', changePercent: 5.23, leadingStock: '寒武纪 +10.00%' },
+  { name: '新能源', changePercent: 3.87, leadingStock: '宁德时代 +6.54%' },
+  { name: '人工智能', changePercent: 2.95, leadingStock: '科大讯飞 +5.32%' },
+  { name: '医药生物', changePercent: 1.45, leadingStock: '恒瑞医药 +3.21%' },
+  { name: '白酒', changePercent: -0.89, leadingStock: '贵州茅台 +2.34%' },
+])
+
+const aiSuggestion = ref({
+  title: '基于你的自选，建议关注半导体板块',
+  content: '近期AI芯片需求激增，半导体板块表现强势。你的自选中腾讯控股与多家半导体公司有业务合作，可关注相关概念股。',
+  stocks: [
+    { code: '688256', name: '寒武纪' },
+    { code: '688981', name: '中芯国际' },
+  ],
+  action: '查看详细分析'
 })
 
-// Sheet 测试
-const sheetVisible = ref(false)
-
-// Tabs 测试
-const activeTab = ref('1')
-const tabs = [
-  { label: '全部', value: '1' },
-  { label: '沪深', value: '2' },
-  { label: '港股', value: '3' },
-  { label: '美股', value: '4' },
-  { label: '已禁用', value: '5', disabled: true },
-]
-
-// Loading 测试
-const loading = ref(false)
-
-// 下拉刷新测试
+const aiLoading = ref(false)
 const refreshCount = ref(0)
+
+// 下拉刷新
 async function handleRefresh() {
   return new Promise(resolve => {
     setTimeout(() => {
       refreshCount.value++
+      // 这里后续对接真实API刷新数据
       resolve()
     }, 1500)
   })
 }
 
-function showLoading() {
-  loading.value = true
+// 导航跳转
+function navigateTo(path) {
+  router.push(path)
+}
+
+// 卡片事件处理
+function handleStockClick(stock) {
+  console.log('点击股票:', stock)
+  // TODO: 打开股票详情抽屉
+}
+
+function handleNewsClick(news) {
+  console.log('点击新闻:', news)
+  // TODO: 打开新闻详情
+}
+
+function handleTopicClick(topic) {
+  console.log('点击热点:', topic)
+  // TODO: 跳转到热点详情页
+}
+
+function handleAlertClick(alert) {
+  console.log('点击异动:', alert)
+  // TODO: 打开股票详情
+}
+
+function handleIndustryClick(industry) {
+  console.log('点击行业:', industry)
+  // TODO: 跳转到行业详情页
+}
+
+function handleAiRefresh() {
+  aiLoading.value = true
   setTimeout(() => {
-    loading.value = false
+    aiLoading.value = false
+    // TODO: 调用AI接口
   }, 2000)
+}
+
+function handleAiAction() {
+  console.log('AI操作')
+  // TODO: 跳转到AI分析页
 }
 </script>
 
 <template>
   <MPullRefresh :on-refresh="handleRefresh">
     <div class="home-page">
-      <!-- 欢迎卡片 -->
+      <!-- 市场状态条 -->
+      <MarketStatusBar />
+
+      <!-- 自选概览卡片 -->
+      <StockSummaryCard
+        :stocks="stockData"
+        :max-show="3"
+        @view-all="navigateTo('/mobile/stock')"
+        @stock-click="handleStockClick"
+      />
+
+      <!-- 市场快讯卡片 -->
       <MCard>
-        <h1 class="welcome-title">Hello Mobile! 🎉</h1>
-        <p class="welcome-subtitle">移动端基础组件已就绪</p>
-        <div class="device-info">
-          <div class="info-item">
-            <span>设备宽度:</span>
-            <span>{{ deviceInfo.width }}px</span>
-          </div>
-          <div class="info-item">
-            <span>设备高度:</span>
-            <span>{{ deviceInfo.height }}px</span>
-          </div>
-          <div class="info-item">
-            <span>刷新次数:</span>
-            <span class="m-rise">{{ refreshCount }} 次</span>
-          </div>
+        <div class="news-header">
+          <h3 class="news-title">📰 市场快讯</h3>
+          <button class="news-action" @click="navigateTo('/mobile/market')">
+            更多 →
+          </button>
+        </div>
+        <div class="news-list">
+          <NewsCard
+            v-for="(news, index) in newsData"
+            :key="index"
+            :news="news"
+            @click="handleNewsClick"
+          />
         </div>
       </MCard>
 
-      <!-- MButton 演示 -->
-      <MCard>
-        <h2 class="section-title">MButton - 按钮组件</h2>
-        <div class="button-group">
-          <MButton>默认按钮</MButton>
-          <MButton type="primary">主要按钮</MButton>
-          <MButton type="success">成功按钮</MButton>
-          <MButton type="danger">危险按钮</MButton>
-          <MButton type="text">文本按钮</MButton>
-        </div>
-        <div class="button-group">
-          <MButton size="small">小按钮</MButton>
-          <MButton size="medium">中按钮</MButton>
-          <MButton size="large">大按钮</MButton>
-        </div>
-        <div class="button-group">
-          <MButton disabled>禁用按钮</MButton>
-          <MButton :loading="loading" @click="showLoading">加载按钮</MButton>
-        </div>
-        <MButton type="primary" block round>块级圆角按钮</MButton>
-      </MCard>
+      <!-- 实时热点卡片 -->
+      <HotTopicCard
+        :topics="topicsData"
+        @topic-click="handleTopicClick"
+        @view-more="navigateTo('/mobile/market')"
+      />
 
-      <!-- MTabs 演示 -->
-      <MCard padding="none">
-        <h2 class="section-title" style="padding: 16px 16px 0;">MTabs - 标签页组件</h2>
-        <MTabs v-model="activeTab" :tabs="tabs" />
-        <div style="padding: 16px;">
-          <p>当前选中: <strong class="m-rise">{{ tabs.find(t => t.value === activeTab)?.label }}</strong></p>
-        </div>
-      </MCard>
+      <!-- 异动监控卡片 -->
+      <AlertCard
+        :alerts="alertsData"
+        @alert-click="handleAlertClick"
+        @view-all="navigateTo('/mobile/research')"
+      />
 
-      <!-- MLoading 演示 -->
-      <MCard>
-        <h2 class="section-title">MLoading - 加载组件</h2>
-        <div class="loading-group">
-          <MLoading size="small" />
-          <MLoading size="medium" />
-          <MLoading size="large" />
-        </div>
-        <div class="loading-group">
-          <MLoading text="加载中..." />
-          <MLoading text="请稍候..." vertical />
-        </div>
-      </MCard>
+      <!-- 行业热度卡片 -->
+      <IndustryCard
+        :industries="industriesData"
+        :max-show="5"
+        @industry-click="handleIndustryClick"
+        @view-all="navigateTo('/mobile/market')"
+      />
 
-      <!-- MEmpty 演示 -->
-      <MCard>
-        <h2 class="section-title">MEmpty - 空状态组件</h2>
-        <MEmpty description="暂无数据">
-          <MButton type="primary" size="small">重新加载</MButton>
-        </MEmpty>
-      </MCard>
+      <!-- AI建议卡片 -->
+      <AiSuggestCard
+        :suggestion="aiSuggestion"
+        :loading="aiLoading"
+        @refresh="handleAiRefresh"
+        @action-click="handleAiAction"
+        @stock-click="handleStockClick"
+      />
 
-      <!-- MSheet 演示 -->
-      <MCard>
-        <h2 class="section-title">MSheet - 底部抽屉组件</h2>
-        <MButton type="primary" @click="sheetVisible = true">打开底部抽屉</MButton>
-      </MCard>
-
-      <!-- 完成清单 -->
-      <MCard clickable>
-        <h2 class="section-title">✅ 阶段 1 完成清单</h2>
-        <div class="checklist">
-          <div class="checklist-item">✅ MCard - 卡片容器</div>
-          <div class="checklist-item">✅ MButton - 按钮组件</div>
-          <div class="checklist-item">✅ MSheet - 底部抽屉</div>
-          <div class="checklist-item">✅ MTabs - 横向标签页</div>
-          <div class="checklist-item">✅ MLoading - 加载状态</div>
-          <div class="checklist-item">✅ MEmpty - 空状态</div>
-          <div class="checklist-item">✅ MPullRefresh - 下拉刷新</div>
-          <div class="checklist-item">✅ usePullRefresh - 下拉刷新逻辑</div>
-        </div>
-      </MCard>
-
-      <!-- 下一步 -->
-      <MCard>
-        <h2 class="section-title">🚀 阶段 2：首页信息流</h2>
-        <p class="next-desc">接下来开发首页信息流，实现真实数据展示</p>
-        <ul class="next-list">
-          <li>自选概览卡片</li>
-          <li>市场快讯卡片</li>
-          <li>热点话题卡片</li>
-          <li>异动预警卡片</li>
-        </ul>
-      </MCard>
+      <!-- 底部提示 -->
+      <div class="home-footer">
+        <p class="footer-text">下拉刷新数据 · 已刷新 {{ refreshCount }} 次</p>
+        <p class="footer-tip">💡 点击卡片查看详情</p>
+      </div>
     </div>
   </MPullRefresh>
-
-  <!-- 底部抽屉 -->
-  <MSheet
-    v-model:show="sheetVisible"
-    title="底部抽屉示例"
-    height="60vh"
-  >
-    <div style="padding: 20px;">
-      <h3>这是一个底部抽屉</h3>
-      <p>可以放置任何内容</p>
-      <MButton type="primary" block @click="sheetVisible = false" style="margin-top: 20px;">
-        关闭抽屉
-      </MButton>
-    </div>
-
-    <template #footer>
-      <MButton block type="primary">底部操作按钮</MButton>
-    </template>
-  </MSheet>
 </template>
 
 <style scoped>
@@ -185,88 +192,52 @@ function showLoading() {
   display: flex;
   flex-direction: column;
   gap: var(--m-space-md);
+  padding-bottom: var(--m-space-2xl);
 }
 
-.welcome-title {
-  font-size: var(--m-font-2xl);
-  font-weight: var(--m-font-weight-bold);
-  color: var(--m-color-rise);
-  margin-bottom: var(--m-space-sm);
-  text-align: center;
-}
-
-.welcome-subtitle {
-  font-size: var(--m-font-lg);
-  color: var(--m-text-secondary);
-  text-align: center;
-  margin-bottom: var(--m-space-lg);
-}
-
-.device-info {
-  background: var(--m-bg-primary);
-  border-radius: var(--m-radius-sm);
-  padding: var(--m-space-md);
-}
-
-.info-item {
+.news-header {
   display: flex;
-  justify-content: space-between;
-  padding: var(--m-space-sm) 0;
-  font-size: var(--m-font-sm);
-  color: var(--m-text-secondary);
-}
-
-.info-item span:last-child {
-  color: var(--m-text-primary);
-  font-weight: var(--m-font-weight-medium);
-}
-
-.section-title {
-  font-size: var(--m-font-lg);
-  font-weight: var(--m-font-weight-medium);
-  color: var(--m-text-primary);
-  margin-bottom: var(--m-space-lg);
-}
-
-.button-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--m-space-md);
-  margin-bottom: var(--m-space-md);
-}
-
-.loading-group {
-  display: flex;
-  justify-content: space-around;
   align-items: center;
-  padding: var(--m-space-lg) 0;
-  margin-bottom: var(--m-space-md);
+  justify-content: space-between;
+  margin-bottom: var(--m-space-lg);
 }
 
-.checklist {
+.news-title {
+  font-size: var(--m-font-lg);
+  font-weight: var(--m-font-weight-medium);
+  color: var(--m-text-primary);
+}
+
+.news-action {
+  padding: var(--m-space-xs) var(--m-space-sm);
+  background: transparent;
+  border: none;
+  color: var(--m-text-secondary);
+  font-size: var(--m-font-sm);
+  cursor: pointer;
+}
+
+.news-action:active {
+  opacity: 0.6;
+}
+
+.news-list {
   display: flex;
   flex-direction: column;
-  gap: var(--m-space-sm);
 }
 
-.checklist-item {
-  padding: var(--m-space-md);
-  background: var(--m-color-rise-light);
-  color: var(--m-color-rise);
-  border-radius: var(--m-radius-sm);
-  font-size: var(--m-font-md);
-  font-weight: var(--m-font-weight-medium);
+.home-footer {
+  text-align: center;
+  padding: var(--m-space-xl) 0;
+  color: var(--m-text-tertiary);
 }
 
-.next-desc {
-  color: var(--m-text-secondary);
-  margin-bottom: var(--m-space-md);
-  line-height: var(--m-line-height-normal);
+.footer-text {
+  font-size: var(--m-font-sm);
+  margin-bottom: var(--m-space-xs);
 }
 
-.next-list {
-  margin-left: var(--m-space-lg);
-  color: var(--m-text-secondary);
-  line-height: var(--m-line-height-loose);
+.footer-tip {
+  font-size: var(--m-font-xs);
 }
 </style>
