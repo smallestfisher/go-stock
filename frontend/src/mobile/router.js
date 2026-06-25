@@ -4,9 +4,9 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 const HomePage = () => import('./pages/HomePage.vue')
 const StockListPage = () => import('./pages/stock/StockListPage.vue')
 const MarketPage = () => import('./pages/market/MarketPage.vue')
+const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
 
 // TODO: 后续添加的页面
-// const KlineAnalysisPage = () => import('./pages/kline/KlineAnalysisPage.vue')
 // const ResearchPage = () => import('./pages/research/ResearchPage.vue')
 // ...
 
@@ -28,6 +28,12 @@ const routes = [
     name: 'MobileMarket',
     component: MarketPage,
     meta: { title: '市场' }
+  },
+  {
+    path: '/mobile/kline',
+    name: 'MobileKline',
+    component: KlineAnalysisPage,
+    meta: { title: 'K线分析' }
   },
   // TODO: 后续添加更多路由
 ]
