@@ -1,49 +1,28 @@
 <script setup>
-import { ref, provide, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import MobileLayout from './layouts/MobileLayout.vue'
-
-// 引入移动端样式
-import './styles/mobile.css'
-import './styles/animations.css'
-
-const router = useRouter()
-const drawerVisible = ref(false)
-
-// 全局状态注入：抽屉控制
-provide('toggleDrawer', () => {
-  drawerVisible.value = !drawerVisible.value
-})
-
-provide('closeDrawer', () => {
-  drawerVisible.value = false
-})
-
-provide('openDrawer', () => {
-  drawerVisible.value = true
-})
-
-onMounted(() => {
-  console.log('📱 Mobile App Initialized')
-})
+// 移动端独立入口，无桌面端布局
 </script>
 
 <template>
-  <div class="mobile-app">
-    <MobileLayout
-      :drawer-visible="drawerVisible"
-      @update:drawer-visible="drawerVisible = $event"
-    >
-      <RouterView />
-    </MobileLayout>
-  </div>
+  <router-view />
 </template>
 
-<style scoped>
-.mobile-app {
-  width: 100vw;
-  height: 100dvh;
+<style>
+/* 移动端全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  background: var(--m-bg-primary);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>
