@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MPullRefresh from '../components/base/MPullRefresh.vue'
+import MDrawer from '../components/base/MDrawer.vue'
 import MarketStatusBar from '../components/widgets/MarketStatusBar.vue'
 import StockSummaryCard from '../components/cards/StockSummaryCard.vue'
 import NewsCard from '../components/cards/NewsCard.vue'
@@ -12,6 +13,8 @@ import AiSuggestCard from '../components/cards/AiSuggestCard.vue'
 import MCard from '../components/base/MCard.vue'
 
 const router = useRouter()
+
+const drawerVisible = ref(false)
 
 // 模拟数据（后续对接真实API）
 const stockData = ref([
@@ -87,17 +90,17 @@ function handleNewsClick(news) {
 
 function handleTopicClick(topic) {
   console.log('点击热点:', topic)
-  // TODO: 跳转到热点详情页
+  navigateTo('/mobile/market')
 }
 
 function handleAlertClick(alert) {
   console.log('点击异动:', alert)
-  // TODO: 打开股票详情
+  navigateTo('/mobile/research')
 }
 
 function handleIndustryClick(industry) {
   console.log('点击行业:', industry)
-  // TODO: 跳转到行业详情页
+  navigateTo('/mobile/market')
 }
 
 function handleAiRefresh() {
@@ -109,14 +112,25 @@ function handleAiRefresh() {
 }
 
 function handleAiAction() {
-  console.log('AI操作')
-  // TODO: 跳转到AI分析页
+  navigateTo('/mobile/research')
 }
 </script>
 
 <template>
-  <MPullRefresh :on-refresh="handleRefresh">
-    <div class="home-page">
+  <div class="home-container">
+    <!-- 顶部导航栏 -->
+    <div class="home-header">
+      <button class="menu-btn" @click="drawerVisible = true">☰</button>
+      <h1 class="home-title">go-stock</h1>
+      <div class="header-actions">
+        <button class="search-btn">🔍</button>
+        <button class="notification-btn">🔔</button>
+      </div>
+    </div>
+
+    <!-- 下拉刷新内容区 -->
+    <MPullRefresh :on-refresh="handleRefresh">
+      <div class="home-page">
       <!-- 市场状态条 -->
       <MarketStatusBar />
 
@@ -184,9 +198,79 @@ function handleAiAction() {
       </div>
     </div>
   </MPullRefresh>
+
+  <!-- 侧边抽屉 -->
+  <MDrawer v-model:show="drawerVisible" />
+</div>
 </template>
 
 <style scoped>
+.home-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--m-bg-primary);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--m-space-md);
+  background: var(--m-bg-card);
+  border-bottom: 1px solid var(--m-divider-color);
+  position: sticky;
+  top: 0;
+  z-index: var(--m-z-sticky);
+}
+
+.menu-btn {
+  width: var(--m-touch-min);
+  height: var(--m-touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--m-text-primary);
+  cursor: pointer;
+}
+
+.menu-btn:active {
+  opacity: 0.6;
+}
+
+.home-title {
+  font-size: var(--m-font-xl);
+  font-weight: var(--m-font-weight-bold);
+  color: var(--m-text-primary);
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--m-space-sm);
+}
+
+.search-btn,
+.notification-btn {
+  width: var(--m-touch-min);
+  height: var(--m-touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--m-text-primary);
+  cursor: pointer;
+}
+
+.search-btn:active,
+.notification-btn:active {
+  opacity: 0.6;
+}
+
 .home-page {
   padding: var(--m-space-md);
   display: flex;
