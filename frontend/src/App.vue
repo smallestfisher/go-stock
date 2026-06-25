@@ -41,6 +41,7 @@ import {FireFilled, MoneyCollectOutlined, NotificationFilled, StockOutlined} fro
 const route = useRoute()
 const router = useRouter()
 const FloatingAgentAssistant = defineAsyncComponent(() => import("./components/FloatingAgentAssistant.vue"))
+const PwaInstallPrompt = defineAsyncComponent(() => import("./components/PwaInstallPrompt.vue"))
 const loading = ref(true)
 const loadingMsg = ref("加载数据中...")
 const enableNews = ref(false)
@@ -1327,6 +1328,7 @@ onMounted(() => {
             >
 <!--              <FloatingAiAssistant />-->
               <FloatingAgentAssistant />
+              <PwaInstallPrompt v-if="isMobile" />
               <n-flex class="app-shell" :class="{ 'app-shell--mobile': isMobile }">
                 <n-grid x-gap="12" :cols="1" class="app-shell__grid">
                   <n-gi>

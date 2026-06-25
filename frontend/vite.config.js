@@ -4,6 +4,7 @@ import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { TDesignResolver } from '@tdesign-vue-next/auto-import-resolver';
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const tDesignChatResolver = TDesignResolver({
     library: 'chat'
@@ -49,6 +50,41 @@ export default defineConfig({
       }),
       Components({
           resolvers: [NaiveUiResolver(), tDesignChatResolver],
+      }),
+      VitePWA({
+          registerType: 'autoUpdate',
+          includeAssets: ['favicon.ico', 'appicon.png'],
+          manifest: {
+              name: 'go-stock: AI赋能股票分析',
+              short_name: 'go-stock',
+              description: '基于大语言模型的AI赋能股票分析工具，支持A股、港股、美股',
+              theme_color: '#18a058',
+              background_color: '#ffffff',
+              display: 'standalone',
+              orientation: 'portrait-primary',
+              scope: '/',
+              start_url: '/',
+              icons: [
+                  { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+                  { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+                  { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+              ]
+          },
+          workbox: {
+              globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+              navigateFallback: null,
+              runtimeCaching: [
+                  {
+                      urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif)$/,
+                      handler: 'CacheFirst',
+                      options: {
+                          cacheName: 'images-cache',
+                          expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 }
+                      }
+                  }
+              ]
+          },
+          devOptions: { enabled: false }
       }),
   ],
   build: {

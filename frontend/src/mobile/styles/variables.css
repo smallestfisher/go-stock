@@ -1,0 +1,121 @@
+/* ==================== go-stock 移动端设计系统 ==================== */
+
+:root {
+  /* ==================== 颜色系统 ==================== */
+
+  /* 主色 - 绿色（涨） */
+  --m-color-rise: #18a058;
+  --m-color-rise-light: rgba(24, 160, 88, 0.12);
+  --m-color-rise-hover: #16935e;
+
+  /* 红色（跌） */
+  --m-color-fall: #d03050;
+  --m-color-fall-light: rgba(208, 48, 80, 0.12);
+
+  /* 中性色（平盘） */
+  --m-color-gray: #666;
+  --m-color-flat: #999;
+
+  /* 背景色 */
+  --m-bg-primary: #f7f8fa;
+  --m-bg-card: #ffffff;
+  --m-bg-elevated: #ffffff;
+  --m-bg-overlay: rgba(0, 0, 0, 0.4);
+
+  /* 文字色 */
+  --m-text-primary: #1e2227;
+  --m-text-secondary: #6b7077;
+  --m-text-tertiary: #9ca3af;
+  --m-text-disabled: #d1d5db;
+
+  /* 边框色 */
+  --m-border-color: #e7e3da;
+  --m-divider-color: #f0f0f0;
+
+  /* ==================== 尺寸系统 ==================== */
+
+  /* 触控区域（最小） */
+  --m-touch-min: 44px;
+
+  /* 间距 */
+  --m-space-xs: 4px;
+  --m-space-sm: 8px;
+  --m-space-md: 12px;
+  --m-space-lg: 16px;
+  --m-space-xl: 24px;
+  --m-space-2xl: 32px;
+
+  /* 圆角 */
+  --m-radius-sm: 6px;
+  --m-radius-md: 12px;
+  --m-radius-lg: 16px;
+  --m-radius-full: 9999px;
+
+  /* 卡片 */
+  --m-card-padding: 16px;
+  --m-card-gap: 12px;
+
+  /* ==================== 字体系统 ==================== */
+
+  /* 字号 */
+  --m-font-xs: 11px;
+  --m-font-sm: 12px;
+  --m-font-md: 14px;
+  --m-font-lg: 16px;
+  --m-font-xl: 18px;
+  --m-font-2xl: 24px;
+  --m-font-3xl: 32px;
+
+  /* 行高 */
+  --m-line-height-tight: 1.2;
+  --m-line-height-normal: 1.5;
+  --m-line-height-loose: 1.8;
+
+  /* 字重 */
+  --m-font-weight-normal: 400;
+  --m-font-weight-medium: 500;
+  --m-font-weight-bold: 600;
+
+  /* ==================== 布局系统 ==================== */
+
+  /* 顶部固定栏高度 */
+  --m-header-height: 56px;
+
+  /* 安全区 */
+  --m-safe-top: env(safe-area-inset-top);
+  --m-safe-bottom: env(safe-area-inset-bottom);
+  --m-safe-left: env(safe-area-inset-left);
+  --m-safe-right: env(safe-area-inset-right);
+
+  /* 内容区域高度 */
+  --m-content-height: calc(100dvh - var(--m-header-height) - var(--m-safe-top));
+
+  /* Z-index层级 */
+  --m-z-base: 1;
+  --m-z-dropdown: 10;
+  --m-z-sticky: 20;
+  --m-z-fixed: 100;
+  --m-z-drawer: 998;
+  --m-z-mask: 999;
+  --m-z-modal: 1000;
+  --m-z-toast: 2000;
+
+  /* ==================== 阴影系统 ==================== */
+
+  --m-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --m-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --m-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --m-shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.16);
+
+  /* ==================== 动画系统 ==================== */
+
+  /* 持续时间 */
+  --m-duration-fast: 150ms;
+  --m-duration-normal: 300ms;
+  --m-duration-slow: 500ms;
+
+  /* 缓动函数 */
+  --m-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --m-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --m-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}

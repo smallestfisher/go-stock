@@ -178,3 +178,32 @@ body {
         max-width: 100%;
     }
 }
+
+/* PWA 独立窗口模式下的安全区适配 */
+@media (display-mode: standalone) {
+    html {
+        /* iOS 刘海屏顶部安全区 */
+        padding-top: env(safe-area-inset-top);
+    }
+
+    /* 防止内容被系统手势遮挡 */
+    .app-shell--mobile {
+        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 8px);
+    }
+}
+
+/* 横屏模式适配（移动端） */
+@media (orientation: landscape) and (max-height: 500px) {
+    .mobile-bottom-nav {
+        height: 48px;
+    }
+
+    .mobile-bottom-nav__item {
+        height: 40px;
+        font-size: 10px;
+    }
+
+    .mobile-bottom-nav__item span {
+        font-size: 10px;
+    }
+}

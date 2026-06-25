@@ -1,0 +1,187 @@
+/* ==================== go-stock 移动端全局样式 ==================== */
+
+/* 引入设计变量 */
+@import './variables.css';
+
+/* ==================== 基础重置 ==================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: var(--m-font-md);
+  line-height: var(--m-line-height-normal);
+  color: var(--m-text-primary);
+  background: var(--m-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==================== 滚动优化 ==================== */
+
+.mobile-scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 隐藏滚动条（保持滚动功能） */
+.mobile-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==================== 触控优化 ==================== */
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* ==================== 工具类 ==================== */
+
+/* 文字截断 */
+.m-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m-ellipsis-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 涨跌色 */
+.m-rise {
+  color: var(--m-color-rise) !important;
+}
+
+.m-fall {
+  color: var(--m-color-fall) !important;
+}
+
+.m-flat {
+  color: var(--m-color-flat) !important;
+}
+
+/* 涨跌背景色 */
+.m-bg-rise {
+  background: var(--m-color-rise-light) !important;
+  color: var(--m-color-rise) !important;
+}
+
+.m-bg-fall {
+  background: var(--m-color-fall-light) !important;
+  color: var(--m-color-fall) !important;
+}
+
+/* Flexbox 快捷类 */
+.m-flex {
+  display: flex;
+}
+
+.m-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m-flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 间距快捷类 */
+.m-gap-xs { gap: var(--m-space-xs); }
+.m-gap-sm { gap: var(--m-space-sm); }
+.m-gap-md { gap: var(--m-space-md); }
+.m-gap-lg { gap: var(--m-space-lg); }
+.m-gap-xl { gap: var(--m-space-xl); }
+
+/* 内边距快捷类 */
+.m-p-xs { padding: var(--m-space-xs); }
+.m-p-sm { padding: var(--m-space-sm); }
+.m-p-md { padding: var(--m-space-md); }
+.m-p-lg { padding: var(--m-space-lg); }
+.m-p-xl { padding: var(--m-space-xl); }
+
+/* 外边距快捷类 */
+.m-mt-xs { margin-top: var(--m-space-xs); }
+.m-mt-sm { margin-top: var(--m-space-sm); }
+.m-mt-md { margin-top: var(--m-space-md); }
+.m-mt-lg { margin-top: var(--m-space-lg); }
+.m-mt-xl { margin-top: var(--m-space-xl); }
+
+.m-mb-xs { margin-bottom: var(--m-space-xs); }
+.m-mb-sm { margin-bottom: var(--m-space-sm); }
+.m-mb-md { margin-bottom: var(--m-space-md); }
+.m-mb-lg { margin-bottom: var(--m-space-lg); }
+.m-mb-xl { margin-bottom: var(--m-space-xl); }
+
+/* ==================== 骨架屏动画 ==================== */
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.m-skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* ==================== 安全区适配 ==================== */
+
+.m-safe-top {
+  padding-top: var(--m-safe-top);
+}
+
+.m-safe-bottom {
+  padding-bottom: var(--m-safe-bottom);
+}
+
+.m-safe-area {
+  padding-top: var(--m-safe-top);
+  padding-bottom: var(--m-safe-bottom);
+  padding-left: var(--m-safe-left);
+  padding-right: var(--m-safe-right);
+}

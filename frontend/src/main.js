@@ -1,8 +1,10 @@
 import {createApp} from 'vue'
-import App from './App.vue'
+import AppRoot from './AppRoot.vue'
 import Login from './Login.vue'
-import router from './router/router'
+import desktopRouter from './router/router'
+import mobileRouter from './mobile/router'
 import {getToken} from './api/transport.js'
+import {useDevice} from './composables/useDevice'
 // 引入组件库的少量全局样式变量
 import 'tdesign-vue-next/es/style/index.css';
 
@@ -49,7 +51,7 @@ async function bootstrap() {
     ok = false
   }
 
-  const app = ok ? createApp(App) : createApp(Login)
+  const app = ok ? createApp(AppRoot) : createApp(Login)
   app.config.errorHandler = (err) => {
     if (err && err.message && err.message.includes('ResizeObserver')) {
       return
@@ -57,7 +59,15 @@ async function bootstrap() {
     console.error(err)
   }
   if (ok) {
+    // 根据设备类型使用不同的路由
+    const { isMobile } = useDevice()
+    const router = isMobile.value ? mobileRouter : desktopRouter
     app.use(router)
+
+    // 移动端跳转到移动端首页
+    if (isMobile.value && router.currentRoute.value.path === '/') {
+      router.replace('/mobile')
+    }
   }
   app.mount('#app')
 }
