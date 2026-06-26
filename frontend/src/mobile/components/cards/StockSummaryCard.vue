@@ -63,6 +63,26 @@ function big(n) {
   return String(n)
 }
 
+// 时间格式化：兼容「16:14:27」纯时间和「2026-06-18T22:56:02+08:00」ISO 串
+function fmtTime(t) {
+  if (!t) return ''
+  const s = String(t).trim()
+  // 纯时间 HH:mm:ss（含 HH:mm）—— 去掉秒更紧凑
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) {
+    return s.replace(/:(\d{2})$/, m => '')  // 16:14:27 → 16:14
+  }
+  // ISO / Date 串 —— 取 月-日 时:分
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) {
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    return `${mm}-${dd} ${hh}:${mi}`
+  }
+  return s
+}
+
 function handleViewAll() {
   emit('viewAll')
 }
@@ -102,7 +122,7 @@ function handleStockClick(stock) {
           <div class="stock-name-row">
             <span class="stock-name">{{ stock.name }}</span>
             <span class="stock-code">{{ stock.code }}</span>
-            <span v-if="stock.time" class="stock-time">{{ stock.time }}</span>
+            <span v-if="stock.time" class="stock-time">{{ fmtTime(stock.time) }}</span>
           </div>
           <div class="stock-sub">
             <span>开 <b>{{ fmt(stock.open) }}</b></span>

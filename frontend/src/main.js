@@ -1,9 +1,4 @@
 import {createApp} from 'vue'
-import AppRoot from './AppRoot.vue'
-import MobileApp from './mobile/MobileApp.vue'
-import Login from './Login.vue'
-import desktopRouter from './router/router'
-import mobileRouter from './mobile/router'
 import {getToken} from './api/transport.js'
 import {useDevice} from './composables/useDevice'
 // 引入组件库的少量全局样式变量
@@ -52,35 +47,47 @@ async function bootstrap() {
     ok = false
   }
 
-  const app = ok ? createApp(AppRoot) : createApp(Login)
+  if (!ok) {
+    const { default: Login } = await import('./Login.vue')
+    const app = createConfiguredApp(Login)
+    app.mount('#app')
+    return
+  }
+
+  const { isMobile } = useDevice()
+  if (isMobile.value) {
+    const [{ default: MobileApp }, { default: mobileRouter }] = await Promise.all([
+      import('./mobile/MobileApp.vue'),
+      import('./mobile/router')
+    ])
+    const app = createConfiguredApp(MobileApp)
+    app.use(mobileRouter)
+    app.mount('#app')
+
+    if (mobileRouter.currentRoute.value.path === '/') {
+      mobileRouter.replace('/mobile')
+    }
+    return
+  }
+
+  const [{ default: DesktopApp }, { default: desktopRouter }] = await Promise.all([
+    import('./App.vue'),
+    import('./router/router')
+  ])
+  const app = createConfiguredApp(DesktopApp)
+  app.use(desktopRouter)
+  app.mount('#app')
+}
+
+function createConfiguredApp(rootComponent) {
+  const app = createApp(rootComponent)
   app.config.errorHandler = (err) => {
     if (err && err.message && err.message.includes('ResizeObserver')) {
       return
     }
     console.error(err)
   }
-  if (ok) {
-    // 根据设备类型使用不同的路由和App组件
-    const { isMobile } = useDevice()
-
-    if (isMobile.value) {
-      // 移动端：使用独立的MobileApp（无桌面端布局）
-      const mobileApp = createApp(MobileApp)
-      mobileApp.use(mobileRouter)
-      mobileApp.mount('#app')
-
-      // 跳转到移动端首页
-      if (mobileRouter.currentRoute.value.path === '/') {
-        mobileRouter.replace('/mobile')
-      }
-    } else {
-      // 桌面端：使用AppRoot（带侧边栏布局）
-      app.use(desktopRouter)
-      app.mount('#app')
-    }
-    return
-  }
-  app.mount('#app')
+  return app
 }
 
 window.addEventListener('error', (event) => {

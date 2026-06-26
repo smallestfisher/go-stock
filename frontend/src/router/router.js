@@ -12,6 +12,15 @@ const mcpServerManager = () => import('../components/mcp-server-manager.vue')
 const klineAnalysis = () => import('../components/kline-analysis.vue')
 
 const routes = [
+    { path: '/mobile', redirect: '/' },
+    { path: '/mobile/stock', redirect: '/' },
+    { path: '/mobile/market', redirect: '/market' },
+    { path: '/mobile/kline', redirect: '/kline-analysis' },
+    { path: '/mobile/research', redirect: '/research' },
+    { path: '/mobile/fund', redirect: '/fund' },
+    { path: '/mobile/agent', redirect: '/agent' },
+    { path: '/mobile/settings', redirect: '/settings' },
+    { path: '/mobile/about', redirect: '/about' },
     { path: '/', component: stockView,name: 'stock'},
     { path: '/fund', component: fundView,name: 'fund' },
     { path: '/settings', component: settingsView,name: 'settings' },
@@ -22,6 +31,7 @@ const routes = [
     { path: '/cron-tasks', component: cronTaskManager,name: 'cronTasks' },
     { path: '/mcp-servers', component: mcpServerManager,name: 'mcpServers' },
     { path: '/kline-analysis', component: klineAnalysis,name: 'klineAnalysis' },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
 
 ]
 

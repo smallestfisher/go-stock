@@ -62,13 +62,17 @@ async function loadStockData() {
         changeAmount: Number(pick(stock, ['PriceChange', 'ChangePrice', 'changeAmount', 'priceChange', '涨跌额'], 0)) || 0,
         high: Number(pick(stock, ['High', '今日最高价'], 0)) || 0,
         low: Number(pick(stock, ['Low', '今日最低价'], 0)) || 0,
+        open: Number(pick(stock, ['Open', '今日开盘价'], 0)) || 0,
+        preClose: Number(pick(stock, ['PreClose', '昨日收盘价'], 0)) || 0,
         volume: Number(pick(stock, ['Volume', 'volume', '成交的股票数'], 0)) || 0,
         turnover: Number(pick(stock, ['Turnover', 'Amount', '成交金额'], 0)) || 0,
         time: pick(stock, ['Time', '时间'], '')
       }))
       stockData.value = list
       // 拉取实时行情覆盖（对齐桌面端 Greet + 自选页 fetchRealtime）
-      fetchStockRealtime(list)
+      // 注意：必须传 stockData.value（reactive 代理）而非原始 list，
+      // 否则 mutate 裸对象绕过响应式，OHLC/涨跌幅永远停在快照值不更新
+      fetchStockRealtime(stockData.value)
     }
   } catch (error) {
     console.error('加载自选股票失败:', error)
@@ -90,6 +94,8 @@ async function fetchStockRealtime(list) {
         stock.changeAmount = Number(rt.changePrice ?? rt['涨跌额']) || 0
         stock.high = Number(rt['今日最高价']) || stock.high
         stock.low = Number(rt['今日最低价']) || stock.low
+        stock.open = Number(rt['今日开盘价']) || stock.open
+        stock.preClose = Number(rt['昨日收盘价']) || stock.preClose
         stock.volume = Number(rt['成交的股票数']) || stock.volume
         stock.turnover = Number(rt['成交金额']) || stock.turnover
         stock.time = rt['时间'] || stock.time

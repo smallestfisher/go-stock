@@ -19,7 +19,7 @@ import {
   NewspaperSharp, Notifications,
   PowerOutline, Pulse,
   SettingsOutline, ServerOutline, Skull, SkullOutline, SkullSharp,
-  SparklesOutline, FlashOutline, Star,
+  SparklesOutline, FlashOutline, Star, StarOutline,
   StatsChartOutline,
   Wallet, WarningOutline, TimeOutline, SearchOutline,
 } from '@vicons/ionicons5'
@@ -50,6 +50,7 @@ const activeKey = ref('stock')
 const containerRef = ref({})
 const realtimeProfit = ref(0)
 const telegraph = ref([])
+const telegraphItems = computed(() => Array.isArray(telegraph.value) ? telegraph.value : [])
 const groupList = ref([])
 const officialStatement= ref("")
 const marketStatus = ref('')
@@ -980,7 +981,7 @@ EventsOn("realtime_profit", (data) => {
   realtimeProfit.value = data
 })
 EventsOn("telegraph", (data) => {
-  telegraph.value = data
+  telegraph.value = Array.isArray(data) ? data : []
 })
 
 EventsOn("loadingMsg", (data) => {
@@ -1179,8 +1180,8 @@ onMounted(() => {
                         {{ loadingMsg }}
                       </template>
                       <n-marquee :speed="100" style="position: relative;top:0;z-index: 19;width: 100%"
-                                 v-if="(telegraph.length>0)&&(enableNews)">
-                        <n-tag type="warning" v-for="item in telegraph" style="margin-right: 10px">
+                                 v-if="(telegraphItems.length > 0) && enableNews">
+                        <n-tag type="warning" v-for="item in telegraphItems" style="margin-right: 10px">
                           {{ item }}
                         </n-tag>
                       </n-marquee>
