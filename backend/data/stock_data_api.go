@@ -894,6 +894,20 @@ func ParseTxHKStockData(datas []string) (map[string]string, error) {
 		result["卖五报价"] = parts[27]
 		result["卖五申报"] = parts[28]
 
+		// 成交量/额：腾讯 A股 parts[34] 是 "昨收价/成交量(手)/成交额(元)" 复合串，
+		// 用 "/" 拆分最稳（固定索引 parts[35]/[36] 在不同行情快照下会漂移）。
+		// 成交量换算成股(×100)，成交额已是元。
+		if len(parts) > 34 {
+			segs := strings.Split(parts[34], "/")
+			if len(segs) >= 3 {
+				if vol, e := convertor.ToFloat(strings.TrimSpace(segs[1])); e == nil {
+					result["成交的股票数"] = convertor.ToString(int64(vol * 100))
+				}
+				if amt, e := convertor.ToFloat(strings.TrimSpace(segs[2])); e == nil {
+					result["成交金额"] = convertor.ToString(amt)
+				}
+			}
+		}
 	}
 
 	timestr := ""
@@ -1597,7 +1611,13 @@ func (receiver StockDataApi) GetHK_KLineData(stockCode string, kLineType string,
 func getSinaStockInfo(receiver StockDataApi, page, pageSize int) *[]models.SinaStockInfo {
 	infos := &[]models.SinaStockInfo{}
 	url := "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHKStockData?page=%d&num=%d&sort=symbol&asc=1&node=qbgg_hk&_s_r_a=init"
-	_, err := receiver.client.SetTimeout(time.Duration(receiver.config.CrawlTimeOut)*time.Second).SetProxy("http://localhost:10809").R().
+	// 用独立 client 设置超时，避免在全局 SharedHTTPClient 上调 SetProxy 污染实时行情抓取。
+	// CreateHTTPClientWithTimeout 复用 sharedTransport，且 SetProxy 只作用于本实例。
+	timeout := time.Duration(receiver.config.CrawlTimeOut) * time.Second
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	_, err := CreateHTTPClientWithTimeout(timeout).R().
 		SetHeader("Host", "vip.stock.finance.sina.com.cn").
 		SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0").
 		SetResult(infos).

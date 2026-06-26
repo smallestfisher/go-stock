@@ -3,11 +3,8 @@ html {
     text-align: center;
     /*color: white;*/
     --desktop-bottom-menu-height: 72px;
-    --mobile-bottom-nav-height: 64px;
-    /* 移动端安全区与内容高度 token，供新移动组件统一引用，取代散落的 calc(100dvh - ...) */
     --safe-bottom: env(safe-area-inset-bottom);
     --safe-top: env(safe-area-inset-top);
-    --app-content-height-mobile: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom));
 }
 
 body {
@@ -35,9 +32,6 @@ body {
     padding: 0 8px !important;
 }
 
-.mobile-only {
-    display: none !important;
-}
 
 .app-shell,
 .app-shell__grid {
@@ -46,52 +40,6 @@ body {
 
 .desktop-bottom-menu {
     min-height: var(--desktop-bottom-menu-height);
-}
-
-.mobile-bottom-nav {
-    align-items: center;
-    background: var(--n-color, #fff);
-    border-top: 1px solid var(--n-border-color, #efeff5);
-    bottom: 0;
-    box-sizing: border-box;
-    display: none;
-    gap: 2px;
-    height: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
-    justify-content: space-around;
-    left: 0;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    position: fixed;
-    right: 0;
-    z-index: 20;
-}
-
-.mobile-bottom-nav__item {
-    align-items: center;
-    appearance: none;
-    background: transparent;
-    border: 0;
-    border-radius: 8px;
-    color: var(--n-text-color-2, #666);
-    display: flex;
-    flex: 1 1 0;
-    flex-direction: column;
-    font: inherit;
-    gap: 2px;
-    height: 48px;
-    justify-content: center;
-    min-width: 0;
-    padding: 4px 0;
-}
-
-.mobile-bottom-nav__item span {
-    font-size: 11px;
-    line-height: 1.2;
-}
-
-.mobile-bottom-nav__item--active {
-    background: rgba(24, 160, 88, 0.12);
-    color: var(--n-primary-color, #18a058);
-    font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -103,31 +51,8 @@ body {
         width: 100%;
     }
 
-    .mobile-only {
-        display: flex !important;
-    }
-
-    .desktop-only {
-        display: none !important;
-    }
-
-    .app-shell--mobile {
-        box-sizing: border-box;
-        min-height: 100dvh;
-        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
-        width: 100%;
-    }
-
     .app-content-scroll {
         width: 100%;
-    }
-
-    .mobile-bottom-nav {
-        display: flex;
-    }
-
-    .mobile-menu-drawer .n-drawer-content {
-        border-radius: 12px 12px 0 0;
     }
 
     .n-modal {
@@ -184,26 +109,5 @@ body {
     html {
         /* iOS 刘海屏顶部安全区 */
         padding-top: env(safe-area-inset-top);
-    }
-
-    /* 防止内容被系统手势遮挡 */
-    .app-shell--mobile {
-        padding-bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 8px);
-    }
-}
-
-/* 横屏模式适配（移动端） */
-@media (orientation: landscape) and (max-height: 500px) {
-    .mobile-bottom-nav {
-        height: 48px;
-    }
-
-    .mobile-bottom-nav__item {
-        height: 40px;
-        font-size: 10px;
-    }
-
-    .mobile-bottom-nav__item span {
-        font-size: 10px;
     }
 }

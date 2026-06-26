@@ -14,6 +14,7 @@ import MCard from '../components/base/MCard.vue'
 // 导入API
 import {
   GetFollowList,
+  Greet,
   GetTelegraphList,
   ReFleshTelegraphList,
   HotTopic,
@@ -47,23 +48,56 @@ function pick(item, keys, fallback = undefined) {
   return fallback
 }
 
-// 加载自选股票（取前3条）
+// 加载自选股票（取前3条），并拉取实时行情填充价格/涨跌/量额
 async function loadStockData() {
   try {
     // 0 表示全部分组（与桌面端 stock.vue 的默认值一致）
     const result = await GetFollowList(0)
     if (result && Array.isArray(result)) {
-      stockData.value = result.slice(0, 3).map(stock => ({
+      const list = result.slice(0, 3).map(stock => ({
         code: pick(stock, ['StockCode', 'stockCode', 'code'], ''),
         name: pick(stock, ['Name', 'StockName', 'stockName', 'name'], '未命名股票'),
-        price: pick(stock, ['Price', 'price', 'currentPrice'], 0),
-        changePercent: pick(stock, ['ChangePercent', 'changePercent', 'change_percent'], 0),
-        changeAmount: pick(stock, ['PriceChange', 'changeAmount', 'priceChange'], 0)
+        price: Number(pick(stock, ['Price', 'price', 'currentPrice', '当前价格'], 0)) || 0,
+        changePercent: Number(pick(stock, ['ChangePercent', 'changePercent', 'change_percent'], 0)) || 0,
+        changeAmount: Number(pick(stock, ['PriceChange', 'ChangePrice', 'changeAmount', 'priceChange', '涨跌额'], 0)) || 0,
+        high: Number(pick(stock, ['High', '今日最高价'], 0)) || 0,
+        low: Number(pick(stock, ['Low', '今日最低价'], 0)) || 0,
+        volume: Number(pick(stock, ['Volume', 'volume', '成交的股票数'], 0)) || 0,
+        turnover: Number(pick(stock, ['Turnover', 'Amount', '成交金额'], 0)) || 0,
+        time: pick(stock, ['Time', '时间'], '')
       }))
+      stockData.value = list
+      // 拉取实时行情覆盖（对齐桌面端 Greet + 自选页 fetchRealtime）
+      fetchStockRealtime(list)
     }
   } catch (error) {
     console.error('加载自选股票失败:', error)
   }
+}
+
+// 拉取实时行情增量更新（对齐桌面端 stock.vue 的 Greet + updateData）
+async function fetchStockRealtime(list) {
+  if (!Array.isArray(list) || !list.length) return
+  await Promise.all(list.map(async (stock) => {
+    if (!stock.code) return
+    try {
+      const rt = await Greet(stock.code)
+      if (!rt) return
+      const price = Number(rt['当前价格'] || rt['卖一报价']) || 0
+      if (price > 0) {
+        stock.price = price
+        stock.changePercent = Number(rt.changePercent) || 0
+        stock.changeAmount = Number(rt.changePrice ?? rt['涨跌额']) || 0
+        stock.high = Number(rt['今日最高价']) || stock.high
+        stock.low = Number(rt['今日最低价']) || stock.low
+        stock.volume = Number(rt['成交的股票数']) || stock.volume
+        stock.turnover = Number(rt['成交金额']) || stock.turnover
+        stock.time = rt['时间'] || stock.time
+      }
+    } catch (e) {
+      // 单只失败不打断
+    }
+  }))
 }
 
 // 加载市场快讯（读后端缓存，用于首次加载）
@@ -247,9 +281,12 @@ onBeforeMount(async () => {
     if (!code) return
     const target = stockData.value.find(s => s.code === code)
     if (target && price > 0) {
-      target.price = price
+      target.price = Number(price) || target.price
       target.changePercent = data.changePercent || 0
-      target.changeAmount = data['涨跌额'] || 0
+      target.changeAmount = Number(data.changePrice ?? data['涨跌额']) || 0
+      target.high = Number(data['今日最高价']) || target.high
+      target.low = Number(data['今日最低价']) || target.low
+      target.time = data['时间'] || target.time
     }
   })
 

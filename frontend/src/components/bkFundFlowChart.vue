@@ -674,31 +674,4 @@ watch(() => props.chartHeight, () => {
   min-width: 0;
 }
 
-@media (max-width: 768px) {
-  /* 控制栏：移动端控件占满宽度，竖向堆叠更清晰 */
-  .fundflow-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  /* 让日期/选择/滑块等内联宽度控件在移动端撑满 */
-  .fundflow-toolbar :deep(.n-date-picker),
-  .fundflow-toolbar :deep(.n-select),
-  .fundflow-toolbar :deep(.n-slider),
-  .fundflow-toolbar :deep(.n-input) {
-    width: 100% !important;
-  }
-
-  /* 刷新/播放按钮整行平铺，避免小按钮挤在一角 */
-  .fundflow-toolbar :deep(.n-button) {
-    flex: 1 1 auto;
-  }
-
-  /* 流入/流出排名：移动端上下堆叠，各自占满宽度 */
-  .fundflow-ranks {
-    flex-direction: column;
-    gap: 16px;
-  }
-}
 </style>

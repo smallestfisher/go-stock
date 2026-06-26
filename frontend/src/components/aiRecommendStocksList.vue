@@ -10,10 +10,6 @@ import {
 import {NAvatar, NButton, NEllipsis, NSwitch, NTag, NText, useMessage, useNotification} from "naive-ui";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 import sparkLine from "./stockSparkLine.vue"
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
-
-const {isMobile} = useDevice()
 
 const notify = useNotification()
 
@@ -488,7 +484,6 @@ function toggleAlert(row, newEnableAlert) {
     </n-button>
   </n-input-group>
         <n-data-table
-            class="ai-recommend-table desktop-only"
             remote
             size="small"
             :columns="columnsRef"
@@ -501,74 +496,8 @@ function toggleAlert(row, newEnableAlert) {
             style="height: calc(100vh - 210px);margin-top: 10px"
         />
 
-  <div class="ai-recommend-mobile-list mobile-only">
-    <n-spin :show="loadingRef">
-      <n-space vertical :size="10">
-        <n-card v-for="item in dataRef" :key="item.ID" class="ai-recommend-mobile-card" size="small" :bordered="true">
-          <template #header>
-            <n-space class="ai-recommend-mobile-card__header" align="center" :size="8">
-              <n-text strong>{{ item.stockName }}</n-text>
-              <n-text depth="3">{{ item.stockCode }}</n-text>
-              <n-tag v-if="item.rating" type="info" size="small">{{ item.rating }}</n-tag>
-            </n-space>
-          </template>
-          <template #header-extra>
-            <n-switch size="small" v-model:value="item.enableAlert" @update:value="(val) => toggleAlert(item, val)" />
-          </template>
-          <div class="ai-recommend-mobile-card__meta">
-            <span>{{ item.modelName || '-' }}</span>
-            <span>{{ formatRecommendTime(item.CreatedAt) }}</span>
-          </div>
-          <div class="ai-recommend-mobile-card__prices">
-            <div>
-              <span>最新</span>
-              <n-text :type="getCurrentPriceType(item)" strong>{{ getCurrentDiff(item) }}</n-text>
-            </div>
-            <div>
-              <span>推荐时</span>
-              <n-space :size="4" align="center">
-                <n-text>{{ item.stockPrice || '-' }}</n-text>
-                <n-tag :type="getRecommendProfitType(item)" size="tiny" :bordered="false">{{ getRecommendProfitText(item) }}</n-tag>
-              </n-space>
-            </div>
-            <div>
-              <span>开仓</span>
-              <n-text>{{ item.recommendBuyPrice || '-' }}</n-text>
-            </div>
-            <div>
-              <span>止盈</span>
-              <n-text>{{ item.recommendStopProfitPrice || '-' }}</n-text>
-            </div>
-            <div>
-              <span>止损</span>
-              <n-text>{{ item.recommendStopLossPrice || '-' }}</n-text>
-            </div>
-          </div>
-          <div class="ai-recommend-mobile-card__reason">
-            {{ item.recommendReason || item.remarks || '暂无推荐理由' }}
-          </div>
-          <template #action>
-            <n-space class="ai-recommend-mobile-card__actions" :size="8">
-              <n-button size="small" type="primary" @click="showDetail(item)">查看</n-button>
-              <n-button size="small" type="error" @click="deleteAiRecommendStocks(item.ID)">删除</n-button>
-            </n-space>
-          </template>
-        </n-card>
-        <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无推荐记录" />
-      </n-space>
-    </n-spin>
-    <n-space justify="center" style="margin-top: 12px">
-      <n-pagination
-        v-model:page="paginationReactive.page"
-        :page-count="paginationReactive.pageCount"
-        :page-size="paginationReactive.pageSize"
-        @update:page="handlePageChange"
-      />
-    </n-space>
-  </div>
-
   <!-- 详情弹窗（桌面端） -->
-  <n-modal v-if="!isMobile" class="ai-recommend-detail-modal" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
+  <n-modal class="ai-recommend-detail-modal" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="max-width: 1400px;">
     <n-gradient-text :size="16" type="warning">{{modalDataRef.remarks}}</n-gradient-text>
     <n-card size="small">
       <StockLightweightKlineChart
@@ -588,148 +517,8 @@ function toggleAlert(row, newEnableAlert) {
     <n-text type="error">{{modalDataRef.riskRemarks}}</n-text>
     </n-card>
   </n-modal>
-
-  <!-- 详情（移动端底部抽屉） -->
-  <BottomSheet v-else :show="modalDataRef.visible" :title="modalDataRef.title" height="88vh" @update:show="(v) => modalDataRef.visible = v">
-    <div class="ai-detail-sheet">
-      <n-gradient-text :size="14" type="warning">{{modalDataRef.remarks}}</n-gradient-text>
-      <StockLightweightKlineChart
-          style="width: 100%;"
-          :code="modalDataRef.stockCode"
-          :chart-height="340"
-          :stock-name="modalDataRef.stockName"
-          :dark-theme="editorDataRef.darkTheme"
-          v-model:long-entry-price="modalDataRef.longEntryPrice"
-          v-model:long-stop-loss-price="modalDataRef.longStopLossPrice"
-          v-model:long-take-profit-price="modalDataRef.longTakeProfitPrice"
-      />
-      <n-divider><n-gradient-text type="error">分析说明</n-gradient-text></n-divider>
-      <n-text type="info" class="ai-detail-sheet__text">{{modalDataRef.content}}</n-text>
-      <n-divider><n-gradient-text type="error">风险提示</n-gradient-text></n-divider>
-      <n-text type="error" class="ai-detail-sheet__text">{{modalDataRef.riskRemarks}}</n-text>
-    </div>
-  </BottomSheet>
   </div>
 </template>
 
 <style scoped>
-@media (max-width: 768px) {
-  .ai-recommend-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .ai-recommend-search {
-    display: grid !important;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .ai-recommend-search :deep(.n-date-picker),
-  .ai-recommend-search :deep(.n-select),
-  .ai-recommend-search :deep(.n-input),
-  .ai-recommend-search :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .ai-recommend-mobile-list {
-    display: block !important;
-    margin-top: 10px;
-  }
-
-  .ai-recommend-mobile-card {
-    text-align: left;
-  }
-
-  .ai-recommend-mobile-card__header {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .ai-recommend-mobile-card__header :deep(.n-text) {
-    overflow-wrap: anywhere;
-  }
-
-  .ai-recommend-mobile-card__meta {
-    color: var(--n-text-color-3);
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 12px;
-    gap: 6px 10px;
-    margin-bottom: 10px;
-  }
-
-  .ai-recommend-mobile-card__prices {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 10px;
-  }
-
-  .ai-recommend-mobile-card__prices > div {
-    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
-    border-radius: 6px;
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-    padding: 8px;
-  }
-
-  .ai-recommend-mobile-card__prices span {
-    color: var(--n-text-color-3);
-    font-size: 12px;
-  }
-
-  .ai-recommend-mobile-card__reason {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 13px;
-    line-height: 1.5;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .ai-recommend-mobile-card__actions {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .ai-recommend-mobile-card__actions :deep(.n-button) {
-    width: 100%;
-  }
-
-  :deep(.ai-recommend-detail-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.ai-recommend-detail-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-
-  :deep(.ai-recommend-detail-modal .n-card__content) {
-    padding: 10px 12px;
-  }
-}
-
-/* ============ 移动端详情抽屉（仅在 isMobile 渲染） ============ */
-.ai-detail-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 12px calc(var(--safe-bottom) + 8px);
-}
-
-.ai-detail-sheet__text {
-  display: block;
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
 </style>

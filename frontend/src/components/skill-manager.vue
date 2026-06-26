@@ -44,7 +44,6 @@
     </n-space>
 
     <n-data-table
-      class="skill-manager-table desktop-only"
       remote
       :columns="columns"
       :data="tableData"
@@ -53,48 +52,6 @@
       :row-key="row => row.id"
       @update:page="handlePageChange"
     />
-    <div class="skill-manager-mobile-list mobile-only">
-      <n-spin :show="loading">
-        <n-space vertical :size="10">
-          <n-card v-for="item in tableData" :key="item.id" class="skill-manager-mobile-card" size="small" :bordered="true">
-            <template #header>
-              <n-space class="skill-manager-mobile-card__title" align="center" :size="8">
-                <n-text strong>{{ item.name }}</n-text>
-                <n-tag :type="item.category ? 'info' : 'default'" size="small">{{ item.category || '未分类' }}</n-tag>
-              </n-space>
-            </template>
-            <template #header-extra>
-              <n-switch size="small" :value="item.enable" @update:value="(val) => handleEnable(item, val)" />
-            </template>
-            <div v-if="item.description" class="skill-manager-mobile-card__description">{{ item.description }}</div>
-            <div class="skill-manager-mobile-card__meta">
-              <span>排序 {{ item.sortOrder || 0 }}</span>
-              <span>绑定 MCP {{ item.mcpServerIds ? item.mcpServerIds.split(',').filter(s => s.trim()).length : 0 }} 个</span>
-            </div>
-            <template #action>
-              <n-space class="skill-manager-mobile-card__actions" :size="8">
-                <n-button size="small" type="info" @click="handleEdit(item)">编辑</n-button>
-                <n-popconfirm @positive-click="handleDelete(item)">
-                  <template #trigger>
-                    <n-button size="small" type="error">删除</n-button>
-                  </template>
-                  确定删除此技能？
-                </n-popconfirm>
-              </n-space>
-            </template>
-          </n-card>
-          <n-empty v-if="!loading && tableData.length === 0" description="暂无技能" />
-        </n-space>
-      </n-spin>
-      <n-space justify="center" style="margin-top: 12px">
-        <n-pagination
-          :page="pagination.page"
-          :page-count="pagination.pageCount"
-          :page-size="pagination.pageSize"
-          @update:page="handlePageChange"
-        />
-      </n-space>
-    </div>
   </n-space>
 
   <n-modal
@@ -561,94 +518,4 @@ onMounted(() => {
   text-align: left;
 }
 
-@media (max-width: 768px) {
-  .skill-manager-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .skill-manager-toolbar,
-  .skill-manager-toolbar__inner {
-    width: 100%;
-  }
-
-  .skill-manager-toolbar__inner {
-    display: grid !important;
-    gap: 8px !important;
-    grid-template-columns: 1fr;
-  }
-
-  .skill-manager-toolbar__inner :deep(.n-input),
-  .skill-manager-toolbar__inner :deep(.n-select),
-  .skill-manager-toolbar__inner :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .skill-manager-mobile-list {
-    display: block !important;
-  }
-
-  .skill-manager-mobile-card {
-    text-align: left;
-  }
-
-  .skill-manager-mobile-card__title {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .skill-manager-mobile-card__description {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 12px;
-    line-height: 1.45;
-    margin-bottom: 8px;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .skill-manager-mobile-card__meta {
-    color: var(--n-text-color-3);
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 12px;
-    gap: 8px;
-  }
-
-  .skill-manager-mobile-card__actions {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .skill-manager-mobile-card__actions :deep(.n-button) {
-    width: 100%;
-  }
-
-  :deep(.skill-manager-edit-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.skill-manager-edit-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-
-  :deep(.skill-manager-edit-modal .n-grid) {
-    grid-template-columns: 1fr !important;
-  }
-
-  :deep(.skill-manager-edit-modal .n-grid-item) {
-    grid-column: 1 / -1 !important;
-  }
-
-  :deep(.skill-manager-edit-modal .md-editor) {
-    height: 240px !important;
-  }
-}
 </style>

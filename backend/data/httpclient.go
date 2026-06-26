@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/url"
@@ -21,10 +22,14 @@ var (
 
 func init() {
 	sharedTransport = &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   15 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// 强制 IPv4：部分国内行情接口(如腾讯 qt.gtimg.cn)DNS 只返回 IPv6，
+			// 而本机 IPv6 链路不通，默认 dial 会连 IPv6 失败导致拉不到行情。
+			return (&net.Dialer{
+				Timeout:   15 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext(ctx, "tcp4", addr)
+		},
 		MaxIdleConns:          20,
 		MaxIdleConnsPerHost:   4,
 		MaxConnsPerHost:       10,

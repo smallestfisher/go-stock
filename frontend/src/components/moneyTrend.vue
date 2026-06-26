@@ -2,10 +2,6 @@
 import {onMounted, onUnmounted, ref} from "vue";
 import {GetStockMoneyTrendByDay} from "../api/app";
 import * as echarts from "echarts";
-import {useDevice} from "../composables/useDevice";
-
-const {isMobile} = useDevice()
-
 const {code, name, darkTheme, days, chartHeight} = defineProps({
   code: {
     type: String,
@@ -63,7 +59,6 @@ onUnmounted(() => {
 })
 const handleLine = (code, days) => {
   GetStockMoneyTrendByDay(code, days).then(result => {
-    const mobile = isMobile.value
     const chart = echarts.init(LineChartRef.value);
     chartInstance = chart
     const categoryData = [];
@@ -103,7 +98,7 @@ const handleLine = (code, days) => {
     const downColor = '#00da3c';
     let option = {
       title: {
-        show: !mobile,
+        show: true,
         text: name,
         left: '20px',
         textStyle: {
@@ -123,11 +118,11 @@ const handleLine = (code, days) => {
         borderWidth: 2,
         borderColor: darkTheme?'#456':'#ccc',
         backgroundColor: darkTheme?'#456':'#fff',
-        padding: mobile ? 6 : 10,
+        padding: 10,
         confine: true,
         textStyle: {
           color: darkTheme?'#ccc':'#456',
-          fontSize: mobile ? 11 : 12
+          fontSize: 12
         },
       },
       axisPointer: {
@@ -148,18 +143,15 @@ const handleLine = (code, days) => {
           '主力当日净流入': true,
           '累计净流入': true,
           '股价': true,
-        },
-        // 移动端：顶部一行 + 可滚动分页，避免 4 个图例项在窄屏重叠
-        ...(mobile
-          ? { top: 0, left: 0, right: 0, type: 'scroll', pageIconSize: 10 }
-          : { top: 'auto', right: 150 }),
+        },        top: 'auto',
+        right: 150,
         textStyle: {
           color: darkTheme ? 'rgb(253,252,252)' : '#456',
-          fontSize: mobile ? 10 : 12
+          fontSize: 12
         },
-        itemWidth: mobile ? 14 : 25,
-        itemHeight: mobile ? 8 : 14,
-        itemGap: mobile ? 6 : 10,
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
       },
       dataZoom: [
         {
@@ -173,22 +165,21 @@ const handleLine = (code, days) => {
           xAxisIndex: [0, 1],
           type: 'slider',
           top: '90%',
-          height: mobile ? 22 : 16,
-          handleSize: mobile ? 22 : undefined,
-          start: 86,
+          height: 16,
+                    start: 86,
           end: 100
         }
       ],
       grid: [
         {
-          left: mobile ? '14%' : '8%',
-          right: mobile ? '6%' : '8%',
-          top: mobile ? '18%' : '8%',
+          left: '8%',
+          right: '8%',
+          top: '8%',
           height: '50%',
         },
         {
-          left: mobile ? '14%' : '8%',
-          right: mobile ? '6%' : '8%',
+          left: '8%',
+          right: '8%',
           top: '74%',
           height: '15%'
         },
@@ -200,7 +191,7 @@ const handleLine = (code, days) => {
           axisPointer: {
             z: 100
           },
-          axisLabel: { rotate: mobile ? 45 : 0, fontSize: mobile ? 10 : 12 },
+          axisLabel: { rotate: 0, fontSize: 12 },
           boundaryGap: false,
           axisLine: { onZero: false },
           splitLine: { show: false },
@@ -220,18 +211,18 @@ const handleLine = (code, days) => {
       ],
       yAxis: [
         {
-          name: mobile ? '' : '当日净流入/万',
+          name: '当日净流入/万',
           type: 'value',
           axisLine: {
             show: true
           },
-          axisLabel: { fontSize: mobile ? 10 : 12 },
+          axisLabel: { fontSize: 12 },
           splitLine: {
             show: false
           },
         },
         {
-          name: mobile ? '' : '股价',
+          name: '股价',
           type: 'value',
           min: min - 1,
           max: max + 1,
@@ -239,19 +230,19 @@ const handleLine = (code, days) => {
           axisLine: {
             show: true
           },
-          axisLabel: { fontSize: mobile ? 10 : 12 },
+          axisLabel: { fontSize: 12 },
           splitLine: {
             show: false
           },
         },
         {
           gridIndex: 1,
-          name: mobile ? '' : '累计净流入/万',
+          name: '累计净流入/万',
           type: 'value',
           axisLine: {
             show: true
           },
-          axisLabel: { fontSize: mobile ? 10 : 12 },
+          axisLabel: { fontSize: 12 },
           splitLine: {
             show: false
           },
@@ -277,7 +268,7 @@ const handleLine = (code, days) => {
             },
             label: {
               position: 'right',
-              show: !mobile,
+              show: true,
             },
             data: [
               {type: 'max', name: 'Max'},
@@ -285,8 +276,7 @@ const handleLine = (code, days) => {
             ]
           },
           markLine: {
-            symbol: mobile ? 'none' : undefined,
-            label: { show: !mobile },
+                        label: { show: true },
             data: [
               {
                 type: 'average',
@@ -352,14 +342,14 @@ const handleLine = (code, days) => {
           markPoint: {
             symbol: 'arrow',
             symbolRotate: 90,
-            symbolSize: mobile ? [8, 16] : [10, 20],
-            symbolOffset: mobile ? [0, 0] : [10, 0],
+            symbolSize: [10, 20],
+            symbolOffset: [10, 0],
             itemStyle: {
               color: '#f39509'
             },
             label: {
               position: 'right',
-              show: !mobile,
+              show: true,
             },
             data: [
               {type: 'max', name: 'Max'},
@@ -367,8 +357,7 @@ const handleLine = (code, days) => {
             ]
           },
           markLine: {
-            symbol: mobile ? 'none' : undefined,
-            label: { show: !mobile },
+                        label: { show: true },
             data: [
               {
                 type: 'average',
@@ -395,14 +384,14 @@ const handleLine = (code, days) => {
           markPoint: {
             symbol: 'arrow',
             symbolRotate: 90,
-            symbolSize: mobile ? [8, 16] : [10, 20],
-            symbolOffset: mobile ? [0, 0] : [10, 0],
+            symbolSize: [10, 20],
+            symbolOffset: [10, 0],
             // itemStyle: {
             //   color: '#f39509'
             // },
             label: {
               position: 'right',
-              show: !mobile,
+              show: true,
             },
             data: [
               {type: 'max', name: 'Max'},

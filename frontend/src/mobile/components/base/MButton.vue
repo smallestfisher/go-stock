@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   // 按钮类型
   type: {
     type: String,

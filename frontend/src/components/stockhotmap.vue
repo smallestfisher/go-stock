@@ -2,14 +2,8 @@
 import {h, computed} from 'vue'
 import {NTag,NImage} from 'naive-ui'
 import EmbeddedUrl from "./EmbeddedUrl.vue";
-import {useDevice} from "../composables/useDevice";
-
-const {isMobile} = useDevice()
-// 嵌入 iframe 高度：桌面沿用 100vh-252px；移动端按 dvh 减去底部导航+安全区+顶部留白，
-// 避免 iframe 高度过大撑出页面、或过小被挤压。
-const embedHeight = computed(() => isMobile.value
-    ? 'calc(100dvh - var(--mobile-bottom-nav-height) - env(safe-area-inset-bottom) - 120px)'
-    : 'calc(100vh - 252px)')
+// 嵌入 iframe 高度沿用 100vh-252px。
+const embedHeight = computed(() => 'calc(100vh - 252px)')
 </script>
 
 <template>

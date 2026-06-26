@@ -9,11 +9,8 @@ import {NButton, NInput, NTag, NText, useMessage, NDataTable, NSpace, NPaginatio
 import sparkLine from "./stockSparkLine.vue"
 import klineChart from "./KLineChart.vue"
 import KLineChart from "./KLineChart.vue";
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
-const {isMobile} = useDevice()
 
 const editorDataRef = reactive({
   darkTheme: false
@@ -595,7 +592,6 @@ function formatConceptPreview(concept) {
     </n-input-group>
     <!-- 数据表格 -->
     <n-data-table
-      class="all-stock-list-table desktop-only"
       remote
       size="small"
       :columns="columnsRef"
@@ -609,57 +605,6 @@ function formatConceptPreview(concept) {
       @update:page="handlePageChange"
     />
 
-    <div class="all-stock-list-mobile-list mobile-only">
-      <n-spin :show="loadingRef">
-        <n-space vertical :size="10">
-          <n-card v-for="item in dataRef" :key="item.SECUCODE" class="all-stock-list-mobile-card" size="small" :bordered="true">
-            <template #header>
-              <n-space class="all-stock-list-mobile-card__title" align="center" :size="8">
-                <n-text strong>{{ item.SECURITY_NAME_ABBR }}</n-text>
-                <n-text depth="3">{{ item.SECUCODE }}</n-text>
-                <n-tag v-if="item.INDUSTRY" size="small" type="primary">{{ item.INDUSTRY }}</n-tag>
-              </n-space>
-            </template>
-            <div class="all-stock-list-mobile-card__metrics">
-              <div>
-                <span>最新价</span>
-                <n-text>{{ isNumeric(item.NEW_PRICE) ? item.NEW_PRICE : '-' }}</n-text>
-              </div>
-              <div>
-                <span>涨跌幅</span>
-                <n-text :type="toNumber(item.CHANGE_RATE, 0) >= 0 ? 'error' : 'success'" strong>
-                  {{ toNumber(item.CHANGE_RATE, 0) >= 0 ? '+' : '' }}{{ toNumber(item.CHANGE_RATE, 0).toFixed(2) }}%
-                </n-text>
-              </div>
-              <div>
-                <span>成交量</span>
-                <n-text>{{ toNumber(item.VOLUME, 0) >= 10000 ? (toNumber(item.VOLUME, 0) / 10000).toFixed(2) + '万' : toNumber(item.VOLUME, 0) }}</n-text>
-              </div>
-              <div>
-                <span>换手率</span>
-                <n-text>{{ isNumeric(item.TURNOVERRATE) ? item.TURNOVERRATE : '-' }}</n-text>
-              </div>
-            </div>
-            <div class="all-stock-list-mobile-card__concept">
-              {{ formatConceptPreview(item.CONCEPT) }}
-            </div>
-            <template #action>
-              <n-button size="small" type="warning" block @click="showKline(item)">日K</n-button>
-            </template>
-          </n-card>
-          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无股票数据" />
-        </n-space>
-      </n-spin>
-      <n-space justify="center" style="margin-top: 12px">
-        <n-pagination
-          v-model:page="paginationReactive.page"
-          :page-count="paginationReactive.pageCount"
-          :page-size="paginationReactive.pageSize"
-          @update:page="handlePageChange"
-        />
-      </n-space>
-    </div>
-    
     <!-- 分页控件 -->
 <!--    <div style="margin-top: 16px; display: flex; justify-content: center;">-->
 <!--      <n-pagination-->
@@ -676,18 +621,11 @@ function formatConceptPreview(concept) {
 <!--    </div>-->
 
   <!-- K 线弹窗（桌面端） -->
-  <n-modal v-if="!isMobile" v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="width: 850px;max-width: calc(100vw - 32px);">
+  <n-modal v-model:show="modalDataRef.visible" :title="modalDataRef.title" preset="card" style="width: 850px;max-width: calc(100vw - 32px);">
     <n-card size="small">
       <KLineChart style="width: 100%;max-width: 800px;" :code="getStockCode(modalDataRef.stockCode)" :chart-height="500" :stock-name="modalDataRef.stockName" :k-days="30" :dark-theme="editorDataRef.darkTheme"></KLineChart>
     </n-card>
   </n-modal>
-
-  <!-- K 线（移动端底部抽屉） -->
-  <BottomSheet v-else :show="modalDataRef.visible" :title="modalDataRef.title" height="80vh" @update:show="(v) => modalDataRef.visible = v">
-    <div class="asl-kline-wrap">
-      <KLineChart style="width: 100%;" :code="getStockCode(modalDataRef.stockCode)" :chart-height="440" :stock-name="modalDataRef.stockName" :k-days="30" :dark-theme="editorDataRef.darkTheme"></KLineChart>
-    </div>
-  </BottomSheet>
   </div>
 </template>
 
@@ -714,112 +652,4 @@ function formatConceptPreview(concept) {
   white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-  .all-stock-list-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .all-stock-list-filters {
-    align-items: stretch !important;
-    display: grid !important;
-    gap: 8px !important;
-    grid-template-columns: 1fr;
-  }
-
-  .all-stock-list-filter-card {
-    max-height: 180px;
-    overflow: auto;
-  }
-
-  .all-stock-list-filter-card :deep(.n-card__content) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    padding: 10px;
-  }
-
-  .all-stock-list-filter-card :deep(.n-checkbox),
-  .all-stock-list-filter-card :deep(.n-radio) {
-    margin-right: 0 !important;
-  }
-
-  .all-stock-list-filter-card :deep(.n-radio-group) {
-    display: grid;
-    gap: 6px;
-  }
-
-  .all-stock-list-search {
-    display: grid !important;
-    gap: 8px;
-    grid-template-columns: 1fr;
-    margin-top: 10px;
-  }
-
-  .all-stock-list-search :deep(.n-auto-complete),
-  .all-stock-list-search :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .all-stock-list-mobile-list {
-    display: block !important;
-    margin-top: 10px;
-  }
-
-  .all-stock-list-mobile-card {
-    text-align: left;
-  }
-
-  .all-stock-list-mobile-card__title {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .all-stock-list-mobile-card__metrics {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 10px;
-  }
-
-  .all-stock-list-mobile-card__metrics > div {
-    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
-    border-radius: 6px;
-    display: grid;
-    gap: 3px;
-    padding: 8px;
-  }
-
-  .all-stock-list-mobile-card__metrics span {
-    color: var(--n-text-color-3);
-    font-size: 12px;
-  }
-
-  .all-stock-list-mobile-card__concept {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 12px;
-    line-height: 1.45;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  :deep(.n-modal) {
-    margin: 0 !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.n-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-}
-
-/* ============ 移动端 K 线抽屉（仅在 isMobile 渲染） ============ */
-.asl-kline-wrap {
-  padding: 4px 8px 8px;
-}
 </style>

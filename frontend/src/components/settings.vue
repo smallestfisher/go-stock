@@ -15,11 +15,8 @@ import {NTag, NTooltip, NIcon, useMessage} from "naive-ui";
 import {data, models} from "../api/models";
 import {EventsEmit} from "../api/runtime";
 import {HelpCircleFilledIcon, HelpIcon} from "tdesign-icons-vue-next";
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
-const {isMobile} = useDevice()
 
 const formRef = ref(null)
 const formValue = ref({
@@ -729,7 +726,7 @@ function deletePrompt(ID) {
 
             <n-gi :span="24">
               <n-space vertical>
-                <n-space class="settings-mobile-action-bar" justify="center">
+                <n-space class="settings-action-bar" justify="center">
 <!--                  <n-button type="warning" @click="managePrompts">管理提示词模板</n-button>-->
                   <n-button type="primary" strong @click="saveConfig">保存设置</n-button>
                   <n-button type="info" @click="exportConfig">导出配置</n-button>
@@ -755,7 +752,7 @@ function deletePrompt(ID) {
   </n-flex>
 
   <!-- 提示词管理弹窗（桌面端） -->
-  <n-modal v-if="!isMobile" v-model:show="showManagePromptsModal" closable :mask-closable="false">
+  <n-modal v-model:show="showManagePromptsModal" closable :mask-closable="false">
     <n-card class="settings-prompt-modal" style="width: 800px; height: 600px; text-align: left" :bordered="false"
             :title="(formPrompt.ID > 0 ? '修改' : '添加') + '提示词'" size="huge" role="dialog" aria-modal="true">
       <n-form ref="formPromptRef" :label-placement="'left'" :label-align="'left'">
@@ -778,28 +775,7 @@ function deletePrompt(ID) {
       </template>
     </n-card>
   </n-modal>
-
-  <!-- 提示词管理（移动端底部抽屉） -->
-  <BottomSheet v-else :show="showManagePromptsModal" :title="(formPrompt.ID > 0 ? '修改' : '添加') + '提示词'" height="80vh" @update:show="(v) => showManagePromptsModal = v">
-    <div class="settings-prompt-sheet">
-      <n-form ref="formPromptRef" label-placement="top">
-        <n-form-item label="名称">
-          <n-input v-model:value="formPrompt.Name" placeholder="请输入提示词名称"/>
-        </n-form-item>
-        <n-form-item label="类型">
-          <n-select v-model:value="formPrompt.Type" :options="promptTypeOptions" placeholder="请选择提示词类型"/>
-        </n-form-item>
-        <n-form-item label="内容">
-          <n-input v-model:value="formPrompt.Content" type="textarea" :show-count="true" placeholder="请输入prompt" :autosize="{ minRows: 6, maxRows: 14 }"/>
-        </n-form-item>
-      </n-form>
-      <div class="settings-prompt-sheet__actions">
-        <n-button type="warning" @click="showManagePromptsModal = false">取消</n-button>
-        <n-button type="primary" @click="savePrompt">保存</n-button>
-      </div>
-    </div>
-  </BottomSheet>
-</template>
+  </template>
 
 <style scoped>
 .cardHeaderClass {
@@ -808,139 +784,4 @@ function deletePrompt(ID) {
   color: red;
 }
 
-@media (max-width: 768px) {
-  .settings-page-shell {
-    box-sizing: border-box;
-    display: block !important;
-    padding: 6px 6px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 96px);
-    text-align: left;
-    width: 100%;
-  }
-
-  .settings-form {
-    width: 100%;
-  }
-
-  .settings-section-card {
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  .settings-section-card :deep(.n-card__content) {
-    padding: 10px;
-  }
-
-  .settings-form-grid,
-  .settings-ai-config-grid {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    row-gap: 2px;
-  }
-
-  .settings-form-grid > *,
-  .settings-ai-config-grid > * {
-    grid-column: 1 / -1 !important;
-  }
-
-  .settings-form :deep(.n-form-item) {
-    display: block;
-    margin-bottom: 10px;
-  }
-
-  .settings-form :deep(.n-form-item-label) {
-    align-items: flex-start;
-    display: flex;
-    line-height: 1.35;
-    margin-bottom: 6px;
-    min-height: auto;
-    padding: 0;
-    white-space: normal;
-  }
-
-  .settings-form :deep(.n-form-item-blank) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: 0;
-    width: 100%;
-  }
-
-  .settings-form :deep(.n-input),
-  .settings-form :deep(.n-input-number),
-  .settings-form :deep(.n-select),
-  .settings-form :deep(.n-auto-complete) {
-    width: 100% !important;
-  }
-
-  .settings-form :deep(.n-tooltip-trigger) {
-    flex: 0 0 auto;
-  }
-
-  .settings-ai-section-card :deep(.n-collapse-item__header-main) {
-    min-width: 0;
-  }
-
-  .settings-ai-section-card :deep(.n-collapse-item__header-main .n-flex) {
-    align-items: flex-start !important;
-    flex-direction: column;
-    gap: 2px !important;
-  }
-
-  .settings-mobile-action-bar {
-    align-items: stretch !important;
-    background: var(--n-color, #fff);
-    border-top: 1px solid var(--n-border-color, #efeff5);
-    bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom));
-    box-sizing: border-box;
-    display: grid !important;
-    gap: 8px !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    left: 0;
-    padding: 8px;
-    position: fixed;
-    right: 0;
-    z-index: 19;
-  }
-
-  .settings-mobile-action-bar :deep(.n-button) {
-    min-width: 0;
-    width: 100%;
-  }
-
-  :deep(.settings-prompt-modal) {
-    height: auto !important;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    width: calc(100vw - 12px) !important;
-  }
-}
-
-/* ============ 移动端提示词抽屉（仅在 isMobile 渲染） ============ */
-.settings-prompt-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 12px calc(var(--safe-bottom) + 8px);
-}
-
-.settings-prompt-sheet :deep(.n-form-item) {
-  display: block;
-}
-
-.settings-prompt-sheet :deep(.n-form-item-label) {
-  align-items: flex-start;
-  display: flex;
-  margin-bottom: 6px;
-  min-height: auto;
-  padding: 0;
-}
-
-.settings-prompt-sheet__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.settings-prompt-sheet__actions :deep(.n-button) {
-  flex: 1 1 0;
-}
 </style>

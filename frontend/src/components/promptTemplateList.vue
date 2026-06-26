@@ -12,13 +12,10 @@ import {parsePromptPlazaResponse, promptPlazaHeaders, promptPlazaURL} from "../a
 import {NButton, NInput, NTag, NText, NSwitch, useMessage, useNotification,useDialog, NModal, NCard, NForm, NFormItem, NSpace, NPopover} from "naive-ui";
 import { MdEditor, MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
 
 const notify = useNotification()
 const message = useMessage()
 const dialog = useDialog()
-const {isMobile} = useDevice()
 const editorDataRef = reactive({
   darkTheme: false
 })
@@ -364,7 +361,6 @@ async function handleShare() {
 
     <!-- 数据表格 -->
     <n-data-table
-      class="prompt-template-table desktop-only"
       remote
       size="small"
       :columns="columnsRef"
@@ -377,54 +373,8 @@ async function handleShare() {
       style="height: calc(100vh - 250px)"
     />
 
-    <div class="prompt-template-mobile-list mobile-only">
-      <n-spin :show="loadingRef">
-        <n-space vertical :size="10">
-          <n-card
-            v-for="item in dataRef"
-            :key="item.ID"
-            class="prompt-template-mobile-card"
-            size="small"
-            :bordered="true"
-          >
-            <template #header>
-              <n-space class="prompt-template-mobile-card__title" align="center" :size="8">
-                <n-text strong>{{ item.name }}</n-text>
-                <n-tag :type="item.type === '模型系统Prompt' ? 'success' : 'info'" size="small">
-                  {{ item.type }}
-                </n-tag>
-              </n-space>
-            </template>
-            <div class="prompt-template-mobile-card__content">
-              {{ item.content }}
-            </div>
-            <div class="prompt-template-mobile-card__meta">
-              <span>创建 {{ formatTemplateTime(item.CreatedAt) }}</span>
-              <span>更新 {{ formatTemplateTime(item.UpdatedAt) }}</span>
-            </div>
-            <template #action>
-              <n-space class="prompt-template-mobile-card__actions" :size="8">
-                <n-button size="small" type="primary" @click="showEditModal(item)">编辑</n-button>
-                <n-button size="small" type="info" @click="showShareModal(item)">分享</n-button>
-                <n-button size="small" type="error" @click="deletePromptTemplate(item.ID)">删除</n-button>
-              </n-space>
-            </template>
-          </n-card>
-          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无提示词模板" />
-        </n-space>
-      </n-spin>
-      <n-space justify="center" style="margin-top: 12px">
-        <n-pagination
-          v-model:page="paginationReactive.page"
-          :page-count="paginationReactive.pageCount"
-          :page-size="paginationReactive.pageSize"
-          @update:page="handlePageChange"
-        />
-      </n-space>
-    </div>
-
     <!-- 编辑/新增模态框（桌面端） -->
-    <n-modal v-if="!isMobile" class="prompt-template-edit-modal" v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
+    <n-modal class="prompt-template-edit-modal" v-model:show="modalDataRef.visible" preset="card" style="width: 1100px;text-align: left" :title="modalDataRef.formData.ID>0?'修改':'新增'+'Prompt模板'">
       <n-form :model="modalDataRef.formData" label-placement="left" label-width="80">
         <n-form-item label="模板名称" required>
           <n-input v-model:value="modalDataRef.formData.name" placeholder="请输入模板名称" />
@@ -450,37 +400,8 @@ async function handleShare() {
         </n-space>
       </template>
     </n-modal>
-
-    <!-- 编辑/新增（移动端底部抽屉） -->
-    <BottomSheet v-else :show="modalDataRef.visible" :title="(modalDataRef.formData.ID>0?'修改':'新增') + ' Prompt模板'" height="86vh" @update:show="(v) => modalDataRef.visible = v">
-      <div class="pt-edit-sheet">
-        <n-form :model="modalDataRef.formData" label-placement="top">
-          <n-form-item label="模板名称" required>
-            <n-input v-model:value="modalDataRef.formData.name" placeholder="请输入模板名称" />
-          </n-form-item>
-          <n-form-item label="模板类型" required>
-            <n-select v-model:value="modalDataRef.formData.type" :options="promptTypeOptions" placeholder="请选择提示词类型"/>
-          </n-form-item>
-          <n-form-item label="模板内容" required>
-            <MdEditor
-                v-model="modalDataRef.formData.content"
-                style="height: 320px"
-                :theme="editorTheme"
-                :preview="true"
-                :toolbarsExclude="['github', 'htmlPreview', 'catalog', 'save']"
-                placeholder="请输入模板内容"
-            />
-          </n-form-item>
-        </n-form>
-        <div class="pt-edit-sheet__actions">
-          <n-button @click="modalDataRef.visible = false">取消</n-button>
-          <n-button type="primary" @click="savePromptTemplate">保存</n-button>
-        </div>
-      </div>
-    </BottomSheet>
-
     <!-- 分享模态框（桌面端） -->
-    <n-modal v-if="!isMobile" class="prompt-template-share-modal" v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
+    <n-modal class="prompt-template-share-modal" v-model:show="shareDataRef.visible" preset="card" style="width: 700px;text-align: left" title="分享到提示词广场">
       <n-form :model="shareDataRef" label-placement="left" label-width="80">
         <n-form-item label="标题" required>
           <n-input v-model:value="shareDataRef.title" placeholder="提示词标题" />
@@ -512,39 +433,7 @@ async function handleShare() {
         </n-space>
       </template>
     </n-modal>
-
-    <!-- 分享（移动端底部抽屉） -->
-    <BottomSheet v-else :show="shareDataRef.visible" title="分享到提示词广场" height="82vh" @update:show="(v) => shareDataRef.visible = v">
-      <div class="pt-edit-sheet">
-        <n-form :model="shareDataRef" label-placement="top">
-          <n-form-item label="标题" required>
-            <n-input v-model:value="shareDataRef.title" placeholder="提示词标题" />
-          </n-form-item>
-          <n-form-item label="分类">
-            <n-input v-model:value="shareDataRef.category" placeholder="如: AI编程, 数据分析" />
-          </n-form-item>
-          <n-form-item label="标签">
-            <n-input v-model:value="shareDataRef.tags" placeholder="逗号分隔" />
-          </n-form-item>
-          <n-form-item label="描述">
-            <n-input v-model:value="shareDataRef.description" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" placeholder="简短描述提示词用途" />
-          </n-form-item>
-          <n-form-item label="内容" required>
-            <n-input v-model:value="shareDataRef.content" type="textarea" :autosize="{ minRows: 5, maxRows: 12 }" placeholder="提示词内容" />
-          </n-form-item>
-          <n-form-item label="公开">
-            <n-space align="center">
-              <n-switch v-model:value="shareDataRef.isPublic" />
-            </n-space>
-          </n-form-item>
-        </n-form>
-        <div class="pt-edit-sheet__actions">
-          <n-button @click="shareDataRef.visible = false">取消</n-button>
-          <n-button type="primary" :loading="shareDataRef.loading" @click="handleShare">分享</n-button>
-        </div>
-      </div>
-    </BottomSheet>
-  </div>
+    </div>
 </template>
 
 <style scoped>
@@ -562,164 +451,4 @@ async function handleShare() {
   padding: 0;
 }
 
-@media (max-width: 768px) {
-  .prompt-template-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .prompt-template-search,
-  .prompt-template-search__inner {
-    width: 100%;
-  }
-
-  .prompt-template-search__inner {
-    display: grid !important;
-    gap: 8px !important;
-    grid-template-columns: 1fr;
-  }
-
-  .prompt-template-search__inner :deep(.n-input),
-  .prompt-template-search__inner :deep(.n-select),
-  .prompt-template-search__inner :deep(.n-button),
-  .prompt-template-type-select {
-    width: 100% !important;
-  }
-
-  .prompt-template-mobile-list {
-    display: block !important;
-  }
-
-  .prompt-template-mobile-card {
-    text-align: left;
-  }
-
-  .prompt-template-mobile-card__title {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .prompt-template-mobile-card__title :deep(.n-text) {
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-  }
-
-  .prompt-template-mobile-card__content {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 13px;
-    line-height: 1.55;
-    margin-bottom: 10px;
-    max-height: 86px;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 4;
-  }
-
-  .prompt-template-mobile-card__meta {
-    color: var(--n-text-color-3);
-    display: grid;
-    font-size: 12px;
-    gap: 4px;
-  }
-
-  .prompt-template-mobile-card__actions {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .prompt-template-mobile-card__actions :deep(.n-button) {
-    width: 100%;
-  }
-
-  :deep(.prompt-template-edit-modal.n-modal),
-  :deep(.prompt-template-share-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.prompt-template-edit-modal .n-card),
-  :deep(.prompt-template-share-modal .n-card) {
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-  }
-
-  :deep(.prompt-template-edit-modal .n-card__content),
-  :deep(.prompt-template-share-modal .n-card__content),
-  :deep(.prompt-template-edit-modal .n-card__footer),
-  :deep(.prompt-template-share-modal .n-card__footer) {
-    padding: 10px 12px;
-  }
-
-  :deep(.prompt-template-edit-modal .n-card__content) {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  :deep(.prompt-template-edit-modal .n-form-item),
-  :deep(.prompt-template-share-modal .n-form-item) {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* md-editor 自适应填满剩余空间，不再用视口减固定像素 */
-  :deep(.prompt-template-edit-modal .md-editor) {
-    flex: 1 1 auto;
-    height: auto !important;
-    min-height: 260px;
-  }
-
-  :deep(.prompt-template-share-modal .n-space) {
-    flex-wrap: wrap !important;
-  }
-
-  :deep(.prompt-template-share-modal .n-space > .n-form-item) {
-    width: 100% !important;
-  }
-}
-
-/* ============ 移动端表单抽屉（仅在 isMobile 渲染） ============ */
-.pt-edit-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 12px calc(var(--safe-bottom) + 8px);
-}
-
-.pt-edit-sheet :deep(.n-form-item) {
-  display: block;
-}
-
-.pt-edit-sheet :deep(.n-form-item-label) {
-  align-items: flex-start;
-  display: flex;
-  margin-bottom: 6px;
-  min-height: auto;
-  padding: 0;
-  white-space: normal;
-}
-
-.pt-edit-sheet :deep(.n-form-item-blank) {
-  display: flex;
-  min-width: 0;
-  width: 100%;
-}
-
-.pt-edit-sheet__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.pt-edit-sheet__actions :deep(.n-button) {
-  flex: 1 1 0;
-}
 </style>

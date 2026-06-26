@@ -13,11 +13,8 @@ import {
 import {useMessage} from "naive-ui";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
 import StockSparkLine from "./stockSparkLine.vue";
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
 
 const message = useMessage()
-const {isMobile} = useDevice()
 
 const darkTheme = ref(false)
 
@@ -363,26 +360,6 @@ function showStockKline(stockCode, stockName, market) {
   klineModalShow.value = true
 }
 
-// 移动端：把增长率格式化为 {text, type}，供卡片模板使用
-function growthText(val) {
-  if (val == null) return {text: '-', type: 'default'}
-  const sign = val > 0 ? '+' : ''
-  return {
-    text: sign + val.toFixed(2) + '%',
-    type: val > 0 ? 'error' : val < 0 ? 'success' : 'default',
-  }
-}
-
-// 移动端：是否已关注
-function isFollowed(code) {
-  return followList.value.some(f => f.code === code)
-}
-
-// 移动端：当前关注卡片的目标基金（持仓抽屉复用 desktop 的 holdings* 状态）
-function mobileFollow(row) {
-  if (isFollowed(row.code)) return
-  rankingFollowFund(row.code)
-}
 </script>
 
 <template>
@@ -398,7 +375,6 @@ function mobileFollow(row) {
     </n-flex>
     <!-- ===================== 桌面端：宽表格 ===================== -->
     <n-data-table
-      v-if="!isMobile"
       class="fund-ranking-table"
       remote
       :columns="rankingColumns"
@@ -415,76 +391,9 @@ function mobileFollow(row) {
       style="height: calc(100vh - 210px);margin-top: 10px"
     />
 
-    <!-- ===================== 移动端：基金卡片列表 ===================== -->
-    <div v-else class="fr-mobile">
-      <n-spin :show="rankingLoading">
-        <article v-for="row in filteredData" :key="row.code" class="fr-card">
-          <div class="fr-card__head">
-            <div class="fr-card__title">
-              <span class="fr-card__name">{{ row.name }}</span>
-              <n-tag size="tiny" :bordered="false">{{ row.code }}</n-tag>
-              <n-tag v-if="row.fundTypeDetail" size="tiny" :bordered="false" type="info">{{ row.fundTypeDetail }}</n-tag>
-            </div>
-            <span class="fr-card__primary" :class="'fr-card__primary--' + growthText(row.dailyGrowth).type">
-              {{ growthText(row.dailyGrowth).text }}
-            </span>
-          </div>
-
-          <div class="fr-card__core">
-            <div class="fr-metric">
-              <span class="fr-metric__label">单位净值</span>
-              <span class="fr-metric__value">{{ row.netUnitValue != null ? row.netUnitValue.toFixed(4) : '-' }}</span>
-            </div>
-            <div class="fr-metric">
-              <span class="fr-metric__label">累计净值</span>
-              <span class="fr-metric__value">{{ row.netAccumulated != null ? row.netAccumulated.toFixed(4) : '-' }}</span>
-            </div>
-            <div class="fr-metric">
-              <span class="fr-metric__label">规模/亿</span>
-              <span class="fr-metric__value">{{ row.scale != null ? row.scale.toFixed(2) : '-' }}</span>
-            </div>
-          </div>
-
-          <!-- 业绩区间：随排序字段高亮当前列 -->
-          <div class="fr-card__growth">
-            <div v-for="g in [
-              {label: '近1周', v: row.weekGrowth},
-              {label: '近1月', v: row.monthGrowth},
-              {label: '近3月', v: row.threeMonthGrowth},
-              {label: '近1年', v: row.yearGrowth},
-              {label: '今年来', v: row.ytdGrowth},
-              {label: '成立来', v: row.sinceInception},
-            ]" :key="g.label" class="fr-growth">
-              <span class="fr-growth__label">{{ g.label }}</span>
-              <span class="fr-growth__value" :class="'text-' + growthText(g.v).type">{{ growthText(g.v).text }}</span>
-            </div>
-          </div>
-
-          <div class="fr-card__actions">
-            <n-button size="tiny" :type="isFollowed(row.code) ? 'default' : 'primary'" :disabled="isFollowed(row.code)" @click="mobileFollow(row)">
-              {{ isFollowed(row.code) ? '已关注' : '关注' }}
-            </n-button>
-            <n-button size="tiny" type="info" @click="showHoldings(row.code, row.name)">持仓</n-button>
-            <n-button size="tiny" type="warning" @click="search(row.code)">详情</n-button>
-          </div>
-        </article>
-        <n-empty v-if="!rankingLoading && filteredData.length === 0" description="暂无基金数据" style="padding: 40px 0" />
-      </n-spin>
-
-      <n-flex v-if="paginationReactive.pageCount > 1" justify="center" style="margin-top: 12px">
-        <n-pagination
-            v-model:page="paginationReactive.page"
-            :page-count="paginationReactive.pageCount"
-            :page-size="paginationReactive.pageSize"
-            size="small"
-            @update:page="handlePageChange"
-        />
-      </n-flex>
-    </div>
 
   <!-- ===================== 桌面端：持仓弹窗 ===================== -->
   <n-modal
-    v-if="!isMobile"
     class="fund-ranking-holdings-modal"
     v-model:show="holdingsModalShow"
     :title="holdingsFundName + ' - ' + holdingsFundCode + ' 十大持仓'"
@@ -509,7 +418,6 @@ function mobileFollow(row) {
 
   <!-- ===================== 桌面端：K 线弹窗 ===================== -->
   <n-modal
-    v-if="!isMobile"
     class="fund-ranking-kline-modal"
     v-model:show="klineModalShow"
     :title="klineStockName + ' - ' + klineStockCode + ' K线图'"
@@ -526,45 +434,6 @@ function mobileFollow(row) {
       :chart-height="460"
     />
   </n-modal>
-
-  <!-- ===================== 移动端：持仓底部抽屉 ===================== -->
-  <BottomSheet v-else-if="isMobile && holdingsModalShow" :show="holdingsModalShow" :title="holdingsFundName + ' · 十大持仓'" height="80vh" @update:show="(v) => holdingsModalShow = v">
-    <div class="fr-holdings">
-      <n-text v-if="holdingsData.length > 0 && holdingsData[0]?.quarter" depth="3" class="fr-holdings__quarter">{{ holdingsData[0].quarter }}</n-text>
-      <n-spin :show="holdingsLoading">
-        <button
-            v-for="h in holdingsData" :key="h.stockCode"
-            type="button" class="fr-holding" @click="showStockKline(h.stockCode, h.stockName, h.market)"
-        >
-          <div class="fr-holding__rank">{{ h.rank }}</div>
-          <div class="fr-holding__main">
-            <div class="fr-holding__name">{{ h.stockName }}</div>
-            <div class="fr-holding__code">{{ h.stockCode }}</div>
-          </div>
-          <div class="fr-holding__ratio">{{ h.ratio != null ? h.ratio.toFixed(2) : '-' }}%</div>
-          <div class="fr-holding__change" :class="'text-' + growthText(h.changeRate).type">
-            {{ growthText(h.changeRate).text }}
-          </div>
-          <span class="fr-holding__arrow">›</span>
-        </button>
-        <n-empty v-if="!holdingsLoading && holdingsData.length === 0" description="暂无持仓数据" size="small" />
-      </n-spin>
-    </div>
-  </BottomSheet>
-
-  <!-- ===================== 移动端：K 线底部抽屉 ===================== -->
-  <BottomSheet v-if="isMobile && klineModalShow" :show="klineModalShow" :title="klineStockName + ' · K线'" height="78vh" @update:show="(v) => klineModalShow = v">
-    <div class="fr-kline-wrap">
-      <StockLightweightKlineChart
-          v-if="klineModalShow && klineStockCode"
-          :key="klineStockCode"
-          :code="klineStockCode"
-          :stock-name="klineStockName"
-          :dark-theme="darkTheme"
-          :chart-height="420"
-      />
-    </div>
-  </BottomSheet>
   </div>
 </template>
 
@@ -577,285 +446,4 @@ function mobileFollow(row) {
   white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-  .fund-ranking-page {
-    padding-bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 8px);
-  }
-
-  .fund-ranking-toolbar {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px !important;
-    align-items: stretch !important;
-  }
-
-  .fund-ranking-toolbar :deep(.n-select),
-  .fund-ranking-toolbar :deep(.n-input),
-  .fund-ranking-toolbar :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .fund-ranking-toolbar :deep(.n-text) {
-    grid-column: 1 / -1;
-    line-height: 1.35;
-  }
-
-  .fund-ranking-table {
-    height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 190px) !important;
-    margin-top: 8px !important;
-  }
-
-  .fund-ranking-table :deep(.n-data-table-th),
-  .fund-ranking-table :deep(.n-data-table-td) {
-    white-space: nowrap;
-  }
-
-  :deep(.fund-ranking-holdings-modal.n-modal),
-  :deep(.fund-ranking-kline-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.fund-ranking-holdings-modal .n-card),
-  :deep(.fund-ranking-kline-modal .n-card) {
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-  }
-
-  :deep(.fund-ranking-holdings-modal .n-card__content),
-  :deep(.fund-ranking-kline-modal .n-card__content) {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-    overflow: auto;
-    padding: 10px 12px;
-  }
-
-  @media (max-width: 420px) {
-    .fund-ranking-toolbar {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-}
-
-/* ============ 移动端基金卡片（仅在 isMobile 渲染） ============ */
-.fr-mobile {
-  display: flex;
-  flex-direction: column;
-}
-
-.fr-card {
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 8px;
-  padding: 11px 12px;
-}
-
-.fr-card__head {
-  align-items: flex-start;
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.fr-card__title {
-  align-items: center;
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
-.fr-card__name {
-  font-size: 16px;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fr-card__primary {
-  border-radius: 4px;
-  color: #fff;
-  flex: 0 0 auto;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 2px 8px;
-}
-
-.fr-card__primary--error {
-  background: #d03050;
-}
-
-.fr-card__primary--success {
-  background: #18a058;
-}
-
-.fr-card__primary--default {
-  background: #909399;
-}
-
-.fr-card__core {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.fr-metric {
-  align-items: flex-start;
-  background: var(--n-color-target, #f5f7fa);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 7px 9px;
-}
-
-.fr-metric__label {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 11px;
-}
-
-.fr-metric__value {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.fr-card__growth {
-  border-top: 1px dashed var(--n-divider-color, #eef0f4);
-  display: grid;
-  gap: 6px 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding-top: 8px;
-}
-
-.fr-growth {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.fr-growth__label {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 11px;
-}
-
-.fr-growth__value {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.fr-card__actions {
-  display: flex;
-  gap: 8px;
-}
-
-.fr-card__actions :deep(.n-button) {
-  flex: 1 1 0;
-}
-
-/* 持仓抽屉行 */
-.fr-holdings {
-  padding: 4px 8px calc(var(--safe-bottom) + 8px);
-}
-
-.fr-holdings__quarter {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-
-.fr-holding {
-  align-items: center;
-  appearance: none;
-  background: var(--n-color, #fff);
-  border: 0;
-  border-bottom: 1px solid var(--n-border-color, #eef0f4);
-  color: inherit;
-  display: flex;
-  font: inherit;
-  gap: 10px;
-  padding: 9px 8px;
-  text-align: left;
-  width: 100%;
-}
-
-.fr-holding:active {
-  background: var(--n-color-hover, #f8fafc);
-}
-
-.fr-holding__rank {
-  color: var(--n-text-color-3, #98a2b3);
-  flex: 0 0 22px;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.fr-holding__main {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.fr-holding__name {
-  font-size: 14px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fr-holding__code {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 11px;
-}
-
-.fr-holding__ratio {
-  font-size: 13px;
-  font-weight: 600;
-  text-align: right;
-  width: 56px;
-}
-
-.fr-holding__change {
-  font-size: 13px;
-  font-weight: 700;
-  text-align: right;
-  width: 64px;
-}
-
-.fr-holding__arrow {
-  color: var(--n-text-color-3, #c0c4cc);
-  flex: 0 0 auto;
-  font-size: 18px;
-}
-
-.fr-kline-wrap {
-  padding: 4px 8px 8px;
-}
-
-/* 涨跌色 */
-.text-error {
-  color: #d03050;
-}
-
-.text-success {
-  color: #18a058;
-}
-
-.text-default {
-  color: var(--n-text-color, #333);
-}
 </style>

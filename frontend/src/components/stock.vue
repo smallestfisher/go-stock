@@ -35,7 +35,6 @@ import {
   UpdateGroupSort
 } from '../api/app'
 import {toEastMoneyCode, fromEastMoneyCode} from '../utils/stockCode'
-import {useDevice} from '../composables/useDevice'
 import {
   NAvatar,
   NButton,
@@ -80,9 +79,7 @@ const ExportPDF = defineAsyncComponent(async () => {
 const MoneyTrend = defineAsyncComponent(() => import('./moneyTrend.vue'))
 const StockSparkLine = defineAsyncComponent(() => import('./stockSparkLine.vue'))
 const StockLightweightKlineChart = defineAsyncComponent(() => import('./StockLightweightKlineChart.vue'))
-const StockMobileList = defineAsyncComponent(() => import('./mobile/StockMobileList.vue'))
-const StockDetailSheet = defineAsyncComponent(() => import('./mobile/StockDetailSheet.vue'))
-const StockCard = defineAsyncComponent(() => import('./mobile/StockCard.vue'))
+const StockCard = defineAsyncComponent(() => import('../mobile/components/cards/StockCard.vue'))
 
 const danmus = ref([])
 const ws = ref(null)
@@ -119,12 +116,6 @@ const modalShow3 = ref(false)
 const modalShow4 = ref(false)
 const modalShow5 = ref(false)
 const modalShow6 = ref(false)
-const mobileAddDrawerVisible = ref(false)
-// 全局设备状态（移动端列表↔桌面卡片切换）
-const {isMobile} = useDevice()
-// 移动端股票详情抽屉
-const mobileDetailVisible = ref(false)
-const mobileDetailResult = ref(null)
 const lwKlineCode = ref('')
 const lwKlineName = ref('')
 const currentStockTradingPrice = ref({
@@ -690,18 +681,6 @@ function AddStock() {
   } else {
     message.error("已经关注了")
     return Promise.resolve(false);
-  }
-}
-
-function openMobileAddDrawer() {
-  addBTN.value = true
-  mobileAddDrawerVisible.value = true
-}
-
-async function addStockFromMobile() {
-  const added = await AddStock()
-  if (added) {
-    mobileAddDrawerVisible.value = false
   }
 }
 
@@ -1656,7 +1635,7 @@ async function showLightweightKline(code, name) {
 
 /**
  * 准备某只股票的交易价格（成本/入场/止损/止盈）并写入 currentStockTradingPrice。
- * 桌面 modalShow6 与移动端详情抽屉的 K 线叠加价共用此逻辑。
+ * modalShow6 的 K 线叠加价共用此逻辑。
  */
 async function prepareStockTradingPrice(code, name) {
   const em = toEastMoneyCode(code)
@@ -1699,12 +1678,6 @@ async function prepareStockTradingPrice(code, name) {
     currentStockTradingPrice.value.takeProfitPrice = 0
     currentStockTradingPrice.value.stopLossPrice = 0
   }
-}
-
-function openMobileDetail(result) {
-  mobileDetailResult.value = result
-  prepareStockTradingPrice(result['股票代码'], result['股票名称'])
-  mobileDetailVisible.value = true
 }
 
 // 桌面卡片（StockCard）所需操作函数集合，消除"全部"/"分组"两份重复标记
@@ -2329,27 +2302,22 @@ function searchStockReport(stockCode) {
           :value="String(currentGroupId)" @add="addTab" @update:value="updateTab" placement="top" @close="(key)=>{delTab(key)}">
 
     <n-tab-pane closable name="0" :tab="'全部'">
-      <n-grid v-if="!isMobile" class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
+      <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <StockCard v-for="result in sortedResults" :key="result['股票代码']"
                    :result="result" :group-id="0" :show-sparkline="false"
                    :open-ai-enable="data.openAiEnable" :group-list="groupList" :actions="cardActions" />
       </n-grid>
-      <StockMobileList v-else :results="sortedResults" :dark-theme="data.darkTheme" @select="openMobileDetail" />
     </n-tab-pane>
     <n-tab-pane closable v-for="group in groupList" :group-id="group.ID" :name="String(group.ID)" :tab="group.name">
-      <n-grid v-if="!isMobile" class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
+      <n-grid class="stock-card-grid" :x-gap="8" cols="1 s:1 m:2 l:3" responsive="screen" :y-gap="8">
         <StockCard v-for="result in groupResults" :key="result['股票代码']"
                    :result="result" :group-id="group.ID" :show-sparkline="true"
                    :open-ai-enable="data.openAiEnable" :group-list="groupList" :actions="cardActions" />
       </n-grid>
-      <StockMobileList v-else :results="groupResults" :dark-theme="data.darkTheme" @select="openMobileDetail" />
     </n-tab-pane>
   </n-tabs>
 
   <div class="stock-floating-search" style="position: fixed;bottom: 18px;right:5px;z-index: 10;width: 400px">
-    <n-button class="stock-mobile-add-trigger mobile-only" type="primary" block @click="openMobileAddDrawer">
-      <n-icon :component="Add"/> &nbsp;搜索/添加股票
-    </n-button>
     <!--    <n-card :bordered="false">-->
     <n-input-group class="stock-desktop-add-control">
       <!--        <n-button  type="error" @click="addBTN=!addBTN" > <n-icon :component="Search"/>&nbsp;<n-text  v-if="addBTN">隐藏</n-text></n-button>-->
@@ -2377,37 +2345,6 @@ function searchStockReport(stockCode) {
     </n-input-group>
     <!--    </n-card>-->
   </div>
-  <n-drawer
-      v-model:show="mobileAddDrawerVisible"
-      class="stock-mobile-add-drawer"
-      placement="bottom"
-      height="46vh"
-  >
-    <n-drawer-content title="搜索/添加股票" closable>
-      <n-flex vertical :size="12">
-        <n-input-group>
-          <n-auto-complete v-model:value="data.name"
-                           :input-props="{
-                                autocomplete: 'disabled',
-                              }"
-                           :options="options"
-                           placeholder="输入股票名称或代码"
-                           clearable @update-value="getStockList" :on-select="onSelect"/>
-          <n-popover trigger="manual" :show="showPopover">
-            <template #trigger>
-              <n-button type="primary" @click="addStockFromMobile">
-                <n-icon :component="Add"/> &nbsp;关注
-              </n-button>
-            </template>
-            <span>输入股票名称/代码关键词开始吧~~~</span>
-          </n-popover>
-        </n-input-group>
-        <n-button type="info" secondary block @click="SendDanmu" v-if="data.enableDanmu">
-          <n-icon :component="ChatboxOutline"/> &nbsp;发送弹幕
-        </n-button>
-      </n-flex>
-    </n-drawer-content>
-  </n-drawer>
   <n-modal class="stock-cost-modal" transform-origin="center" size="small" v-model:show="modalShow" :title="formModel.name" style="width: 800px;max-width: calc(100vw - 32px);"
            :preset="'card'">
     <n-form :model="formModel" :rules="{
@@ -2535,22 +2472,22 @@ function searchStockReport(stockCode) {
     <div ref="kLineChartRef" style="width: 100%; height: 500px;"></div>
   </n-modal>
 
-  <n-modal class="mobile-ai-modal" transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
+  <n-modal class="stock-ai-modal" transform-origin="center" v-model:show="modalShow4" preset="card" style="width: 800px;max-width: calc(100vw - 32px);"
            :title="'['+data.name+']AI分析'">
     <n-spin size="small" :show="data.loading && !data.airesult">
-      <MdEditor v-if="modalShow4 && enableEditor" class="mobile-ai-modal__reader" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
+      <MdEditor v-if="modalShow4 && enableEditor" class="stock-ai-modal__reader" :toolbars="toolbars" ref="mdEditorRef" style="height: 440px;max-height: 60vh;text-align: left"
                 :modelValue="data.airesult" :theme="theme">
         <template #defToolbars>
           <ExportPDF :file-name="data.name+'['+data.code+']AI分析报告'" style="text-align: left"
                      :modelValue="data.airesult" @onProgress="handleProgress"/>
         </template>
       </MdEditor>
-      <div v-if="modalShow4 && !enableEditor" class="mobile-ai-modal__reader" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
+      <div v-if="modalShow4 && !enableEditor" class="stock-ai-modal__reader" ref="aiResultScrollRef" style="height: 440px;max-height: 60vh;text-align: left;overflow-y: auto;">
         <MdPreview ref="mdPreviewRef" :modelValue="data.airesult" :theme="theme"/>
       </div>
     </n-spin>
     <template #footer>
-      <n-flex class="mobile-ai-modal__footer" justify="space-between" ref="tipsRef">
+      <n-flex class="stock-ai-modal__footer" justify="space-between" ref="tipsRef">
         <n-text type="info" v-if="data.time">
           <n-tag v-if="data.modelName" type="warning" round :title="data.chatId" :bordered="false">
             {{ data.modelName }}
@@ -2562,8 +2499,8 @@ function searchStockReport(stockCode) {
       </n-flex>
     </template>
     <template #action>
-      <div class="mobile-ai-modal__control-panel">
-        <n-flex class="mobile-ai-modal__switches" justify="left" style="margin-bottom: 10px">
+      <div class="stock-ai-modal__control-panel">
+        <n-flex class="stock-ai-modal__switches" justify="left" style="margin-bottom: 10px">
           <n-switch v-model:value="enableTools" :round="false">
             <template #checked>
               工具调用
@@ -2584,7 +2521,7 @@ function searchStockReport(stockCode) {
             *AI函数工具调用可以增强AI获取数据的能力,但会消耗更多tokens。
           </n-gradient-text>
         </n-flex>
-        <n-flex class="mobile-ai-modal__selectors" justify="space-between" style="margin-bottom: 10px">
+        <n-flex class="stock-ai-modal__selectors" justify="space-between" style="margin-bottom: 10px">
           <n-select style="width: 31%" v-model:value="data.aiConfigId" label-field="name" value-field="ID"
                     :options="aiConfigs" placeholder="请选择AI模型服务配置"/>
           <n-select style="width: 31%" v-model:value="data.sysPromptId" label-field="name" value-field="ID"
@@ -2592,7 +2529,7 @@ function searchStockReport(stockCode) {
           <n-select style="width: 31%" v-model:value="data.question" label-field="name" value-field="content"
                     :options="userPromptOptions" placeholder="请选择用户提示词"/>
         </n-flex>
-        <n-flex class="mobile-ai-modal__actions" justify="right">
+        <n-flex class="stock-ai-modal__actions" justify="right">
           <n-input v-model:value="data.question" style="text-align: left" clearable
                    type="textarea"
                    :show-count="true"
@@ -2602,7 +2539,7 @@ function searchStockReport(stockCode) {
                 maxRows: 5
               }"
           />
-          <n-flex class="mobile-ai-modal__bottom-actions" justify="right">
+          <n-flex class="stock-ai-modal__bottom-actions" justify="right">
             <!--        <n-button size="tiny" type="error" @click="enableEditor=!enableEditor">编辑/预览</n-button>-->
             <n-button
                 size="tiny"
@@ -2657,31 +2594,6 @@ function searchStockReport(stockCode) {
       @update:costPrice="handleCostPriceUpdate"
     />
   </n-modal>
-
-  <!-- 移动端股票详情抽屉：列表行点击打开，4 Tab + 动作栏，复用现有函数/组件 -->
-  <StockDetailSheet
-      v-model:show="mobileDetailVisible"
-      :result="mobileDetailResult"
-      :dark-theme="data.darkTheme"
-      :open-ai-enable="data.openAiEnable"
-      :group-list="groupList"
-      :current-group-id="currentGroupId"
-      :enable-danmu="data.enableDanmu"
-      :trading-price="currentStockTradingPrice"
-      @ai="(r) => aiCheckStock(r['股票名称'], r['股票代码'])"
-      @set-cost="(r) => setStock(r['股票代码'], r['股票名称'])"
-      @detail="(r) => search(r['股票代码'], r['股票名称'])"
-      @notice="(c) => searchNotice(c)"
-      @report="(c) => searchStockReport(c)"
-      @set-group="({groupId, result}) => AddStockGroupInfo(groupId, result['股票代码'], result['股票名称'])"
-      @remove-group="(r) => delStockGroup(r['股票代码'], r['股票名称'], currentGroupId)"
-      @unfollow="(r) => removeMonitor(r['股票代码'], r['股票名称'], r.key)"
-      @danmu="(n) => { data.name = n; SendDanmu() }"
-      @update:costPrice="handleCostPriceUpdate"
-      @update:longEntryPrice="handleLongEntryPriceUpdate"
-      @update:longStopLossPrice="handleLongStopLossPriceUpdate"
-      @update:longTakeProfitPrice="handleLongTakeProfitPriceUpdate"
-  />
 </template>
 
 <style scoped>
@@ -2745,190 +2657,4 @@ function searchStockReport(stockCode) {
   opacity: 0.5;
 }
 
-@media (max-width: 768px) {
-  .stock-page-shell {
-    box-sizing: border-box;
-    padding: 6px 6px 84px;
-    text-align: left;
-  }
-
-  .stock-card-grid {
-    width: 100%;
-  }
-
-  :deep(.stock-card-grid .n-card) {
-    overflow: hidden;
-  }
-
-  .stock-mobile-card-body {
-    cursor: pointer;
-  }
-
-  :deep(.stock-card-grid .n-card-header) {
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  :deep(.stock-card-grid .n-card-header__extra) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    justify-content: flex-end;
-    min-width: 0;
-  }
-
-  .stock-mobile-actions {
-    flex-wrap: wrap;
-    gap: 6px !important;
-  }
-
-  .stock-desktop-card-extra,
-  .stock-desktop-actions,
-  .stock-desktop-add-control {
-    display: none !important;
-  }
-
-  .stock-mobile-primary-actions {
-    align-items: stretch !important;
-    display: grid !important;
-    gap: 6px !important;
-    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
-    width: 100%;
-  }
-
-  .stock-mobile-primary-actions :deep(.n-button) {
-    min-width: 0;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .stock-mobile-more-menu {
-    min-width: 0;
-  }
-
-  .stock-floating-search {
-    bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom)) !important;
-    left: 8px;
-    right: 8px !important;
-    width: auto !important;
-  }
-
-  .stock-mobile-add-trigger {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-    height: 42px;
-  }
-
-  .stock-mobile-add-drawer :deep(.n-drawer-content) {
-    border-radius: 12px 12px 0 0;
-  }
-
-  :deep(.stock-cost-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.stock-cost-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-
-  :deep(.stock-cost-modal .n-form-item) {
-    grid-template-columns: 88px minmax(0, 1fr) !important;
-  }
-
-  :deep(.mobile-ai-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  /* 卡片整体限高并补底部安全区，内部用 flex 列布局自适应，避免硬编码视口偏移 */
-  :deep(.mobile-ai-modal .n-card) {
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-  }
-
-  :deep(.mobile-ai-modal .n-card__content) {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    padding: 10px 12px;
-  }
-
-  :deep(.mobile-ai-modal .n-card__content > .n-spin) {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  :deep(.mobile-ai-modal .n-card__content > .n-spin .n-spin-content) {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  :deep(.mobile-ai-modal .n-card__footer),
-  :deep(.mobile-ai-modal .n-card__action) {
-    flex: 0 0 auto;
-    padding: 10px 12px;
-  }
-
-  /* reader 自适应填满 content 剩余空间，不再用视口减固定像素 */
-  .mobile-ai-modal__reader {
-    flex: 1 1 auto;
-    height: auto !important;
-    max-height: none !important;
-    min-height: 200px;
-    overflow-y: auto;
-  }
-
-  .mobile-ai-modal__footer {
-    align-items: flex-start !important;
-    flex-direction: column;
-    gap: 6px !important;
-    line-height: 1.45;
-  }
-
-  .mobile-ai-modal__control-panel {
-    display: grid;
-    gap: 8px;
-  }
-
-  .mobile-ai-modal__switches,
-  .mobile-ai-modal__selectors,
-  .mobile-ai-modal__actions,
-  .mobile-ai-modal__bottom-actions {
-    align-items: stretch !important;
-    flex-wrap: wrap;
-    gap: 8px !important;
-    margin-bottom: 0 !important;
-  }
-
-  .mobile-ai-modal__switches :deep(.n-gradient-text) {
-    flex: 1 1 100%;
-    margin-left: 0 !important;
-    font-size: 12px;
-    line-height: 1.35;
-  }
-
-  .mobile-ai-modal__selectors :deep(.n-select),
-  .mobile-ai-modal__actions :deep(.n-input) {
-    width: 100% !important;
-  }
-
-  .mobile-ai-modal__bottom-actions {
-    width: 100%;
-  }
-
-  .mobile-ai-modal__bottom-actions :deep(.n-button) {
-    flex: 1 1 calc(50% - 8px);
-    min-width: 120px;
-  }
-}
 </style>

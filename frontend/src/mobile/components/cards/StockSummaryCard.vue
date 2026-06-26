@@ -1,8 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import MCard from '../base/MCard.vue'
-import PriceTag from '../widgets/PriceTag.vue'
-import PercentTag from '../widgets/PercentTag.vue'
 
 const props = defineProps({
   // 股票数据
@@ -42,6 +40,29 @@ const stats = computed(() => {
   }
 })
 
+// 涨跌方向
+function dir(stock) {
+  const p = Number(stock.changePercent) || 0
+  if (p > 0) return 'rise'
+  if (p < 0) return 'fall'
+  return 'flat'
+}
+
+// 价格格式化
+function fmt(v) {
+  const n = Number(v) || 0
+  return n ? n.toFixed(2) : '--'
+}
+
+// 量额格式化（万/亿）
+function big(n) {
+  n = Number(n) || 0
+  if (!n) return '--'
+  if (n >= 100000000) return `${(n / 100000000).toFixed(2)}亿`
+  if (n >= 10000) return `${(n / 10000).toFixed(2)}万`
+  return String(n)
+}
+
 function handleViewAll() {
   emit('viewAll')
 }
@@ -74,24 +95,34 @@ function handleStockClick(stock) {
         v-for="stock in displayStocks"
         :key="stock.code"
         class="stock-item"
+        :class="`stock-item--${dir(stock)}`"
         @click="handleStockClick(stock)"
       >
         <div class="stock-info">
-          <div class="stock-name">{{ stock.name }}</div>
-          <div class="stock-code">{{ stock.code }}</div>
+          <div class="stock-name-row">
+            <span class="stock-name">{{ stock.name }}</span>
+            <span class="stock-code">{{ stock.code }}</span>
+            <span v-if="stock.time" class="stock-time">{{ stock.time }}</span>
+          </div>
+          <div class="stock-sub">
+            <span>开 <b>{{ fmt(stock.open) }}</b></span>
+            <span>高 <b class="m-rise">{{ fmt(stock.high) }}</b></span>
+            <span>低 <b class="m-fall">{{ fmt(stock.low) }}</b></span>
+            <span>昨收 <b>{{ fmt(stock.preClose) }}</b></span>
+          </div>
+          <div class="stock-sub">
+            <span>量 {{ big(stock.volume) }}</span>
+            <span>额 {{ big(stock.turnover) }}</span>
+          </div>
         </div>
         <div class="stock-price">
-          <PriceTag
-            :price="stock.price"
-            :change="stock.changePercent"
-            size="large"
-            bold
-            prefix="¥"
-          />
-          <PercentTag
-            :value="stock.changePercent"
-            size="small"
-          />
+          <div class="price-now" :class="`m-${dir(stock)}`">{{ fmt(stock.price) }}</div>
+          <div class="price-change" :class="`bg-${dir(stock)}`">
+            {{ (Number(stock.changePercent) || 0) > 0 ? '+' : '' }}{{ (Number(stock.changePercent) || 0).toFixed(2) }}%
+          </div>
+          <div class="price-amt" :class="`m-${dir(stock)}`">
+            {{ (Number(stock.changeAmount) || 0) > 0 ? '+' : '' }}{{ fmt(stock.changeAmount) }}
+          </div>
         </div>
       </div>
     </div>
@@ -187,6 +218,64 @@ function handleStockClick(stock) {
 .stock-code {
   font-size: var(--m-font-xs);
   color: var(--m-text-tertiary);
+}
+
+.stock-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--m-space-sm);
+  flex-wrap: wrap;
+}
+
+.stock-time {
+  font-size: var(--m-font-xs);
+  color: var(--m-text-quaternary, var(--m-text-tertiary));
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--m-space-xs) var(--m-space-md);
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+}
+
+.stock-sub b {
+  font-weight: var(--m-font-weight-medium);
+  color: var(--m-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-now {
+  font-size: var(--m-font-lg);
+  font-weight: var(--m-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-amt {
+  font-size: var(--m-font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 涨跌色 */
+.m-rise { color: var(--m-color-rise); }
+.m-fall { color: var(--m-color-fall); }
+.m-flat { color: var(--m-text-secondary); }
+.bg-rise { background: var(--m-color-rise); }
+.bg-fall { background: var(--m-color-fall); }
+.bg-flat { background: var(--m-text-tertiary); }
+
+.price-change {
+  color: #fff;
+  font-size: var(--m-font-sm);
+  font-weight: var(--m-font-weight-bold);
+  padding: 2px var(--m-space-sm);
+  border-radius: var(--m-radius-sm);
+  min-width: 60px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .stock-price {

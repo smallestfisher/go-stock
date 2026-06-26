@@ -34,10 +34,6 @@ import {
 } from 'naive-ui'
 import sparkLine from "./stockSparkLine.vue";
 import StockLightweightKlineChart from "./StockLightweightKlineChart.vue";
-import {useDevice} from "../composables/useDevice";
-import BottomSheet from "./mobile/BottomSheet.vue";
-
-const {isMobile} = useDevice()
 
 const message = useMessage()
 const notify = useNotification()
@@ -730,7 +726,6 @@ onUnmounted(() => {
   </n-grid>
 
   <n-data-table
-    class="trading-record-table desktop-only"
     remote
     size="small"
     :columns="columnsRef"
@@ -743,74 +738,8 @@ onUnmounted(() => {
     style="height: calc(100vh - 310px); margin-top: 10px"
   />
 
-  <div class="trading-record-mobile-list mobile-only">
-    <n-spin :show="loadingRef">
-      <n-space vertical :size="10">
-        <n-card v-for="item in dataRef" :key="item.ID" class="trading-record-mobile-card" size="small" :bordered="true">
-          <template #header>
-            <n-space class="trading-record-mobile-card__title" align="center" :size="8">
-              <n-text strong>{{ item.StockName }}</n-text>
-              <n-text depth="3">{{ item.StockCode }}</n-text>
-              <n-tag :type="item.Direction === '买入' ? 'error' : 'success'" size="small" round :bordered="false">
-                {{ item.Direction }}
-              </n-tag>
-            </n-space>
-          </template>
-          <div class="trading-record-mobile-card__time">{{ formatRowTradingTime(item) }}</div>
-          <div class="trading-record-mobile-card__metrics">
-            <div>
-              <span>成交价</span>
-              <n-text>{{ formatAmount(item.Price) }}</n-text>
-            </div>
-            <div>
-              <span>数量</span>
-              <n-text>{{ item.Volume }}</n-text>
-            </div>
-            <div>
-              <span>金额</span>
-              <n-text>{{ formatAmount(item.Amount) }}</n-text>
-            </div>
-            <div>
-              <span>收益率</span>
-              <n-text :type="item.profitPercent > 0 ? 'error' : item.profitPercent < 0 ? 'success' : 'info'" strong>
-                {{ item.profitPercent > 0 ? '+' : '' }}{{ item.profitPercent?.toFixed(2) }}%
-              </n-text>
-            </div>
-            <div>
-              <span>盈亏额</span>
-              <n-text :type="item.profitAmount > 0 ? 'error' : item.profitAmount < 0 ? 'success' : 'info'">
-                {{ formatAmount(item.profitAmount) }}
-              </n-text>
-            </div>
-            <div>
-              <span>最新价</span>
-              <n-text>{{ formatAmount(item.closePrice) }}</n-text>
-            </div>
-          </div>
-          <div v-if="item.Reason" class="trading-record-mobile-card__note">{{ item.Reason }}</div>
-          <template #action>
-            <n-space class="trading-record-mobile-card__actions" :size="8">
-              <n-button size="small" type="info" @click="openKlineChart(item)">K线</n-button>
-              <n-button size="small" type="warning" @click="openEditModal(item)">编辑</n-button>
-              <n-button size="small" type="error" @click="deleteTradingRecord(item.ID)">删除</n-button>
-            </n-space>
-          </template>
-        </n-card>
-        <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无交易日志" />
-      </n-space>
-    </n-spin>
-    <n-space justify="center" style="margin-top: 12px">
-      <n-pagination
-        v-model:page="paginationReactive.page"
-        :page-count="paginationReactive.pageCount"
-        :page-size="paginationReactive.pageSize"
-        @update:page="handlePageChange"
-      />
-    </n-space>
-  </div>
-
   <!-- 添加交易日志（桌面端） -->
-  <n-modal v-if="!isMobile" class="trading-record-edit-modal" v-model:show="showAddModal" preset="card" title="添加交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
+  <n-modal class="trading-record-edit-modal" v-model:show="showAddModal" preset="card" title="添加交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
     <n-form label-placement="top" size="small">
       <n-grid :cols="3" :x-gap="12" :y-gap="2">
         <n-grid-item>
@@ -901,7 +830,7 @@ onUnmounted(() => {
   </n-modal>
 
   <!-- 编辑交易日志（桌面端） -->
-  <n-modal v-if="!isMobile" class="trading-record-edit-modal" v-model:show="showEditModal" preset="card" title="编辑交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
+  <n-modal class="trading-record-edit-modal" v-model:show="showEditModal" preset="card" title="编辑交易日志" style="width: 820px;max-width: calc(100vw - 32px);">
     <n-form label-placement="top" size="small">
       <n-grid :cols="3" :x-gap="12" :y-gap="2">
         <n-grid-item>
@@ -992,7 +921,7 @@ onUnmounted(() => {
   </n-modal>
 
   <!-- K 线（桌面端） -->
-  <n-modal v-if="!isMobile" class="trading-record-kline-modal" v-model:show="showKlineModal" preset="card" :title="'K线 - ' + klineStockName" style="width: 95vw; max-width: 1400px">
+  <n-modal class="trading-record-kline-modal" v-model:show="showKlineModal" preset="card" :title="'K线 - ' + klineStockName" style="width: 95vw; max-width: 1400px">
     <StockLightweightKlineChart
       :code="klineStockCode"
       :stock-name="klineStockName"
@@ -1003,315 +932,8 @@ onUnmounted(() => {
       :costPrice="costPrice"
     />
   </n-modal>
-
-  <!-- 添加交易日志（移动端底部抽屉） -->
-  <BottomSheet v-if="isMobile && showAddModal" :show="showAddModal" title="添加交易日志" height="88vh" @update:show="(v) => showAddModal = v">
-    <div class="trm-form-sheet">
-      <n-form label-placement="top" size="small">
-        <n-grid :cols="2" :x-gap="12" :y-gap="2">
-          <n-grid-item :span="2">
-            <n-form-item label="股票代码">
-              <n-auto-complete v-model:value="formData.StockCode" :options="stockCodeOptions" placeholder="请输入股票代码" :input-props="{ autocomplete: 'disabled' }" clearable @update:value="searchStock" @select="handleStockCodeSelect" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="股票名称">
-              <n-auto-complete v-model:value="formData.StockName" :options="stockNameOptions" placeholder="请输入股票名称" :input-props="{ autocomplete: 'disabled' }" clearable @update:value="searchStock" @select="handleStockNameSelect" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="交易方向">
-              <n-select v-model:value="formData.Direction" :options="[{ label: '买入', value: '买入' }, { label: '卖出', value: '卖出' }]" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="交易时间">
-              <n-date-picker v-model:value="formData.TradingTime" type="datetime" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="价格">
-              <n-input-number v-model:value="formData.Price" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="成交数量">
-              <n-input-number v-model:value="formData.Volume" :min="1" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="止损价">
-              <n-input-number v-model:value="formData.StopLossPrice" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="止盈价">
-              <n-input-number v-model:value="formData.TakeProfitPrice" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="手续费">
-              <n-input-number v-model:value="formData.Fee" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="交易理由">
-              <n-input v-model:value="formData.Reason" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }" placeholder="请输入交易理由" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="交易心态/感悟/复盘/备注">
-              <n-input v-model:value="formData.Mindset" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" placeholder="请输入交易心态" />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-      </n-form>
-      <div class="trm-form-sheet__actions">
-        <n-button @click="showAddModal = false">取消</n-button>
-        <n-button type="primary" @click="handleAdd">添加</n-button>
-      </div>
-    </div>
-  </BottomSheet>
-
-  <!-- 编辑交易日志（移动端底部抽屉） -->
-  <BottomSheet v-if="isMobile && showEditModal" :show="showEditModal" title="编辑交易日志" height="88vh" @update:show="(v) => showEditModal = v">
-    <div class="trm-form-sheet">
-      <n-form label-placement="top" size="small">
-        <n-grid :cols="2" :x-gap="12" :y-gap="2">
-          <n-grid-item :span="2">
-            <n-form-item label="股票代码">
-              <n-auto-complete v-model:value="formData.StockCode" :options="stockCodeOptions" placeholder="请输入股票代码" :input-props="{ autocomplete: 'disabled' }" clearable @update:value="searchStock" @select="handleStockCodeSelect" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="股票名称">
-              <n-auto-complete v-model:value="formData.StockName" :options="stockNameOptions" placeholder="请输入股票名称" :input-props="{ autocomplete: 'disabled' }" clearable @update:value="searchStock" @select="handleStockNameSelect" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="交易方向">
-              <n-select v-model:value="formData.Direction" :options="[{ label: '买入', value: '买入' }, { label: '卖出', value: '卖出' }]" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="交易时间">
-              <n-date-picker v-model:value="formData.TradingTime" type="datetime" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="价格">
-              <n-input-number v-model:value="formData.Price" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="成交数量">
-              <n-input-number v-model:value="formData.Volume" :min="1" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="止损价">
-              <n-input-number v-model:value="formData.StopLossPrice" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="止盈价">
-              <n-input-number v-model:value="formData.TakeProfitPrice" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="手续费">
-              <n-input-number v-model:value="formData.Fee" :precision="2" :min="0" style="width: 100%" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="交易理由">
-              <n-input v-model:value="formData.Reason" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }" placeholder="请输入交易理由" />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item :span="2">
-            <n-form-item label="交易心态">
-              <n-input v-model:value="formData.Mindset" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" placeholder="请输入交易心态" />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-      </n-form>
-      <div class="trm-form-sheet__actions">
-        <n-button @click="showEditModal = false">取消</n-button>
-        <n-button type="primary" @click="handleUpdate">更新</n-button>
-      </div>
-    </div>
-  </BottomSheet>
-
-  <!-- K 线（移动端底部抽屉） -->
-  <BottomSheet v-if="isMobile && showKlineModal" :show="showKlineModal" :title="'K线 · ' + klineStockName" height="80vh" @update:show="(v) => showKlineModal = v">
-    <div class="trm-kline-wrap">
-      <StockLightweightKlineChart
-          :code="klineStockCode"
-          :stock-name="klineStockName"
-          :chart-height="440"
-          :dark-theme="darkTheme"
-          :longStopLossPrice="longStopLossPrice"
-          :longTakeProfitPrice="longTakeProfitPrice"
-          :costPrice="costPrice"
-      />
-    </div>
-  </BottomSheet>
   </div>
 </template>
 
 <style scoped>
-@media (max-width: 768px) {
-  .trading-record-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .trading-record-search {
-    display: grid !important;
-    gap: 8px;
-    grid-template-columns: 1fr;
-  }
-
-  .trading-record-search :deep(.n-date-picker),
-  .trading-record-search :deep(.n-select),
-  .trading-record-search :deep(.n-input),
-  .trading-record-search :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .trading-record-stats {
-    display: grid !important;
-    gap: 8px !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    padding: 8px 0 !important;
-  }
-
-  .trading-record-stats :deep(.n-grid-item) {
-    min-width: 0;
-  }
-
-  .trading-record-stats :deep(.n-statistic) {
-    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
-    border-radius: 6px;
-    padding: 8px;
-  }
-
-  .trading-record-stats :deep(.n-statistic__label) {
-    font-size: 11px;
-    white-space: nowrap;
-  }
-
-  .trading-record-stats :deep(.n-statistic-value) {
-    font-size: 15px;
-  }
-
-  .trading-record-mobile-list {
-    display: block !important;
-  }
-
-  .trading-record-mobile-card {
-    text-align: left;
-  }
-
-  .trading-record-mobile-card__title {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .trading-record-mobile-card__time {
-    color: var(--n-text-color-3);
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-
-  .trading-record-mobile-card__metrics {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 10px;
-  }
-
-  .trading-record-mobile-card__metrics > div {
-    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
-    border-radius: 6px;
-    display: grid;
-    gap: 3px;
-    padding: 8px;
-  }
-
-  .trading-record-mobile-card__metrics span {
-    color: var(--n-text-color-3);
-    font-size: 12px;
-  }
-
-  .trading-record-mobile-card__note {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 12px;
-    line-height: 1.45;
-    margin-bottom: 4px;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .trading-record-mobile-card__actions {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .trading-record-mobile-card__actions :deep(.n-button) {
-    width: 100%;
-  }
-
-  :deep(.trading-record-edit-modal.n-modal),
-  :deep(.trading-record-kline-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.trading-record-edit-modal .n-card),
-  :deep(.trading-record-kline-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-
-  :deep(.trading-record-edit-modal .n-grid) {
-    grid-template-columns: 1fr !important;
-  }
-
-  :deep(.trading-record-edit-modal .n-grid-item) {
-    grid-column: 1 / -1 !important;
-  }
-}
-
-/* ============ 移动端表单/K线抽屉（仅在 isMobile 渲染） ============ */
-.trm-form-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 12px calc(var(--safe-bottom) + 8px);
-}
-
-.trm-form-sheet :deep(.n-form-item) {
-  display: block;
-}
-
-.trm-form-sheet__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.trm-form-sheet__actions :deep(.n-button) {
-  flex: 1 1 0;
-}
-
-.trm-kline-wrap {
-  padding: 4px 8px 8px;
-}
 </style>

@@ -1313,34 +1313,6 @@ watch(aiConfigId, (newId) => {
   transform: translateX(0);
 }
 
-@media (max-width: 768px) {
-  .edge-trigger {
-    top: auto;
-    right: 14px;
-    bottom: calc(var(--mobile-bottom-nav-height) + 64px + env(safe-area-inset-bottom));
-    transform: none;
-    width: 48px;
-    height: 48px;
-    border-radius: 999px;
-    box-shadow: 0 8px 22px rgba(102, 126, 234, 0.32);
-  }
-
-  .edge-trigger:hover {
-    width: 48px;
-    box-shadow: 0 8px 22px rgba(102, 126, 234, 0.32);
-  }
-
-  .edge-trigger-badge {
-    top: 5px;
-    left: 30px;
-  }
-
-  .drawer-panel {
-    width: 100vw;
-    min-width: 0;
-    max-width: 100vw;
-  }
-}
 </style>
 <!-- 下拉挂载到 body 时需提高 z-index，否则会被抽屉遮挡 -->
 <style>

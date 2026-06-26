@@ -18,15 +18,12 @@ import {
   NewspaperOutline,
   NewspaperSharp, Notifications,
   PowerOutline, Pulse,
-  ReorderTwoOutline,
   SettingsOutline, ServerOutline, Skull, SkullOutline, SkullSharp,
   SparklesOutline, FlashOutline, Star,
-  StarOutline,
   StatsChartOutline,
   Wallet, WarningOutline, TimeOutline, SearchOutline,
 } from '@vicons/ionicons5'
 import {AnalyzeSentiment, GetConfig, GetGroupList, GetVersionInfo} from "./api/app";
-import {useDevice} from "./composables/useDevice";
 import {cnOpen, hkOpen, usOpen} from "./api/marketClock";
 import {registerFeed, stopFeed} from "./api/scheduler";
 import {Dragon, Fire, FirefoxBrowser, Gripfire, Robot} from "@vicons/fa";
@@ -41,7 +38,6 @@ import {FireFilled, MoneyCollectOutlined, NotificationFilled, StockOutlined} fro
 const route = useRoute()
 const router = useRouter()
 const FloatingAgentAssistant = defineAsyncComponent(() => import("./components/FloatingAgentAssistant.vue"))
-const PwaInstallPrompt = defineAsyncComponent(() => import("./components/PwaInstallPrompt.vue"))
 const loading = ref(true)
 const loadingMsg = ref("加载数据中...")
 const enableNews = ref(false)
@@ -57,17 +53,6 @@ const telegraph = ref([])
 const groupList = ref([])
 const officialStatement= ref("")
 const marketStatus = ref('')
-// 全局单例设备状态，替代组件内 matchMedia 监听
-const {isMobile} = useDevice()
-const mobileMenuVisible = ref(false)
-
-const mobileBottomNavItems = [
-  { key: 'stock', label: '自选', icon: StarOutline, route: { name: 'stock', query: { groupName: '全部', groupId: 0 } } },
-  { key: 'market', label: '市场', icon: NewspaperOutline, route: { name: 'market', query: { name: '市场快讯' } } },
-  { key: 'klineAnalysis', label: 'K线', icon: AnalyticsOutline, route: { name: 'klineAnalysis' } },
-  { key: 'promptPlaza', label: '提示词', icon: GlobeOutline, route: { name: 'research', query: { name: '提示词广场' } } },
-  { key: 'more', label: '更多', icon: ReorderTwoOutline },
-]
 
 const routeActiveKeyMap = {
   stock: 'stock',
@@ -124,155 +109,13 @@ function updateMarketStatus() {
 // 交易时段状态变化时同步标题（marketClock 自带 60s 轮询 + 页面恢复立即重判）。
 watch([cnOpen, hkOpen, usOpen], updateMarketStatus, { immediate: true })
 
-// 内容区高度随 isMobile 自动响应（设备状态由 useDevice 单例维护）
-const contentStyle = computed(() => isMobile.value
-    ? "height: calc(100dvh - var(--mobile-bottom-nav-height) - env(safe-area-inset-bottom));overflow: auto"
-    : "height: calc(100vh - var(--desktop-bottom-menu-height));overflow: auto")
-
-function handleMobileNav(item) {
-  if (item.key === 'more') {
-    mobileMenuVisible.value = true
-    return
-  }
-  activeKey.value = item.key === 'promptPlaza' ? 'research' : item.key
-  if (item.key === 'stock') {
-    EventsEmit("changeTab", {ID: 0, name: '全部'})
-  }
-  if (item.key === 'market') {
-    EventsEmit("changeMarketTab", {ID: 0, name: '市场快讯'})
-  }
-  if (item.key === 'promptPlaza') {
-    setTimeout(() => {
-      EventsEmit("changeResearchTab", {ID: 10, name: '提示词广场'})
-    }, 100)
-  }
-  router.push(item.route)
-  mobileMenuVisible.value = false
-}
+const contentStyle = computed(() => "height: calc(100vh - var(--desktop-bottom-menu-height));overflow: auto")
 
 function syncActiveKeyFromRoute(routeName) {
   const key = routeActiveKeyMap[String(routeName || '')]
   if (key) {
     activeKey.value = key
   }
-}
-
-function isMobileBottomNavActive(item) {
-  if (item.key === 'promptPlaza') {
-    return activeKey.value === 'research'
-  }
-  if (item.key === 'more') {
-    return !['stock', 'market', 'klineAnalysis', 'research'].includes(activeKey.value)
-  }
-  return activeKey.value === item.key
-}
-
-// "更多"抽屉的功能网格：分组 + tile。每个 tile 的 onActivate 原样复制 menuOptions 对应项的
-// EventsEmit + setTimeout(100) 协调，route 复制对应的 router.push 目标，保证子 Tab 同步不丢失。
-const mobileMoreSections = computed(() => {
-  const sections = []
-
-  // 自选管理：全部 + 动态分组
-  const stockTiles = [
-    {
-      label: '股票自选', icon: StarOutline,
-      route: {name: 'stock', query: {groupName: '全部', groupId: 0}},
-      onActivate: () => { activeKey.value = 'stock'; EventsEmit("changeTab", {ID: 0, name: '全部'}) },
-    },
-  ]
-  groupList.value.forEach(g => {
-    stockTiles.push({
-      label: g.name, icon: StarOutline,
-      route: {name: 'stock', query: {groupName: g.name, groupId: g.ID}},
-      onActivate: () => { activeKey.value = 'stock'; setTimeout(() => { EventsEmit("changeTab", g) }, 100) },
-    })
-  })
-  sections.push({category: '自选管理', tiles: stockTiles})
-
-  // 市场行情
-  const marketTabs = ['市场快讯', '全球股指', '重大指数', '行业排名', '个股资金流向', '板块资金流向', '概念资金流向', '龙虎榜', '个股研报', '公司公告', '行业研究', '当前热门', '名站优选']
-  sections.push({
-    category: '市场行情',
-    tiles: marketTabs.map(name => ({
-      label: name, icon: NewspaperOutline,
-      route: {name: 'market', query: {name}},
-      onActivate: () => { activeKey.value = 'market'; EventsEmit("changeMarketTab", {ID: 0, name}) },
-    })),
-  })
-
-  // 研究分析
-  const researchTiles = [
-    {label: 'AI分析报告', icon: ReportAnalytics, tab: {ID: 0, name: 'AI分析报告'}},
-    {label: '股票推荐记录', icon: TrendingUp, tab: {ID: 1, name: '股票推荐记录'}},
-    {label: '异动监控', icon: WarningOutline, tab: {ID: 2, name: '异动监控'}},
-    {label: '涨停梯队', icon: Flame, tab: {ID: 9, name: '涨停梯队'}},
-    {label: '提示词模板', icon: SparklesOutline, tab: {ID: 3, name: '提示词模板'}},
-    {label: '提示词广场', icon: GlobeOutline, tab: {ID: 10, name: '提示词广场'}},
-    {label: '问答广场', icon: ChatbubblesOutline, tab: {ID: 11, name: '问答广场'}},
-    {label: '形态选股', icon: SearchOutline, tab: {ID: 3, name: '形态选股'}},
-    {label: '指标选股', icon: BoxSearch20Regular, tab: {ID: 0, name: '指标选股'}},
-    {label: '定时任务', icon: TimeOutline, tab: {ID: 5, name: '定时任务'}},
-    {label: '交易日志', icon: Wallet, tab: {ID: 6, name: '交易日志'}},
-    {label: 'MCP服务', icon: ServerOutline, tab: {ID: 7, name: 'MCP服务'}},
-    {label: '技能管理', icon: AppsList20Regular, tab: {ID: 8, name: '技能管理'}},
-  ]
-  sections.push({
-    category: '研究分析',
-    tiles: researchTiles.map(t => ({
-      label: t.label, icon: t.icon,
-      route: {name: 'research', query: {name: t.label}},
-      onActivate: () => { activeKey.value = 'research'; setTimeout(() => { EventsEmit("changeResearchTab", t.tab) }, 100) },
-    })),
-  })
-
-  // 系统设置（基金/AI 智能体按配置显隐）
-  const settingTiles = [
-    {
-      label: 'K线分析', icon: StatsChartOutline,
-      route: {name: 'klineAnalysis'},
-      onActivate: () => { activeKey.value = 'klineAnalysis' },
-    },
-  ]
-  if (enableFund.value) {
-    settingTiles.push({
-      label: '基金自选', icon: SparklesOutline,
-      route: {name: 'fund', query: {name: '基金自选'}},
-      onActivate: () => { activeKey.value = 'fund'; EventsEmit("changeFundTab", {name: '基金自选'}) },
-    })
-    settingTiles.push({
-      label: '基金排行', icon: TrendingUp,
-      route: {name: 'fund', query: {name: '基金排行'}},
-      onActivate: () => { activeKey.value = 'fund'; EventsEmit("changeFundTab", {name: '基金排行'}) },
-    })
-  }
-  if (enableAgent.value) {
-    settingTiles.push({
-      label: 'Ai智能体', icon: Robot,
-      route: {name: 'agent', query: {name: 'Ai智能体'}},
-      onActivate: () => { activeKey.value = 'agent' },
-    })
-  }
-  settingTiles.push({
-    label: '设置', icon: SettingsOutline,
-    route: {name: 'settings', query: {name: '设置'}},
-    onActivate: () => { activeKey.value = 'settings' },
-  })
-  settingTiles.push({
-    label: '关于', icon: InformationOutline,
-    route: {name: 'about', query: {name: '关于'}},
-    onActivate: () => { activeKey.value = 'about' },
-  })
-  sections.push({category: '系统设置', tiles: settingTiles})
-
-  return sections
-})
-
-function onTileSelect(tile) {
-  tile.onActivate?.()
-  if (tile.route) {
-    router.push(tile.route)
-  }
-  mobileMenuVisible.value = false
 }
 
 watch(
@@ -1328,8 +1171,7 @@ onMounted(() => {
             >
 <!--              <FloatingAiAssistant />-->
               <FloatingAgentAssistant />
-              <PwaInstallPrompt v-if="isMobile" />
-              <n-flex class="app-shell" :class="{ 'app-shell--mobile': isMobile }">
+              <n-flex class="app-shell">
                 <n-grid x-gap="12" :cols="1" class="app-shell__grid">
                   <n-gi>
                     <n-spin :show="loading">
@@ -1348,7 +1190,7 @@ onMounted(() => {
                       </n-scrollbar>
                     </n-spin>
                   </n-gi>
-                  <n-gi class="desktop-bottom-menu desktop-only" style="position: fixed;bottom:0;z-index: 9;width: 100%;">
+                  <n-gi class="desktop-bottom-menu" style="position: fixed;bottom:0;z-index: 9;width: 100%;">
                     <n-card size="small" style="">
                       <n-menu style="font-size: 18px;"
                               v-model:value="activeKey"
@@ -1360,49 +1202,6 @@ onMounted(() => {
                   </n-gi>
                 </n-grid>
               </n-flex>
-              <nav class="mobile-bottom-nav mobile-only" aria-label="移动端主导航">
-                <button
-                    v-for="item in mobileBottomNavItems"
-                    :key="item.key"
-                    class="mobile-bottom-nav__item"
-                    :class="{ 'mobile-bottom-nav__item--active': isMobileBottomNavActive(item) }"
-                    type="button"
-                    @click="handleMobileNav(item)"
-                >
-                  <n-icon size="20">
-                    <component :is="item.icon" />
-                  </n-icon>
-                  <span>{{ item.label }}</span>
-                </button>
-              </nav>
-              <n-drawer
-                  v-model:show="mobileMenuVisible"
-                  class="mobile-menu-drawer"
-                  placement="bottom"
-                  height="82vh"
-              >
-                <n-drawer-content title="全部功能" closable>
-                  <div class="mobile-more-grid">
-                    <div v-for="section in mobileMoreSections" :key="section.category" class="mobile-more-section">
-                      <div class="mobile-more-section__title">{{ section.category }}</div>
-                      <div class="mobile-more-section__tiles">
-                        <button
-                            v-for="tile in section.tiles"
-                            :key="tile.label"
-                            type="button"
-                            class="mobile-more-tile"
-                            @click="onTileSelect(tile)"
-                        >
-                          <n-icon size="22">
-                            <component :is="tile.icon" />
-                          </n-icon>
-                          <span>{{ tile.label }}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </n-drawer-content>
-              </n-drawer>
             </n-watermark>
           </n-dialog-provider>
         </n-modal-provider>
@@ -1410,55 +1209,3 @@ onMounted(() => {
     </n-message-provider>
   </n-config-provider>
 </template>
-<style>
-.mobile-more-grid {
-    padding: 4px 0 calc(var(--safe-bottom) + 8px);
-}
-
-.mobile-more-section {
-    margin-bottom: 18px;
-}
-
-.mobile-more-section__title {
-    color: var(--n-text-color-3, #999);
-    font-size: 13px;
-    font-weight: 600;
-    margin: 0 4px 10px;
-}
-
-.mobile-more-section__tiles {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(4, 1fr);
-}
-
-.mobile-more-tile {
-    align-items: center;
-    appearance: none;
-    background: var(--n-color-target, rgba(0, 0, 0, 0.03));
-    border: 1px solid var(--n-border-color, #efeff5);
-    border-radius: 12px;
-    color: var(--n-text-color, #333);
-    display: flex;
-    flex-direction: column;
-    font: inherit;
-    gap: 6px;
-    justify-content: center;
-    min-width: 0;
-    padding: 12px 4px;
-}
-
-.mobile-more-tile:active {
-    background: rgba(24, 160, 88, 0.12);
-    border-color: var(--n-primary-color, #18a058);
-}
-
-.mobile-more-tile span {
-    font-size: 12px;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 100%;
-}
-</style>

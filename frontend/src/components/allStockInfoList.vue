@@ -370,7 +370,6 @@ function handleReset() {
 
     <!-- 数据表格 -->
     <n-data-table
-      class="all-stock-info-table desktop-only"
       remote
       size="small"
       :columns="columnsRef"
@@ -382,52 +381,6 @@ function handleReset() {
       style="height: calc(100vh - 270px)"
       @update:page="handlePageChange"
     />
-
-    <div class="all-stock-info-mobile-list mobile-only">
-      <n-spin :show="loadingRef">
-        <n-space vertical :size="10">
-          <n-card v-for="item in dataRef" :key="item.SECUCODE" class="all-stock-info-mobile-card" size="small" :bordered="true">
-            <template #header>
-              <n-space class="all-stock-info-mobile-card__title" align="center" :size="8">
-                <n-text strong>{{ item.SECURITY_NAME_ABBR }}</n-text>
-                <n-text depth="3">{{ item.SECUCODE }}</n-text>
-                <n-tag v-if="item.MARKET" type="warning" size="small">{{ item.MARKET }}</n-tag>
-              </n-space>
-            </template>
-            <div class="all-stock-info-mobile-card__metrics">
-              <div>
-                <span>最新价</span>
-                <n-text>{{ (parseFloat(item.NEW_PRICE) || 0).toFixed(2) }}</n-text>
-              </div>
-              <div>
-                <span>涨跌幅</span>
-                <n-text :type="(parseFloat(item.CHANGE_RATE) || 0) >= 0 ? 'error' : 'success'" strong>
-                  {{ (parseFloat(item.CHANGE_RATE) || 0) >= 0 ? '+' : '' }}{{ (parseFloat(item.CHANGE_RATE) || 0).toFixed(2) }}%
-                </n-text>
-              </div>
-              <div>
-                <span>行业</span>
-                <n-text>{{ item.INDUSTRY || '无' }}</n-text>
-              </div>
-              <div>
-                <span>日期</span>
-                <n-text>{{ item.MAX_TRADE_DATE || '-' }}</n-text>
-              </div>
-            </div>
-            <div class="all-stock-info-mobile-card__concept">{{ item.CONCEPT || '无' }}</div>
-          </n-card>
-          <n-empty v-if="!loadingRef && dataRef.length === 0" description="暂无股票数据" />
-        </n-space>
-      </n-spin>
-      <n-space justify="center" style="margin-top: 12px">
-        <n-pagination
-          v-model:page="paginationReactive.page"
-          :page-count="paginationReactive.pageCount"
-          :page-size="paginationReactive.pageSize"
-          @update:page="handlePageChange"
-        />
-      </n-space>
-    </div>
 
     <!-- 分页控件 -->
 <!--    <div style="margin-top: 16px; display: flex; justify-content: center;">-->
@@ -447,74 +400,4 @@ function handleReset() {
 </template>
 
 <style scoped>
-@media (max-width: 768px) {
-  .all-stock-info-page {
-    padding: 0 10px calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 10px);
-    text-align: left;
-  }
-
-  .all-stock-info-search__grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-  }
-
-  .all-stock-info-search__grid :deep(.n-grid-item) {
-    grid-column: 1 / -1 !important;
-  }
-
-  .all-stock-info-search :deep(.n-form-item) {
-    grid-template-columns: 1fr !important;
-  }
-
-  .all-stock-info-search :deep(.n-select),
-  .all-stock-info-search :deep(.n-input),
-  .all-stock-info-search :deep(.n-button) {
-    width: 100% !important;
-  }
-
-  .all-stock-info-mobile-list {
-    display: block !important;
-  }
-
-  .all-stock-info-mobile-card {
-    text-align: left;
-  }
-
-  .all-stock-info-mobile-card__title {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    min-width: 0;
-  }
-
-  .all-stock-info-mobile-card__metrics {
-    display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-bottom: 10px;
-  }
-
-  .all-stock-info-mobile-card__metrics > div {
-    background: var(--n-color-embedded, rgba(128, 128, 128, 0.06));
-    border-radius: 6px;
-    display: grid;
-    gap: 3px;
-    padding: 8px;
-  }
-
-  .all-stock-info-mobile-card__metrics span {
-    color: var(--n-text-color-3);
-    font-size: 12px;
-  }
-
-  .all-stock-info-mobile-card__concept {
-    color: var(--n-text-color-2);
-    display: -webkit-box;
-    font-size: 12px;
-    line-height: 1.45;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-}
 </style>

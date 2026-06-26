@@ -302,25 +302,4 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-@media (max-width: 768px) {
-  .fund-kline-controls {
-    align-items: stretch !important;
-    flex-direction: column;
-    gap: 8px !important;
-  }
-
-  .fund-kline-controls :deep(.n-flex) {
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-  }
-
-  .fund-kline-controls :deep(.n-button) {
-    flex: 1 1 calc(25% - 6px);
-    min-width: 56px;
-  }
-
-  .fund-kline-source {
-    line-height: 1.35;
-  }
-}
 </style>

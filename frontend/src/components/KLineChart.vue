@@ -4,9 +4,6 @@ import {GetStockKLine} from "../api/app";
 import * as echarts from "echarts";
 import {onMounted, onUnmounted, ref} from "vue";
 import _ from "lodash";
-import {useDevice} from "../composables/useDevice";
-
-const {isMobile} = useDevice()
 const { code,stockName,darkTheme,kDays ,chartHeight} = defineProps({
   code: {
     type: String,
@@ -40,7 +37,7 @@ let resizeObs = null
 
 onMounted(() => {
   handleKLine(code,stockName)
-  // 容器尺寸变化(isMobile切换/旋转/抽屉展开)时让 echarts 重绘
+  // 容器尺寸变化时让 echarts 重绘
   if (kLineChartRef.value && window.ResizeObserver) {
     resizeObs = new ResizeObserver(() => {
       if (chartInstance) chartInstance.resize()
@@ -85,28 +82,23 @@ function  handleKLine(code,stockName){
     let option = {
       title: {
         text: stockName+" "+categoryData[values.length-1]+"  "+values[values.length-1][1]+" "+((values[values.length-1][1]-values[values.length-2][1])/values[values.length-2][1]*100).toFixed(2)+"%",
-        left: '0px',
-        top: isMobile ? 0 : undefined,
-        textStyle: {
+        left: '0px',        textStyle: {
           color: Number(values[values.length-1][1])>Number(values[values.length-2][1])?'red':'green',
-          fontSize: isMobile ? 12 : 14
+          fontSize: 14
         },
       },
       darkMode: darkTheme,
       animation: false,
-      legend: {
-        // 桌面：右上角；移动端：title 下方独立一行 + 可滚动，避免 MA 标签与标题/蜡烛重叠
-        ...(isMobile
-          ? { top: 20, left: 0, right: 0, type: 'scroll', pageIconSize: 10 }
-          : { right: 20, top: 0 }),
+      legend: {        right: 20,
+        top: 0,
         data: ['日K', 'MA5', 'MA10', 'MA20', 'MA30'],
         textStyle: {
           color: darkTheme?'#ccc':'#456',
-          fontSize: isMobile ? 10 : 12
+          fontSize: 12
         },
-        itemWidth: isMobile ? 14 : 25,
-        itemHeight: isMobile ? 8 : 14,
-        itemGap: isMobile ? 6 : 10,
+        itemWidth: 25,
+        itemHeight: 14,
+        itemGap: 10,
       },
       tooltip: {
         trigger: 'axis',
@@ -121,11 +113,11 @@ function  handleKLine(code,stockName){
         borderWidth: 2,
         borderColor: darkTheme?'#456':'#ccc',
         backgroundColor: darkTheme?'#456':'#fff',
-        padding: isMobile ? 6 : 10,
+        padding: 10,
         confine: true,
         textStyle: {
           color: darkTheme?'#ccc':'#456',
-          fontSize: isMobile ? 11 : 12
+          fontSize: 12
         },
         formatter: function (params) {//修改鼠标划过显示为中文
           //console.log("params",params)
@@ -174,16 +166,16 @@ function  handleKLine(code,stockName){
       },
       grid: [
         {
-          left: isMobile ? '14%' : '8%',
-          right: isMobile ? '6%' : '8%',
-          top: isMobile ? '22%' : '8%',
-          height: isMobile ? '48%' : '50%',
+          left: '8%',
+          right: '8%',
+          top: '8%',
+          height: '50%',
         },
         {
-          left: isMobile ? '14%' : '8%',
-          right: isMobile ? '6%' : '8%',
-          top: isMobile ? '72%' : '66%',
-          height: isMobile ? '16%' : '18%'
+          left: '8%',
+          right: '8%',
+          top: '66%',
+          height: '18%'
         }
       ],
       xAxis: [
@@ -195,7 +187,7 @@ function  handleKLine(code,stockName){
           splitLine: { show: false },
           min: 'dataMin',
           max: 'dataMax',
-          axisLabel: { rotate: isMobile ? 45 : 0 },
+          axisLabel: { rotate: 0 },
           axisPointer: {
             z: 100
           }
@@ -245,14 +237,12 @@ function  handleKLine(code,stockName){
           show: true,
           xAxisIndex: [0, 1],
           type: 'slider',
-          top: isMobile ? '90%' : '85%',
-          height: isMobile ? 22 : 16,
+          top: '85%',
+          height: 16,
           start: 100-kDays,
           end: 100,
-          handleSize: isMobile ? 22 : undefined,
-          textStyle: { fontSize: isMobile ? 10 : 12 },
-          labelFormatter: isMobile ? (v) => String(v).substring(5) : undefined,
-        }
+                    textStyle: { fontSize: 12 },
+                  }
       ],
 
       series: [

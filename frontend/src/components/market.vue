@@ -42,8 +42,6 @@ import ConceptFundFlowChart from "./conceptFundFlowChart.vue";
 import AnalyzeMartket from "./AnalyzeMartket.vue";
 
 const route = useRoute()
-import {useDevice} from "../composables/useDevice";
-const {isMobile} = useDevice()
 const icon = ref('https://raw.githubusercontent.com/ArvinLovegood/go-stock/master/build/appicon.png');
 
 const message = useMessage()
@@ -53,13 +51,9 @@ const bearishTagColor = { color: '#f2f4f7', textColor: '#0f7a43', borderColor: '
 const sourceTagColor = (source) => source === '财联社' ? neutralTagColor : undefined
 const sentimentTagColor = (sentiment) => sentiment === '看跌' ? bearishTagColor : undefined
 
-// 指数图表高度：桌面按视口算；移动端固定一个可读高度(避免全屏手机算出超高，
-// 或减 130 后负数)。移动端用 visualViewport，并夹在 320~560。
+// 指数图表高度按视口计算，并夹在可读范围内。
 function computePanelHeight() {
   const vh = Math.round(window.visualViewport?.height || window.innerHeight)
-  if (isMobile.value) {
-    return Math.max(320, Math.min(560, vh - 180))
-  }
   return Math.max(360, vh - 240)
 }
 const panelHeight = ref(computePanelHeight())
@@ -96,30 +90,6 @@ const promptTemplates = ref([])
 const industryRanks = ref([])
 const sort = ref("0")
 const nowTab = ref("市场快讯")
-// 移动端：分组导航（两级：分类 → 具体功能），避免一行十几个横向滚动标签
-const marketMobileGroups = [
-  { category: '行情', icon: '📰', tabs: ['市场快讯', '当前热门'] },
-  { category: '指数', icon: '🌐', tabs: ['全球股指', '重大指数'] },
-  { category: '资金', icon: '💰', tabs: ['行业排名', '个股资金流向', '板块资金流向', '概念资金流向'] },
-  { category: '研报', icon: '📊', tabs: ['龙虎榜', '个股研报', '公司公告', '行业研究', '名站优选'] },
-]
-const marketMobileActiveGroup = ref('行情')
-function marketGroupOf(tabName) {
-  const g = marketMobileGroups.find(g => g.tabs.includes(tabName))
-  return g ? g.category : marketMobileGroups[0].category
-}
-const marketMobileCurrentTabs = computed(() => {
-  const g = marketMobileGroups.find(g => g.category === marketMobileActiveGroup.value)
-  return g ? g.tabs : []
-})
-function selectMarketMobileGroup(category) {
-  marketMobileActiveGroup.value = category
-  // 切换分类时跳到该分类的第一个子栏，避免内容停留在旧 tab 且无高亮 chip
-  const g = marketMobileGroups.find(g => g.category === category)
-  if (g && g.tabs.length && !g.tabs.includes(nowTab.value)) {
-    updateTab(g.tabs[0])
-  }
-}
 const mdPreviewRef = ref(null)
 const aiResultScrollRef = ref(null)
 const stockCode= ref('')
@@ -141,7 +111,6 @@ function getIndex() {
 
 onBeforeMount(() => {
   nowTab.value = route.query.name || "市场快讯"
-  marketMobileActiveGroup.value = marketGroupOf(nowTab.value)
   stockCode.value = route.query.stockCode
   GetConfig().then(result => {
     summaryBTN.value = result.openAiEnable
@@ -231,43 +200,11 @@ EventsOn("tradingViewNews", (data) => {
   }
 })
 
-//获取页面高度（窗口/方向变化时重算，移动端旋转也覆盖）
+// 获取页面高度（窗口/方向变化时重算）
 window.addEventListener('resize', () => { panelHeight.value = computePanelHeight() })
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => { panelHeight.value = computePanelHeight() })
 }
-watch(isMobile, () => { panelHeight.value = computePanelHeight() })
-
-// ===================== 移动端"指数"板块：网格选择 + 单图 =====================
-// type: 'kline' = KLineChart(echarts), 'lw' = StockLightweightKlineChart
-const mobileGlobalIndexList = [
-  {name:'上证指数', code:'sh000001', type:'kline'},
-  {name:'深证成指', code:'sz399001', type:'kline'},
-  {name:'创业板指', code:'sz399006', type:'kline'},
-  {name:'恒生指数', code:'hkHSI', type:'kline'},
-  {name:'纳斯达克', code:'us.IXIC', type:'kline'},
-  {name:'道琼斯', code:'us.DJI', type:'kline'},
-  {name:'标普500', code:'us.INX', type:'kline'},
-]
-const mobileMajorIndexList = [
-  {name:'上证指数', code:'000001.SH', type:'lw'},
-  {name:'深证指数', code:'399001.SZ', type:'lw'},
-  {name:'创业板指', code:'399006.SZ', type:'lw'},
-  {name:'恒生指数', code:'100.HSI', type:'lw'},
-  {name:'道琼斯', code:'100.DJIA', type:'lw'},
-  {name:'标普500', code:'100.SPX', type:'lw'},
-  {name:'纳斯达克', code:'100.NDX', type:'lw'},
-  {name:'沪深300', code:'000300.SH', type:'lw'},
-  {name:'上证50', code:'000016.SH', type:'lw'},
-  {name:'中证A500', code:'000510.SH', type:'lw'},
-  {name:'中证1000', code:'000852.SH', type:'lw'},
-  {name:'科创50', code:'000688.SH', type:'lw'},
-  {name:'中证银行', code:'399986.SZ', type:'lw'},
-  {name:'中证白酒', code:'399997.SZ', type:'lw'},
-]
-const mobileGlobalIndex = ref(mobileGlobalIndexList[0])
-const mobileMajorIndex = ref(mobileMajorIndexList[0])
-
 function getAreaName(code) {
   switch (code) {
     case "america":
@@ -283,50 +220,6 @@ function getAreaName(code) {
   }
 }
 
-// ===================== 移动端"市场快讯"专属数据 =====================
-// ① 大盘速览：从全球股指里精选核心指数，按 地区→指数 展平成横滑卡片
-const mobileHotIndexCodes = ['sh000001','sz399001','sz399006','hkHSI','us.IXIC','us.DJI','us.INX','us.DX']
-const mobileIndexList = computed(() => {
-  const g = globalStockIndexes.value
-  if (!g) return []
-  const all = []
-  Object.keys(g).forEach(area => {
-    ;(g[area] || []).forEach(item => {
-      if (mobileHotIndexCodes.includes(item.qtcode) || mobileHotIndexCodes.includes(item.code)) {
-        all.push({...item, area: getAreaName(area)})
-      }
-    })
-  })
-  return all
-})
-
-// ③ 新闻流来源筛选：全部 / 财联社 / 新浪 / 外媒
-const mobileNewsSource = ref('all')
-const mobileNewsList = computed(() => {
-  const src = mobileNewsSource.value
-  const pick = (arr, name) => (arr || []).map(i => ({...i, __source: name}))
-  if (src === 'cls') return pick(telegraphList.value, '财联社')
-  if (src === 'sina') return pick(sinaNewsList.value, '新浪')
-  if (src === 'foreign') return pick(foreignNewsList.value, '外媒')
-  // all：混合三源，按时间倒序
-  return [
-    ...pick(telegraphList.value, '财联社'),
-    ...pick(sinaNewsList.value, '新浪'),
-    ...pick(foreignNewsList.value, '外媒'),
-  ].sort((a, b) => {
-    const ta = a.dataTime || a.time || ''
-    const tb = b.dataTime || b.time || ''
-    return tb.localeCompare(ta)
-  })
-})
-const mobileNewsSourceOptions = computed(() => {
-  const opts = [{label:'全部', value:'all'}]
-  if (telegraphList.value.length) opts.push({label:`财联社 ${telegraphList.value.length}`, value:'cls'})
-  if (sinaNewsList.value.length) opts.push({label:`新浪 ${sinaNewsList.value.length}`, value:'sina'})
-  if (foreignNewsList.value.length) opts.push({label:`外媒 ${foreignNewsList.value.length}`, value:'foreign'})
-  return opts
-})
-const sourceTagType = (s) => s === '财联社' ? 'success' : s === '新浪' ? 'info' : 'warning'
 
 
 function changeIndustryRankSort() {
@@ -392,7 +285,6 @@ function updateTab(name) {
   }
   summaryBTN.value = (name === "市场快讯");
   nowTab.value = name
-  marketMobileActiveGroup.value = marketGroupOf(name)
 }
 
 EventsOn("summaryStockNews", async (msg) => {
@@ -509,41 +401,13 @@ function ReFlesh(source) {
 
 <template>
   <n-card class="market-page-shell">
-    <!-- 移动端：分类 + 功能两级菜单（替换原生横向滚动标签栏） -->
-    <div v-if="isMobile" class="market-mobile-nav">
-      <div class="market-mobile-nav__groups">
-        <button
-            v-for="g in marketMobileGroups"
-            :key="g.category"
-            type="button"
-            class="market-group-tile"
-            :class="{ 'market-group-tile--active': marketMobileActiveGroup === g.category }"
-            @click="selectMarketMobileGroup(g.category)"
-        >
-          <span class="market-group-tile__icon">{{ g.icon }}</span>
-          <span class="market-group-tile__name">{{ g.category }}</span>
-        </button>
-      </div>
-      <div class="market-mobile-nav__tabs">
-        <button
-            v-for="tab in marketMobileCurrentTabs"
-            :key="tab"
-            type="button"
-            class="market-tab-chip"
-            :class="{ 'market-tab-chip--active': nowTab === tab }"
-            @click="updateTab(tab)"
-        >
-          {{ tab }}
-        </button>
-      </div>
-    </div>
-    <n-tabs :class="{ 'market-mobile-tabs--native-hidden': isMobile }" type="line" animated @update-value="updateTab" :value="nowTab" style="">
+    <n-tabs type="line" animated @update-value="updateTab" :value="nowTab" style="">
       <n-tab-pane name="市场快讯" tab="市场快讯">
 
         <!-- ============ 桌面端：热词 + 三栏新闻 ============ -->
-        <n-grid v-if="!isMobile" :cols="1" :y-gap="0">
+        <n-grid :cols="1" :y-gap="0">
           <n-gi>
-            <div class="market-desktop-heat-panel desktop-only">
+            <div class="market-desktop-heat-panel">
               <AnalyzeMartket :dark-theme="darkTheme" :chart-height="300" :kDays="1" :name="'最近24小时热词'" />
             </div>
           </n-gi>
@@ -562,116 +426,13 @@ function ReFlesh(source) {
           </n-gi>
         </n-grid>
 
-        <!-- ============ 移动端：重新设计的快讯布局 ============ -->
-        <div v-else class="mkt-brief">
-
-          <!-- ① 大盘速览：核心指数横滑卡片 -->
-          <section class="mkt-section">
-            <div class="mkt-section__title">📊 大盘速览</div>
-            <div v-if="mobileIndexList.length" class="mkt-index-rail">
-              <div
-                  v-for="item in mobileIndexList"
-                  :key="item.code"
-                  class="mkt-index-card"
-                  :class="'mkt-index-card--' + (item.zdf>0?'up':'down')"
-              >
-                <div class="mkt-index-card__head">
-                  <n-image :src="item.img" :width="16" preview-disabled />
-                  <span class="mkt-index-card__name">{{ item.name }}</span>
-                </div>
-                <div class="mkt-index-card__price" :class="'text-' + (item.zdf>0?'error':'success')">{{ item.zxj }}</div>
-                <div class="mkt-index-card__zdf" :class="'bg-' + (item.zdf>0?'error':'success')">
-                  <n-number-animation :precision="2" :from="0" :to="item.zdf"/>%
-                </div>
-                <div class="mkt-index-card__state">{{ item.state === 'open' ? '开市' : '休市' }}</div>
-              </div>
-            </div>
-            <n-empty v-else description="指数加载中" size="small" style="padding: 16px 0" />
-          </section>
-
-          <!-- ② 24h 热词：平铺，不再折叠 -->
-          <section class="mkt-section">
-            <div class="mkt-section__title">🔥 最近24小时热词</div>
-            <AnalyzeMartket :dark-theme="darkTheme" :chart-height="260" :kDays="1" :name="'最近24小时热词'" />
-          </section>
-
-          <!-- ③ 资讯流：来源吸顶筛选 + 混合时间流 -->
-          <section class="mkt-section">
-            <div class="mkt-news-sticky">
-              <div class="mkt-section__title">📰 资讯</div>
-              <div class="mkt-news-source-bar">
-                <button
-                    v-for="opt in mobileNewsSourceOptions"
-                    :key="opt.value"
-                    type="button"
-                    class="mkt-source-chip"
-                    :class="{ 'mkt-source-chip--active': mobileNewsSource === opt.value }"
-                    @click="mobileNewsSource = opt.value"
-                >{{ opt.label }}</button>
-              </div>
-            </div>
-
-            <div class="mkt-news-list">
-              <article
-                  v-for="(item, idx) in mobileNewsList"
-                  :key="(item.ID||'') + '-' + idx"
-                  class="mkt-news-item"
-                  :class="{'mkt-news-item--red': item.isRed}"
-              >
-                <div class="mkt-news-item__top">
-                  <n-tag size="tiny" :bordered="false" :type="sourceTagType(item.__source)" :color="sourceTagColor(item.__source)">{{ item.__source }}</n-tag>
-                  <span v-if="item.time" class="mkt-news-item__time">{{ item.time }}</span>
-                  <n-tag v-if="item.sentimentResult" size="tiny" :bordered="false"
-                         :type="item.sentimentResult==='看涨'?'error':item.sentimentResult==='看跌'?'success':'info'"
-                         :color="sentimentTagColor(item.sentimentResult)">
-                    {{ item.sentimentResult }}
-                  </n-tag>
-                </div>
-                <div v-if="item.title" class="mkt-news-item__title" :class="{'text-error': item.isRed}">{{ item.title }}</div>
-                <div v-if="item.content" class="mkt-news-item__content">{{ item.content }}</div>
-                <div v-if="item.subjects || item.stocks || item.url" class="mkt-news-item__tags">
-                  <n-tag v-for="sub in (item.subjects||[])" :key="'s'+sub" :bordered="false" type="success" size="tiny" :color="neutralTagColor">{{ sub }}</n-tag>
-                  <n-tag v-for="sub in (item.stocks||[])" :key="'k'+sub" :bordered="false" type="warning" size="tiny">{{ sub }}</n-tag>
-                  <a v-if="item.url" :href="item.url" target="_blank" class="mkt-news-item__link">原文 ›</a>
-                </div>
-              </article>
-              <n-empty v-if="!mobileNewsList.length" description="暂无资讯" size="small" style="padding: 24px 0" />
-            </div>
-          </section>
-
-        </div>
-
       </n-tab-pane>
       <n-tab-pane name="全球股指" tab="全球股指">
-        <!-- 移动端：指数网格选择 + 选中指数单图全宽 -->
-        <div v-if="isMobile" class="mkt-index-mobile">
-          <div class="mkt-index-mobile__title">选择指数</div>
-          <div class="mkt-index-grid">
-            <button
-                v-for="item in mobileGlobalIndexList"
-                :key="item.code"
-                type="button"
-                class="mkt-index-grid__tile"
-                :class="{'mkt-index-grid__tile--active': mobileGlobalIndex.code === item.code}"
-                @click="mobileGlobalIndex = item"
-            >{{ item.name }}</button>
-          </div>
-          <div class="mkt-index-chart-wrap">
-            <k-line-chart
-                :key="mobileGlobalIndex.code"
-                :code="mobileGlobalIndex.code"
-                :chart-height="panelHeight"
-                :stockName="mobileGlobalIndex.name"
-                :k-days="20"
-                :dark-theme="true"
-            />
-          </div>
-        </div>
-        <n-tabs v-else type="segment" animated>
+        <n-tabs type="segment" animated>
           <n-tab-pane name="全球指数" tab="全球指数">
-            <n-grid class="market-mobile-scroll" :cols="5" :y-gap="0">
+            <n-grid class="market-index-scroll" :cols="5" :y-gap="0">
               <n-gi v-for="(val, key) in globalStockIndexes" :key="key">
-                <n-list class="market-mobile-index-card" bordered>
+                <n-list class="market-index-card" bordered>
                   <template #header>
                     {{ getAreaName(key) }}
                   </template>
@@ -734,30 +495,7 @@ function ReFlesh(source) {
         </n-tabs>
       </n-tab-pane>
       <n-tab-pane name="重大指数" tab="重大指数">
-        <!-- 移动端：指数网格选择 + 选中指数单图全宽 -->
-        <div v-if="isMobile" class="mkt-index-mobile">
-          <div class="mkt-index-mobile__title">选择指数</div>
-          <div class="mkt-index-grid">
-            <button
-                v-for="item in mobileMajorIndexList"
-                :key="item.code"
-                type="button"
-                class="mkt-index-grid__tile"
-                :class="{'mkt-index-grid__tile--active': mobileMajorIndex.code === item.code}"
-                @click="mobileMajorIndex = item"
-            >{{ item.name }}</button>
-          </div>
-          <div class="mkt-index-chart-wrap">
-            <StockLightweightKlineChart
-                :key="mobileMajorIndex.code"
-                :code="mobileMajorIndex.code"
-                :chart-height="panelHeight"
-                :stock-name="mobileMajorIndex.name"
-                :dark-theme="true"
-            />
-          </div>
-        </div>
-        <n-tabs v-else type="segment" animated>
+        <n-tabs type="segment" animated>
 
 <!--          <n-tab-pane name="西部数据" tab="西部数据">-->
 <!--            <StockLightweightKlineChart code="105.WDC" :chart-height="panelHeight" stock-name="西部数据"-->
@@ -839,7 +577,7 @@ function ReFlesh(source) {
         <n-tabs type="card" animated>
           <n-tab-pane name="行业涨幅排名" tab="行业涨幅排名">
             <!-- 桌面端：表格 -->
-            <n-table v-if="!isMobile" striped>
+            <n-table striped>
               <n-thead>
                 <n-tr>
                   <n-th>行业名称</n-th>
@@ -883,48 +621,7 @@ function ReFlesh(source) {
               </n-tbody>
             </n-table>
 
-            <!-- 移动端：行业涨幅卡片 -->
-            <div v-else class="ind-rank-mobile">
-              <div class="ind-rank-mobile__hint">
-                <span>点击表头"行业涨幅"可排序</span>
-                <n-button size="tiny" tertiary @click="changeIndustryRankSort">
-                  排序
-                  <n-icon v-if="sort==='0'" :component="CaretDown"/>
-                  <n-icon v-if="sort==='1'" :component="CaretUp"/>
-                </n-button>
-              </div>
-              <article
-                  v-for="item in industryRanks"
-                  :key="item.bd_code"
-                  class="ind-card"
-                  :class="'ind-card--' + (item.bd_zdf>0?'up':'down')"
-              >
-                <div class="ind-card__head">
-                  <n-tag size="small" :bordered="false" type="info">{{ item.bd_name }}</n-tag>
-                  <span class="ind-card__main-zdf" :class="'bg-' + (item.bd_zdf>0?'error':'success')">
-                    {{ item.bd_zdf }}%
-                  </span>
-                </div>
-                <div class="ind-card__periods">
-                  <div class="ind-period">
-                    <span class="ind-period__label">5日</span>
-                    <span class="ind-period__value" :class="'text-' + (item.bd_zdf5>0?'error':'success')">{{ item.bd_zdf5 }}%</span>
-                  </div>
-                  <div class="ind-period">
-                    <span class="ind-period__label">20日</span>
-                    <span class="ind-period__value" :class="'text-' + (item.bd_zdf20>0?'error':'success')">{{ item.bd_zdf20 }}%</span>
-                  </div>
-                </div>
-                <div v-if="item.nzg_name" class="ind-card__leader">
-                  <span class="ind-card__leader-label">领涨</span>
-                  <span class="ind-card__leader-name" :class="'text-' + (item.nzg_zdf>0?'error':'success')">{{ item.nzg_name }}</span>
-                  <span class="ind-card__leader-code">{{ item.nzg_code }}</span>
-                  <span class="ind-card__leader-zdf" :class="'text-' + (item.nzg_zdf>0?'error':'success')">{{ item.nzg_zdf }}%</span>
-                  <span class="ind-card__leader-price">{{ item.nzg_zxj }}</span>
-                </div>
-              </article>
-              <n-empty v-if="!industryRanks.length" description="暂无行业排名数据" style="padding: 32px 0" />
-            </div>
+
           </n-tab-pane>
           <n-tab-pane name="行业资金排名(净流入)" tab="行业资金排名">
             <industryMoneyRank :fenlei="'0'" :header-title="'行业资金排名(净流入)'" :sort="'netamount'"/>
@@ -1088,7 +785,7 @@ function ReFlesh(source) {
     </template>
   </n-modal>
 
-  <div class="market-summary-fab market-mobile-summary-action" style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
+  <div class="market-summary-fab market-summary-action" style="position: fixed;bottom: 18px;right:25px;z-index: 10;" v-if="summaryBTN">
     <n-input-group>
       <n-button type="primary" @click="getAiSummary">
         <n-icon :component="PulseOutline"/> &nbsp;AI总结
@@ -1100,531 +797,4 @@ function ReFlesh(source) {
 
 </template>
 <style scoped>
-@media (max-width: 768px) {
-  .market-page-shell {
-    margin: 0 6px 86px;
-    text-align: left;
-  }
-
-  :deep(.market-page-shell > .n-card__content) {
-    padding: 8px;
-  }
-
-  :deep(.market-page-shell .n-tabs-nav-scroll-content) {
-    min-width: max-content;
-  }
-
-  /* 移动端用自定义两级菜单，隐藏顶层原生标签栏。
-     用直接子选择器(>)，避免穿透到嵌套的子 tabs（财联社/新浪/外媒、
-     全球指数、行业排名等 segment/card 子标签）把它们也隐藏掉。 */
-  .market-mobile-tabs--native-hidden > :deep(.n-tabs-nav) {
-    display: none !important;
-  }
-
-  .market-news-grid {
-    display: block !important;
-  }
-
-  .market-desktop-news-grid {
-    display: none !important;
-  }
-
-  .market-news-grid :deep(.n-grid-item) {
-    margin-bottom: 8px;
-  }
-
-  .market-mobile-scroll {
-    display: grid !important;
-    grid-auto-columns: minmax(260px, 82vw);
-    grid-auto-flow: column;
-    grid-template-columns: none !important;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    scroll-snap-type: x proximity;
-  }
-
-  .market-mobile-scroll :deep(.n-grid-item) {
-    scroll-snap-align: start;
-  }
-
-  .market-mobile-index-card {
-    border-radius: 6px;
-    min-height: 100%;
-    overflow: hidden;
-  }
-
-  .market-mobile-index-card :deep(.n-list-item) {
-    padding: 8px 10px;
-  }
-
-  .market-mobile-index-card :deep(.n-grid) {
-    align-items: center;
-    grid-template-columns: minmax(108px, 1fr) minmax(82px, auto) 44px !important;
-  }
-
-  .market-summary-fab {
-    bottom: calc(var(--mobile-bottom-nav-height) + 10px + env(safe-area-inset-bottom)) !important;
-    right: 10px !important;
-  }
-
-  .market-mobile-summary-action :deep(.n-button) {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-    height: 40px;
-  }
-
-  :deep(.market-summary-modal.n-modal) {
-    margin: 0 !important;
-    max-width: 100vw !important;
-    width: calc(100vw - 12px) !important;
-  }
-
-  :deep(.market-summary-modal .n-card) {
-    max-height: calc(100dvh - var(--mobile-bottom-nav-height) - var(--safe-bottom) - 12px);
-    overflow: auto;
-  }
-
-  .market-summary-modal__switches,
-  .market-summary-modal__selectors,
-  .market-summary-modal__actions {
-    align-items: stretch !important;
-    flex-wrap: wrap;
-    gap: 8px !important;
-  }
-
-  .market-summary-modal__selectors :deep(.n-select),
-  .market-summary-modal__actions :deep(.n-input) {
-    width: 100% !important;
-  }
-
-  .market-summary-modal__actions :deep(.n-button) {
-    flex: 1 1 calc(50% - 8px);
-    min-width: 120px;
-  }
-}
-
-/* ============ 移动端两级导航（仅在 isMobile 渲染） ============ */
-.market-mobile-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.market-mobile-nav__groups {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.market-group-tile {
-  align-items: center;
-  appearance: none;
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 10px;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  font: inherit;
-  gap: 2px;
-  padding: 8px 4px;
-}
-
-.market-group-tile--active {
-  background: var(--n-color-target, rgba(32, 128, 240, 0.1));
-  border-color: #2080f0;
-  color: #2080f0;
-}
-
-.market-group-tile__icon {
-  font-size: 18px;
-}
-
-.market-group-tile__name {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.market-mobile-nav__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.market-tab-chip {
-  appearance: none;
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 16px;
-  color: var(--n-text-color, #333);
-  font: inherit;
-  font-size: 13px;
-  padding: 6px 14px;
-}
-
-.market-tab-chip--active {
-  background: #2080f0;
-  border-color: #2080f0;
-  color: #fff;
-  font-weight: 700;
-}
-
-/* ============ 移动端"市场快讯"重新设计（仅在 isMobile 渲染） ============ */
-.mkt-brief {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 4px 0 calc(var(--safe-bottom) + 8px);
-  text-align: left;
-}
-
-.mkt-section {
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.mkt-section__title {
-  font-size: 14px;
-  font-weight: 700;
-  padding: 10px 12px 8px;
-}
-
-/* ① 大盘速览横滑 */
-.mkt-index-rail {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 12px 12px;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mkt-index-card {
-  background: var(--n-color-target, #f5f7fa);
-  border-radius: 10px;
-  flex: 0 0 108px;
-  padding: 9px 10px;
-  scroll-snap-align: start;
-}
-
-.mkt-index-card--up {
-  border-left: 3px solid #d03050;
-}
-
-.mkt-index-card--down {
-  border-left: 3px solid #18a058;
-}
-
-.mkt-index-card__head {
-  align-items: center;
-  display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
-}
-
-.mkt-index-card__name {
-  color: var(--n-text-color-2, #555);
-  font-size: 12px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mkt-index-card__price {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.mkt-index-card__zdf {
-  border-radius: 4px;
-  color: #fff;
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  margin-top: 3px;
-  padding: 1px 6px;
-}
-
-.mkt-index-card__state {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 10px;
-  margin-top: 4px;
-}
-
-/* ③ 资讯流 */
-.mkt-news-sticky {
-  background: var(--n-color, #fff);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-.mkt-news-source-bar {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 12px 10px;
-}
-
-.mkt-source-chip {
-  appearance: none;
-  background: var(--n-color-target, #f5f7fa);
-  border: 1px solid transparent;
-  border-radius: 16px;
-  color: var(--n-text-color-2, #555);
-  flex: 0 0 auto;
-  font: inherit;
-  font-size: 13px;
-  padding: 5px 14px;
-  white-space: nowrap;
-}
-
-.mkt-source-chip--active {
-  background: #2080f0;
-  color: #fff;
-  font-weight: 700;
-}
-
-.mkt-news-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.mkt-news-item {
-  border-top: 1px solid var(--n-border-color, #f0f1f5);
-  padding: 10px 12px;
-}
-
-.mkt-news-item:first-child {
-  border-top: 0;
-}
-
-.mkt-news-item--red {
-  background: rgba(208, 48, 80, 0.04);
-}
-
-.mkt-news-item__top {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.mkt-news-item__time {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 11px;
-}
-
-.mkt-news-item__title {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-  margin-bottom: 2px;
-}
-
-.mkt-news-item__content {
-  color: var(--n-text-color-2, #555);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.mkt-news-item__tags {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.mkt-news-item__link {
-  color: #f0a020;
-  font-size: 12px;
-}
-
-/* 涨跌色工具类 */
-.text-error {
-  color: #d03050;
-}
-
-.text-success {
-  color: #18a058;
-}
-
-.bg-error {
-  background: #d03050;
-}
-
-.bg-success {
-  background: #f2f4f7;
-  color: #0f7a43;
-}
-
-/* ============ 移动端"指数"板块：网格选择 + 单图 ============ */
-.mkt-index-mobile {
-  padding: 4px 0 calc(var(--safe-bottom) + 8px);
-}
-
-.mkt-index-mobile__title {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-}
-
-.mkt-index-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 0 12px 12px;
-}
-
-.mkt-index-grid__tile {
-  appearance: none;
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 8px;
-  color: var(--n-text-color, #333);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 4px;
-  text-align: center;
-}
-
-.mkt-index-grid__tile--active {
-  background: #2080f0;
-  border-color: #2080f0;
-  color: #fff;
-}
-
-.mkt-index-chart-wrap {
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-radius: 10px;
-  margin: 0 8px;
-  overflow: hidden;
-  padding: 6px;
-}
-
-/* ============ 移动端"行业涨幅排名"卡片 ============ */
-.ind-rank-mobile {
-  padding: 4px 0 calc(var(--safe-bottom) + 8px);
-}
-
-.ind-rank-mobile__hint {
-  align-items: center;
-  color: var(--n-text-color-3, #98a2b3);
-  display: flex;
-  font-size: 11px;
-  gap: 8px;
-  justify-content: space-between;
-  padding: 4px 12px 8px;
-}
-
-.ind-card {
-  background: var(--n-color, #fff);
-  border: 1px solid var(--n-border-color, #edf0f5);
-  border-left: 4px solid #d0d5dd;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0 8px 8px;
-  padding: 10px 12px;
-}
-
-.ind-card--up {
-  border-left-color: #d03050;
-}
-
-.ind-card--down {
-  border-left-color: #18a058;
-}
-
-.ind-card__head {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.ind-card__main-zdf {
-  border-radius: 4px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  min-width: 64px;
-  padding: 2px 8px;
-  text-align: center;
-}
-
-.ind-card__periods {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr 1fr;
-}
-
-.ind-period {
-  align-items: center;
-  background: var(--n-color-target, #f5f7fa);
-  border-radius: 6px;
-  display: flex;
-  font-size: 12px;
-  justify-content: space-between;
-  padding: 5px 9px;
-}
-
-.ind-period__label {
-  color: var(--n-text-color-3, #98a2b3);
-}
-
-.ind-period__value {
-  font-weight: 700;
-}
-
-.ind-card__leader {
-  align-items: center;
-  background: var(--n-color-target, #f5f7fa);
-  border-radius: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 12px;
-  gap: 6px;
-  padding: 6px 9px;
-}
-
-.ind-card__leader-label {
-  background: var(--n-color, #fff);
-  border-radius: 3px;
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 10px;
-  padding: 1px 5px;
-}
-
-.ind-card__leader-name {
-  flex: 0 1 auto;
-  font-weight: 700;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ind-card__leader-code {
-  color: var(--n-text-color-3, #98a2b3);
-  font-size: 11px;
-}
-
-.ind-card__leader-zdf {
-  flex: 1 1 auto;
-  font-weight: 700;
-  text-align: right;
-}
-
-.ind-card__leader-price {
-  color: var(--n-text-color-2, #666);
-}
 </style>
