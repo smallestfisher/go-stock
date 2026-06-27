@@ -38,6 +38,13 @@ const formattedYM = `${today.getFullYear()}-${String(today.getMonth() + 1).padSt
 const formattedDate = `${formattedYM}-${String(today.getDate()).padStart(2, '0')}`
 
 const currentStocks = computed(() => stockData.value[activeTab.value] || [])
+const sortedEventData = computed(() => {
+  return [...eventData.value].sort((a, b) => {
+    const at = new Date(a.date).getTime()
+    const bt = new Date(b.date).getTime()
+    return (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0)
+  })
+})
 
 async function loadStock(marketType) {
   try {
@@ -189,9 +196,9 @@ function bigNumber(n) {
 
         <!-- 重大事件时间轴（韭研公社） -->
         <template v-else-if="activeTab === 'event'">
-          <div v-if="eventData.length" class="cal-list">
+          <div v-if="sortedEventData.length" class="cal-list">
             <div
-              v-for="day in eventData"
+              v-for="day in sortedEventData"
               :key="day.date"
               class="cal-day"
               :class="{ 'cal-day--today': day.date === formattedDate }"
