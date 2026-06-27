@@ -53,6 +53,8 @@ const config = reactive({
   emApiKey: '',
   qgqpBId: '',
   promptPlazaApiBase: '',
+  jiuyanToken: '',
+  jiuyanCookie: '',
 })
 
 async function loadConfig() {
@@ -295,6 +297,14 @@ onBeforeMount(loadConfig)
         <div class="input-item">
           <label class="item-label">提示词广场地址</label>
           <input v-model="config.promptPlazaApiBase" type="text" class="text-input">
+        </div>
+        <div class="input-item">
+          <label class="item-label">韭研公社 Token</label>
+          <input v-model="config.jiuyanToken" type="password" class="text-input" placeholder="重大事件数据源，留空用内置默认">
+        </div>
+        <div class="input-item">
+          <label class="item-label">韭研公社 Cookie</label>
+          <input v-model="config.jiuyanCookie" type="password" class="text-input" placeholder="形如 SESSION=xxx，留空用内置默认">
         </div>
       </MCard>
     </div>

@@ -3,14 +3,14 @@
 :root {
   /* ==================== 颜色系统 ==================== */
 
-  /* 主色 - 绿色（涨） */
-  --m-color-rise: #18a058;
-  --m-color-rise-light: rgba(24, 160, 88, 0.12);
-  --m-color-rise-hover: #16935e;
+  /* 涨色 - 国内市场习惯为红涨 */
+  --m-color-rise: #d03050;
+  --m-color-rise-light: rgba(208, 48, 80, 0.12);
+  --m-color-rise-hover: #b82844;
 
-  /* 红色（跌） */
-  --m-color-fall: #d03050;
-  --m-color-fall-light: rgba(208, 48, 80, 0.12);
+  /* 跌色 - 国内市场习惯为绿跌 */
+  --m-color-fall: #18a058;
+  --m-color-fall-light: rgba(24, 160, 88, 0.12);
 
   /* 中性色（平盘） */
   --m-color-gray: #666;

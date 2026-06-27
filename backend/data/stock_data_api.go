@@ -894,19 +894,23 @@ func ParseTxHKStockData(datas []string) (map[string]string, error) {
 		result["卖五报价"] = parts[27]
 		result["卖五申报"] = parts[28]
 
-		// 成交量/额：腾讯 A股 parts[34] 是 "昨收价/成交量(手)/成交额(元)" 复合串，
-		// 用 "/" 拆分最稳（固定索引 parts[35]/[36] 在不同行情快照下会漂移）。
-		// 成交量换算成股(×100)，成交额已是元。
-		if len(parts) > 34 {
-			segs := strings.Split(parts[34], "/")
-			if len(segs) >= 3 {
-				if vol, e := convertor.ToFloat(strings.TrimSpace(segs[1])); e == nil {
-					result["成交的股票数"] = convertor.ToString(int64(vol * 100))
-				}
-				if amt, e := convertor.ToFloat(strings.TrimSpace(segs[2])); e == nil {
-					result["成交金额"] = convertor.ToString(amt)
-				}
+		// 成交量/额：腾讯 A股有 "现价/成交量(手)/成交额(元)" 复合字段。
+		// SplitAndTrim 会丢掉空字段，索引可能在 34/35 间漂移，所以按内容识别。
+		for _, idx := range []int{34, 35} {
+			if len(parts) <= idx || !strings.Contains(parts[idx], "/") {
+				continue
 			}
+			segs := strings.Split(parts[idx], "/")
+			if len(segs) < 3 {
+				continue
+			}
+			if vol, e := convertor.ToFloat(strings.TrimSpace(segs[1])); e == nil {
+				result["成交的股票数"] = strconv.FormatInt(int64(vol*100), 10)
+			}
+			if amt, e := convertor.ToFloat(strings.TrimSpace(segs[2])); e == nil {
+				result["成交金额"] = strconv.FormatFloat(amt, 'f', -1, 64)
+			}
+			break
 		}
 	}
 

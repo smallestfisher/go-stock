@@ -48,6 +48,31 @@ function dir(stock) {
   return 'flat'
 }
 
+// 是否持仓（有成本+持仓才显示盈亏，对齐桌面端 costPrice>0）
+function hasPosition(stock) {
+  return (Number(stock.costPrice) || 0) > 0 && (Number(stock.costVolume) || 0) > 0
+}
+
+// 盈亏方向：盈 rise(红) / 亏 fall(绿)
+function pnlDir(stock) {
+  const a = Number(stock.profitAmount) || 0
+  if (a > 0) return 'rise'
+  if (a < 0) return 'fall'
+  return 'flat'
+}
+
+// 总盈亏率（带符号）
+function pnlRate(stock) {
+  const r = Number(stock.profit) || 0
+  return `${r > 0 ? '+' : ''}${r.toFixed(2)}%`
+}
+
+// 总盈亏额（带符号，取整 ¥）
+function pnlAmount(stock) {
+  const a = Number(stock.profitAmount) || 0
+  return `${a > 0 ? '+' : ''}${a.toFixed(0)}¥`
+}
+
 // 价格格式化
 function fmt(v) {
   const n = Number(v) || 0
@@ -63,24 +88,46 @@ function big(n) {
   return String(n)
 }
 
-// 时间格式化：兼容「16:14:27」纯时间和「2026-06-18T22:56:02+08:00」ISO 串
-function fmtTime(t) {
+function fmtDatePart(date) {
+  if (!date) return ''
+  const s = String(date).trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(5, 10)
+  if (/^\d{8}$/.test(s)) return `${s.slice(4, 6)}-${s.slice(6, 8)}`
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return ''
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${mm}-${dd}`
+}
+
+function fmtTimePart(t) {
   if (!t) return ''
   const s = String(t).trim()
-  // 纯时间 HH:mm:ss（含 HH:mm）—— 去掉秒更紧凑
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) {
-    return s.replace(/:(\d{2})$/, m => '')  // 16:14:27 → 16:14
+    return s
   }
-  // ISO / Date 串 —— 取 月-日 时:分
   const d = new Date(s)
   if (!isNaN(d.getTime())) {
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
     const hh = String(d.getHours()).padStart(2, '0')
     const mi = String(d.getMinutes()).padStart(2, '0')
-    return `${mm}-${dd} ${hh}:${mi}`
+    const ss = String(d.getSeconds()).padStart(2, '0')
+    return `${hh}:${mi}:${ss}`
   }
   return s
+}
+
+// 行情时间：后端行情源返回的日期/时间，不是页面刷新时间。
+function fmtQuoteTime(stock) {
+  const time = fmtTimePart(stock?.time)
+  if (!time) return ''
+
+  const date = fmtDatePart(stock?.quoteDate || stock?.date)
+  if (date) return `行情 ${date} ${time}`
+
+  const dateFromTime = fmtDatePart(stock?.time)
+  if (dateFromTime) return `行情 ${dateFromTime} ${time}`
+
+  return `行情 ${time}`
 }
 
 function handleViewAll() {
@@ -122,7 +169,7 @@ function handleStockClick(stock) {
           <div class="stock-name-row">
             <span class="stock-name">{{ stock.name }}</span>
             <span class="stock-code">{{ stock.code }}</span>
-            <span v-if="stock.time" class="stock-time">{{ fmtTime(stock.time) }}</span>
+            <span v-if="stock.time" class="stock-time">{{ fmtQuoteTime(stock) }}</span>
           </div>
           <div class="stock-sub">
             <span>开 <b>{{ fmt(stock.open) }}</b></span>
@@ -133,6 +180,11 @@ function handleStockClick(stock) {
           <div class="stock-sub">
             <span>量 {{ big(stock.volume) }}</span>
             <span>额 {{ big(stock.turnover) }}</span>
+          </div>
+          <!-- 持仓盈亏（有成本+持仓才显示，对齐桌面端） -->
+          <div v-if="hasPosition(stock)" class="stock-pnl">
+            <span class="pnl-tag" :class="`m-${pnlDir(stock)}`">{{ pnlRate(stock) }}</span>
+            <span class="pnl-tag" :class="`m-${pnlDir(stock)}`">{{ pnlAmount(stock) }}</span>
           </div>
         </div>
         <div class="stock-price">
@@ -266,6 +318,21 @@ function handleStockClick(stock) {
   font-weight: var(--m-font-weight-medium);
   color: var(--m-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* 持仓盈亏（精简：盈亏率% + 盈亏额¥） */
+.stock-pnl {
+  display: flex;
+  gap: var(--m-space-xs);
+}
+
+.pnl-tag {
+  font-size: var(--m-font-xs);
+  font-weight: var(--m-font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  padding: 1px var(--m-space-xs);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-bg-card);
 }
 
 .price-now {

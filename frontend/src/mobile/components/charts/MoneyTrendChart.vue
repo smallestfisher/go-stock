@@ -2,8 +2,8 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, shallowRef } from 'vue'
 
 const props = defineProps({
-  // K线数据：来自 GetStockKLine，字段为字符串
-  // [{ day, open, close, high, low, volume, amount }]
+  // 资金趋势数据：来自 GetStockMoneyTrendByDay
+  // [{ opendate, netamount(当日净流入), r0_net(主力净流入), trade(股价) }]
   data: {
     type: Array,
     default: () => []
@@ -11,7 +11,7 @@ const props = defineProps({
   // 图表高度
   height: {
     type: Number,
-    default: 360
+    default: 380
   }
 })
 
@@ -24,49 +24,43 @@ function cssColor(name, fallback) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
 }
 
-// ---- 数据规范化：字符串字段 → 数值，拆出 category/values/volumes ----
+// ---- 数据规范化：字符串/数值 → 数值，单位换算为「万」 ----
 const norm = computed(() => {
   const arr = props.data || []
   const category = []
-  const values = []   // [open, close, low, high]
-  const volumes = []  // [index, 成交量(万手), flag]
+  const netAmount = []   // 当日净流入（万）
+  const r0Net = []       // 主力当日净流入（万）
+  const trade = []       // 股价
+  const cumulate = []    // 累计净流入（万）— 对齐桌面端：相邻两日 netamount 之和
+  let priceMin = 0
+  let priceMax = 0
   for (let i = 0; i < arr.length; i++) {
     const d = arr[i]
-    const open = Number(d.open) || 0
-    const close = Number(d.close) || 0
-    const low = Number(d.low) || 0
-    const high = Number(d.high) || 0
-    const volume = Number(d.volume) || 0
-    category.push(d.day || '')
-    values.push([open, close, low, high])
-    // 涨跌 flag：收盘 >= 开盘 为涨(1)，否则跌(-1)，给成交量着色用
-    volumes.push([i, +(volume / 10000).toFixed(2), close >= open ? 1 : -1])
+    const na = Number(d.netamount) || 0
+    const r0 = Number(d.r0_net) || 0
+    const price = Number(d.trade) || 0
+    category.push(d.opendate || '')
+    netAmount.push(+(na / 10000).toFixed(2))
+    r0Net.push(+(r0 / 10000).toFixed(2))
+    trade.push(price)
+    if (i > 0) {
+      const prev = Number(arr[i - 1].netamount) || 0
+      cumulate.push(+((na + prev) / 10000).toFixed(2))
+    } else {
+      cumulate.push(+(na / 10000).toFixed(2))
+    }
+    if (price > 0) {
+      if (priceMin === 0 || price < priceMin) priceMin = price
+      if (price > priceMax) priceMax = price
+    }
   }
-  return { category, values, volumes }
+  return { category, netAmount, r0Net, trade, cumulate, priceMin, priceMax }
 })
 
-// MA 均线：基于收盘价(values[i][1])
-function calcMA(period, values) {
-  const result = []
-  for (let i = 0; i < values.length; i++) {
-    if (i < period - 1) {
-      result.push('-')
-      continue
-    }
-    let sum = 0
-    for (let j = 0; j < period; j++) {
-      sum += values[i - j][1]
-    }
-    result.push(+(sum / period).toFixed(2))
-  }
-  return result
-}
-
-// 默认视窗：数据多时只显示后段（对齐桌面端 start:86），数据少时全显示
+// 默认视窗：数据多时只显示后段，数据少时全显示
 const zoomStart = computed(() => {
   const n = norm.value.category.length
   if (n <= 60) return 0
-  // 大约显示最近 60 根
   return Math.max(0, Math.round((1 - 60 / n) * 100))
 })
 
@@ -77,11 +71,16 @@ function buildOption() {
   const textColor = cssColor('--m-text-secondary', '#666')
   const gridColor = cssColor('--m-divider-color', '#eee')
 
+  const netColor = '#3b6df4'   // 当日净流入（线）
+  const r0Color = fall          // 主力当日净流入（柱，绿）
+  const priceColor = '#f39509'  // 股价（线，橙）
+  const cumColor = rise         // 累计净流入（柱，红）
+
   return {
     animation: false,
     legend: {
-      data: ['日K', 'MA5', 'MA10', 'MA20', 'MA30'],
-      bottom: 2,
+      data: ['当日净流入', '主力净流入', '股价', '累计净流入'],
+      top: 2,
       left: 'center',
       itemWidth: 14,
       itemHeight: 8,
@@ -96,38 +95,15 @@ function buildOption() {
       borderColor: gridColor,
       borderWidth: 1,
       padding: 8,
+      confine: true,
       textStyle: { color: '#333', fontSize: 11 },
       formatter: (params) => {
         if (!params || !params.length) return ''
-        // 找出 K线 与成交量项
-        const k = params.find(p => p.seriesName === '日K')
-        const vol = params.find(p => p.seriesName === '成交量')
-        const mas = params.filter(p => p.seriesName.startsWith('MA'))
         let html = `<div style="font-weight:600;margin-bottom:4px">${params[0].axisValue}</div>`
-        if (k && Array.isArray(k.data)) {
-          // candlestick data: [index?, open, close, low, high] → echarts 传入的是 [open,close,low,high]
-          const d = k.data
-          // d[0] 是 dataIndex（echarts 会前置），实际 OHLC 从 d[1] 起；兼容两种
-          const o = d.length === 5 ? d[1] : d[0]
-          const c = d.length === 5 ? d[2] : d[1]
-          const l = d.length === 5 ? d[3] : d[2]
-          const h = d.length === 5 ? d[4] : d[3]
-          const up = c >= o
-          const col = up ? rise : fall
-          html += `<div style="color:${col}">开 ${o}　收 ${c}</div>`
-          html += `<div style="color:${col}">低 ${l}　高 ${h}</div>`
-        }
-        if (vol && Array.isArray(vol.data)) {
-          html += `<div>量 ${vol.data[1]}万手</div>`
-        }
-        if (mas.length) {
-          html += '<div style="margin-top:2px">'
-          for (const m of mas) {
-            if (m.data != null && m.data !== '-') {
-              html += `<span style="color:${m.color};margin-right:6px">${m.seriesName} ${m.data}</span>`
-            }
-          }
-          html += '</div>'
+        for (const p of params) {
+          if (p.value == null || p.value === '-') continue
+          const unit = p.seriesName === '股价' ? '' : '万'
+          html += `<div><span style="color:${p.color}">${p.seriesName}</span> ${p.value}${unit}</div>`
         }
         return html
       }
@@ -136,18 +112,9 @@ function buildOption() {
       link: [{ xAxisIndex: 'all' }],
       label: { backgroundColor: '#6b7077' }
     },
-    visualMap: {
-      show: false,
-      seriesIndex: 5,
-      dimension: 2,
-      pieces: [
-        { value: 1, color: rise },
-        { value: -1, color: fall }
-      ]
-    },
     grid: [
-      { left: 8, right: 52, top: 12, height: '60%' },
-      { left: 8, right: 52, top: '74%', height: '14%' }
+      { left: 8, right: 44, top: 28, height: '52%' },
+      { left: 8, right: 44, top: '72%', height: '16%' }
     ],
     xAxis: [
       {
@@ -176,15 +143,29 @@ function buildOption() {
     ],
     yAxis: [
       {
-        scale: true,
-        position: 'right',
-        axisLabel: { fontSize: 9, color: textColor, margin: 4 },
+        // 净流入（万）— 左轴
+        type: 'value',
+        position: 'left',
+        axisLabel: { show: false },
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { lineStyle: { color: gridColor, type: 'dashed' } }
       },
       {
+        // 股价 — 右轴
+        type: 'value',
+        position: 'right',
         scale: true,
+        min: n.priceMin > 0 ? +(n.priceMin - 0.5).toFixed(2) : undefined,
+        max: n.priceMax > 0 ? +(n.priceMax + 0.5).toFixed(2) : undefined,
+        axisLabel: { fontSize: 9, color: priceColor, margin: 4 },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false }
+      },
+      {
+        // 累计净流入（万）— 副图
+        type: 'value',
         gridIndex: 1,
         splitNumber: 2,
         position: 'right',
@@ -200,7 +181,7 @@ function buildOption() {
         show: true,
         type: 'slider',
         xAxisIndex: [0, 1],
-        bottom: 24,
+        bottom: 2,
         height: 16,
         start: zoomStart.value,
         end: 100,
@@ -212,35 +193,49 @@ function buildOption() {
     ],
     series: [
       {
-        name: '日K',
-        type: 'candlestick',
-        data: n.values,
-        itemStyle: {
-          color: rise,        // 阳线（涨）
-          color0: fall,       // 阴线（跌）
-          borderColor: rise,
-          borderColor0: fall
-        },
+        name: '主力净流入',
+        type: 'bar',
+        yAxisIndex: 0,
+        data: n.r0Net,
+        itemStyle: { color: r0Color, opacity: 0.65 }
+      },
+      {
+        name: '当日净流入',
+        type: 'line',
+        yAxisIndex: 0,
+        data: n.netAmount,
+        smooth: false,
+        showSymbol: false,
+        lineStyle: { width: 1.5, color: netColor },
+        itemStyle: { color: netColor },
         markPoint: {
           symbol: 'pin',
-          symbolSize: 38,
+          symbolSize: 36,
           label: { fontSize: 9, color: '#fff' },
+          itemStyle: { color: netColor },
           data: [
-            { name: '最高', type: 'max', valueDim: 'highest', itemStyle: { color: rise } },
-            { name: '最低', type: 'min', valueDim: 'lowest', itemStyle: { color: fall } }
+            { type: 'max', name: '最大' },
+            { type: 'min', name: '最小' }
           ]
         }
       },
-      { name: 'MA5', type: 'line', data: calcMA(5, n.values), smooth: true, showSymbol: false, lineStyle: { width: 1, opacity: 0.8, color: '#3b82f6' } },
-      { name: 'MA10', type: 'line', data: calcMA(10, n.values), smooth: true, showSymbol: false, lineStyle: { width: 1, opacity: 0.8, color: '#22c55e' } },
-      { name: 'MA20', type: 'line', data: calcMA(20, n.values), smooth: true, showSymbol: false, lineStyle: { width: 1, opacity: 0.8, color: '#f59e0b' } },
-      { name: 'MA30', type: 'line', data: calcMA(30, n.values), smooth: true, showSymbol: false, lineStyle: { width: 1, opacity: 0.8, color: '#ef4444' } },
       {
-        name: '成交量',
+        name: '股价',
+        type: 'line',
+        yAxisIndex: 1,
+        data: n.trade,
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 2, color: priceColor },
+        itemStyle: { color: priceColor }
+      },
+      {
+        name: '累计净流入',
         type: 'bar',
         xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: n.volumes
+        yAxisIndex: 2,
+        data: n.cumulate,
+        itemStyle: { color: cumColor, opacity: 0.65 }
       }
     ]
   }
@@ -261,6 +256,8 @@ async function render() {
     chart = echarts.init(el)
   }
   chart.setOption(buildOption(), true)
+  // tab 内容晚展开导致初次尺寸为 0，延迟 resize 兜底
+  nextTick(() => chart && chart.resize())
 }
 
 function resize() {
@@ -272,6 +269,7 @@ watch(() => props.data, () => { nextTick(render) }, { deep: true })
 onMounted(() => {
   nextTick(render)
   window.addEventListener('resize', resize)
+  setTimeout(resize, 400)
 })
 
 onBeforeUnmount(() => {
@@ -281,25 +279,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="kline-chart">
+  <div class="money-chart">
     <div
       ref="chartRef"
-      class="kline-canvas"
+      class="money-canvas"
       :style="{ height: `${height}px` }"
     />
     <div v-if="!data.length" class="chart-empty">
-      <p>📊 暂无K线数据</p>
+      <p>💰 暂无资金数据</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.kline-chart {
+.money-chart {
   position: relative;
   width: 100%;
 }
 
-.kline-canvas {
+.money-canvas {
   width: 100%;
 }
 

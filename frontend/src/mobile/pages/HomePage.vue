@@ -38,6 +38,8 @@ const marketStatistic = ref(null)
 
 const refreshCount = ref(0)
 const loading = ref(true)
+const NEWS_SOURCES = ['财联社电报', '新浪财经', '外媒']
+const HOME_NEWS_LIMIT = 3
 
 function pick(item, keys, fallback = undefined) {
   for (const key of keys) {
@@ -48,31 +50,163 @@ function pick(item, keys, fallback = undefined) {
   return fallback
 }
 
+function stockCodeKey(code) {
+  return String(code || '').replace(/[^a-z0-9]/gi, '').toLowerCase()
+}
+
+function quoteNumber(item, keys, fallback = 0, allowZero = false) {
+  const raw = pick(item, keys, undefined)
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return fallback
+  if (!allowZero && n === 0) return fallback
+  return n
+}
+
+function sameStockCodes(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+  return a.every((stock, index) => stockCodeKey(stock.code) === stockCodeKey(b[index]?.code))
+}
+
+function commitStockData(next) {
+  if (sameStockCodes(next, stockData.value)) {
+    stockData.value.forEach((stock, index) => {
+      Object.assign(stock, next[index])
+    })
+    return
+  }
+  stockData.value = next
+}
+
+function normalizeFollowStock(stock, previous = {}) {
+  const code = pick(stock, ['StockCode', 'stockCode', 'code'], '')
+  return {
+    code,
+    name: pick(stock, ['Name', 'StockName', 'stockName', 'name'], previous.name || '未命名股票'),
+    price: quoteNumber(stock, ['Price', 'price', 'currentPrice', '当前价格'], previous.price || 0),
+    changePercent: quoteNumber(stock, ['ChangePercent', 'changePercent', 'change_percent'], previous.changePercent || 0),
+    changeAmount: quoteNumber(stock, ['PriceChange', 'ChangePrice', 'changeAmount', 'priceChange', '涨跌额'], previous.changeAmount || 0),
+    high: quoteNumber(stock, ['High', '今日最高价'], previous.high || 0),
+    low: quoteNumber(stock, ['Low', '今日最低价'], previous.low || 0),
+    open: quoteNumber(stock, ['Open', '今日开盘价'], previous.open || 0),
+    preClose: quoteNumber(stock, ['PreClose', '昨日收盘价'], previous.preClose || 0),
+    volume: quoteNumber(stock, ['成交的股票数'], previous.volume || 0),
+    turnover: quoteNumber(stock, ['Turnover', 'Amount', '成交金额'], previous.turnover || 0),
+    quoteDate: pick(stock, ['日期', 'Date', 'date'], previous.quoteDate || ''),
+    time: pick(stock, ['时间'], previous.time || ''),
+    // 持仓成本/数量（GetFollowList 快照带回，实时盈亏由 fetchStockRealtime 覆盖）
+    costPrice: quoteNumber(stock, ['CostPrice', 'costPrice'], previous.costPrice || 0),
+    costVolume: quoteNumber(stock, ['Volume', 'costVolume'], previous.costVolume || 0),
+    profit: quoteNumber(stock, ['profit'], previous.profit || 0),
+    profitAmount: quoteNumber(stock, ['profitAmount'], previous.profitAmount || 0),
+    profitToday: quoteNumber(stock, ['profitAmountToday'], previous.profitToday || 0)
+  }
+}
+
+function newsTimestamp(news) {
+  const value = pick(news, ['time', 'dataTime', 'createdAt'], Date.now())
+  if (value instanceof Date) return value.getTime()
+  if (typeof value === 'number') return value < 1e12 ? value * 1000 : value
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : Date.now()
+}
+
+function newsKey(news) {
+  return pick(news, ['id', 'ID', 'url'], `${news.source || ''}-${newsTimestamp(news)}-${news.title || ''}`)
+}
+
+function normalizeNewsItem(item) {
+  const title = pick(item, ['content', 'title'], '')
+  const source = pick(item, ['source', 'media'], '市场快讯')
+  const timestamp = newsTimestamp(item)
+  return {
+    id: pick(item, ['ID', 'id'], undefined),
+    title,
+    time: new Date(timestamp),
+    source,
+    url: pick(item, ['url', 'URL'], '')
+  }
+}
+
+function selectHomeNews(newsLists) {
+  const seen = new Set()
+  const sorted = newsLists
+    .flat()
+    .map(normalizeNewsItem)
+    .filter(item => item.title)
+    .sort((a, b) => newsTimestamp(b) - newsTimestamp(a))
+
+  const unique = []
+  for (const item of sorted) {
+    const key = newsKey(item)
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(item)
+  }
+
+  const selected = []
+  const selectedKeys = new Set()
+  for (const source of NEWS_SOURCES) {
+    const item = unique.find(news => news.source === source)
+    if (!item) continue
+    const key = newsKey(item)
+    selected.push(item)
+    selectedKeys.add(key)
+  }
+
+  for (const item of unique) {
+    if (selected.length >= HOME_NEWS_LIMIT) break
+    const key = newsKey(item)
+    if (selectedKeys.has(key)) continue
+    selected.push(item)
+    selectedKeys.add(key)
+  }
+
+  return selected
+    .sort((a, b) => newsTimestamp(b) - newsTimestamp(a))
+    .slice(0, HOME_NEWS_LIMIT)
+}
+
+async function getNewsBySource() {
+  const results = await Promise.all(NEWS_SOURCES.map(async (source) => {
+    try {
+      const result = await GetTelegraphList(source)
+      return Array.isArray(result) ? result : []
+    } catch (error) {
+      console.error(`加载${source}失败:`, error)
+      return []
+    }
+  }))
+  return selectHomeNews(results)
+}
+
+function prependNewsItems(items) {
+  if (!Array.isArray(items) || !items.length) return
+  newsData.value = selectHomeNews([items, newsData.value])
+}
+
 // 加载自选股票（取前3条），并拉取实时行情填充价格/涨跌/量额
 async function loadStockData() {
   try {
     // 0 表示全部分组（与桌面端 stock.vue 的默认值一致）
     const result = await GetFollowList(0)
     if (result && Array.isArray(result)) {
-      const list = result.slice(0, 3).map(stock => ({
-        code: pick(stock, ['StockCode', 'stockCode', 'code'], ''),
-        name: pick(stock, ['Name', 'StockName', 'stockName', 'name'], '未命名股票'),
-        price: Number(pick(stock, ['Price', 'price', 'currentPrice', '当前价格'], 0)) || 0,
-        changePercent: Number(pick(stock, ['ChangePercent', 'changePercent', 'change_percent'], 0)) || 0,
-        changeAmount: Number(pick(stock, ['PriceChange', 'ChangePrice', 'changeAmount', 'priceChange', '涨跌额'], 0)) || 0,
-        high: Number(pick(stock, ['High', '今日最高价'], 0)) || 0,
-        low: Number(pick(stock, ['Low', '今日最低价'], 0)) || 0,
-        open: Number(pick(stock, ['Open', '今日开盘价'], 0)) || 0,
-        preClose: Number(pick(stock, ['PreClose', '昨日收盘价'], 0)) || 0,
-        volume: Number(pick(stock, ['Volume', 'volume', '成交的股票数'], 0)) || 0,
-        turnover: Number(pick(stock, ['Turnover', 'Amount', '成交金额'], 0)) || 0,
-        time: pick(stock, ['Time', '时间'], '')
-      }))
-      stockData.value = list
-      // 拉取实时行情覆盖（对齐桌面端 Greet + 自选页 fetchRealtime）
-      // 注意：必须传 stockData.value（reactive 代理）而非原始 list，
-      // 否则 mutate 裸对象绕过响应式，OHLC/涨跌幅永远停在快照值不更新
-      fetchStockRealtime(stockData.value)
+      const previousByCode = new Map(stockData.value.map(stock => [stockCodeKey(stock.code), stock]))
+      const list = result
+        .slice(0, 3)
+        .map(stock => {
+          const code = pick(stock, ['StockCode', 'stockCode', 'code'], '')
+          return normalizeFollowStock(stock, previousByCode.get(stockCodeKey(code)))
+        })
+        .filter(stock => stock.code)
+
+      if (!stockData.value.length) {
+        commitStockData(list)
+        await fetchStockRealtime(stockData.value)
+        return
+      }
+
+      await fetchStockRealtime(list)
+      commitStockData(list)
     }
   } catch (error) {
     console.error('加载自选股票失败:', error)
@@ -98,7 +232,14 @@ async function fetchStockRealtime(list) {
         stock.preClose = Number(rt['昨日收盘价']) || stock.preClose
         stock.volume = Number(rt['成交的股票数']) || stock.volume
         stock.turnover = Number(rt['成交金额']) || stock.turnover
+        stock.quoteDate = rt['日期'] || stock.quoteDate
         stock.time = rt['时间'] || stock.time
+        // 持仓盈亏（对齐桌面端 profit/profitAmount/profitAmountToday）
+        stock.costPrice = Number(rt.costPrice) || 0
+        stock.costVolume = Number(rt.costVolume) || 0
+        stock.profit = Number(rt.profit) || 0
+        stock.profitAmount = Number(rt.profitAmount) || 0
+        stock.profitToday = Number(rt.profitAmountToday) || 0
       }
     } catch (e) {
       // 单只失败不打断
@@ -107,35 +248,19 @@ async function fetchStockRealtime(list) {
 }
 
 // 加载市场快讯（读后端缓存，用于首次加载）
-// 注：后端 GetTelegraphList 不论传何源名都返回全部快讯的混合（按时间倒序），
-// 每条数据的 source 字段才是真实来源。取最新 3 条。
 async function loadNewsData() {
   try {
-    const result = await GetTelegraphList('财联社电报')
-    if (result && Array.isArray(result)) {
-      newsData.value = result.slice(0, 3).map(item => ({
-        title: pick(item, ['content', 'title'], ''),
-        time: new Date(pick(item, ['dataTime', 'time', 'createdAt'], Date.now())),
-        source: pick(item, ['source', 'media'], '市场快讯')
-      }))
-    }
+    newsData.value = await getNewsBySource()
   } catch (error) {
     console.error('加载市场快讯失败:', error)
   }
 }
 
-// 刷新市场快讯（触发后端抓取最新电报，用于下拉刷新）
-// 与 GetTelegraphList 的区别：后者只读缓存，这个会真正拉取最新数据
+// 刷新市场快讯：只触发一次后端三源抓取，再按来源读取缓存合并。
 async function refreshNewsData() {
   try {
-    const result = await ReFleshTelegraphList('财联社电报')
-    if (result && Array.isArray(result)) {
-      newsData.value = result.slice(0, 3).map(item => ({
-        title: pick(item, ['content', 'title'], ''),
-        time: new Date(pick(item, ['dataTime', 'time', 'createdAt'], Date.now())),
-        source: pick(item, ['source', 'media'], '市场快讯')
-      }))
-    }
+    await ReFleshTelegraphList('')
+    newsData.value = await getNewsBySource()
   } catch (error) {
     console.error('刷新市场快讯失败:', error)
   }
@@ -285,29 +410,26 @@ onBeforeMount(async () => {
     const code = data['股票代码']
     const price = data['当前价格'] || data['卖一报价']
     if (!code) return
-    const target = stockData.value.find(s => s.code === code)
+    const target = stockData.value.find(s => stockCodeKey(s.code) === stockCodeKey(code))
     if (target && price > 0) {
       target.price = Number(price) || target.price
       target.changePercent = data.changePercent || 0
       target.changeAmount = Number(data.changePrice ?? data['涨跌额']) || 0
+      target.open = Number(data['今日开盘价']) || target.open
+      target.preClose = Number(data['昨日收盘价']) || target.preClose
       target.high = Number(data['今日最高价']) || target.high
       target.low = Number(data['今日最低价']) || target.low
+      target.volume = Number(data['成交的股票数']) || target.volume
+      target.turnover = Number(data['成交金额']) || target.turnover
+      target.quoteDate = data['日期'] || target.quoteDate
       target.time = data['时间'] || target.time
     }
   })
 
-  // 订阅新电报推送（对齐桌面端 market.vue 的 newTelegraph 事件）
-  // 后端抓到新财联社电报时通过 SSE 推送，收到后插到列表头部
-  EventsOn('newTelegraph', (data) => {
-    if (!Array.isArray(data) || !data.length) return
-    const newItems = data.map(item => ({
-      title: pick(item, ['content', 'title'], ''),
-      time: new Date(pick(item, ['dataTime', 'time', 'createdAt'], Date.now())),
-      source: pick(item, ['source', 'media'], '市场快讯')
-    }))
-    // 新电报插到头部，保留前 3 条
-    newsData.value = [...newItems, ...newsData.value].slice(0, 3)
-  })
+  // 订阅三类快讯推送（对齐桌面端 market.vue）
+  EventsOn('newTelegraph', prependNewsItems)
+  EventsOn('newSinaNews', prependNewsItems)
+  EventsOn('tradingViewNews', prependNewsItems)
 })
 
 onBeforeUnmount(() => {
@@ -318,6 +440,8 @@ onBeforeUnmount(() => {
   // 取消实时事件订阅
   EventsOff('stock_price')
   EventsOff('newTelegraph')
+  EventsOff('newSinaNews')
+  EventsOff('tradingViewNews')
 })
 
 // 导航跳转

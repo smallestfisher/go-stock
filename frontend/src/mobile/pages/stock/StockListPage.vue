@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, watch, onBeforeMount, onBeforeUnmount } from 'vue'
-import { GetFollowList, GetGroupList, GetStockList, Follow, Greet } from '../../../api/app'
+import {
+  GetFollowList, GetGroupList, GetStockList, Follow, UnFollow, Greet,
+  AddGroup, RemoveGroup, AddStockGroup, RemoveStockGroup
+} from '../../../api/app'
 import { registerFeed, stopFeed } from '../../../api/scheduler'
 import { EventsOn, EventsOff } from '../../../api/runtime'
 import PageHeader from '../../components/widgets/PageHeader.vue'
@@ -29,13 +32,14 @@ function sameStocks(a, b) {
 // 分组列表（含"全部"，value=0 对齐桌面端 stock.vue 默认全部分组）
 const groups = ref([{ label: '全部', value: 0 }])
 const activeGroup = ref(0)
+// 原始分组（不含"全部"）：管理分组（删除）和"加入分组"菜单需要 ID/name
+const rawGroups = ref([])      // [{ id, name }]
 
 // 自选股票列表（已映射成 StockCard 字段）
 const stocksData = ref([])
 const currentStocks = computed(() => stocksData.value)
 
 const loading = ref(false)
-const refreshCount = ref(0)
 const selectedStock = ref(null)
 const detailVisible = ref(false)
 
@@ -44,9 +48,14 @@ async function loadGroups() {
   try {
     const result = await GetGroupList()
     if (Array.isArray(result)) {
+      // 原始分组（含 ID/name，用于管理分组的删除、归类操作）
+      rawGroups.value = result.map(g => ({
+        id: g.ID ?? g.id ?? 0,
+        name: pick(g, ['Name', 'name', '名称'], '未命名')
+      }))
       groups.value = [
         { label: '全部', value: 0 },
-        ...result.map(g => ({ label: pick(g, ['Name', 'name', '名称'], '未命名'), value: g.ID ?? g.id ?? 0 }))
+        ...rawGroups.value.map(g => ({ label: g.name, value: g.id }))
       ]
     }
   } catch (e) {
@@ -74,7 +83,16 @@ async function loadStocks(silent = false) {
         volume: Number(pick(stock, ['Volume', 'volume', '成交的股票数'], 0)) || 0,
         turnover: Number(pick(stock, ['Turnover', 'Amount', '成交金额'], 0)) || 0,
         time: pick(stock, ['Time', '时间'], ''),
-        profitToday: 0
+        profitToday: 0,
+        // 设置弹窗预填字段（来自 GetFollowList 的关注记录）
+        costPrice: Number(pick(stock, ['CostPrice'], 0)) || 0,
+        holdVolume: Number(pick(stock, ['Volume'], 0)) || 0,
+        alarmChangePercent: Number(pick(stock, ['AlarmChangePercent'], 0)) || 0,
+        alarmPrice: Number(pick(stock, ['AlarmPrice'], 0)) || 0,
+        entryPrice: Number(pick(stock, ['EntryPrice'], 0)) || 0,
+        takeProfitPrice: Number(pick(stock, ['TakeProfitPrice'], 0)) || 0,
+        stopLossPrice: Number(pick(stock, ['StopLossPrice'], 0)) || 0,
+        sort: Number(pick(stock, ['Sort'], 0)) || 0
       }))
       // 内容相同（同样的 code 集合）则保留现有对象引用，只更新行情字段；
       // 不同（增删自选）才整体替换。这样既避免空列表闪烁，又保证 fetchRealtime
@@ -104,7 +122,6 @@ watch(activeGroup, () => { loadStocks() })
 // 下拉刷新
 async function handleRefresh() {
   await loadStocks()
-  refreshCount.value++
 }
 
 // 拉取实时行情并增量更新列表（对齐桌面端 stock.vue 的 Greet + updateData）
@@ -129,8 +146,12 @@ async function fetchRealtime(list) {
         stock.volume = Number(rt['成交的股票数']) || stock.volume
         stock.turnover = Number(rt['成交金额']) || stock.turnover
         stock.time = rt['时间'] || stock.time
-        // 今日盈亏（需持仓成本，对齐桌面端 StockMobileList 的 profitAmountToday）
-        stock.profitToday = Number(rt.profitAmountToday) || 0
+        // 持仓盈亏（需持仓成本，对齐桌面端 Greet 返回字段）
+        stock.costPrice = Number(rt.costPrice) || stock.costPrice || 0
+        stock.costVolume = Number(rt.costVolume) || 0
+        stock.profit = Number(rt.profit) || 0           // 总盈亏率 %
+        stock.profitAmount = Number(rt.profitAmount) || 0 // 总盈亏额 ¥
+        stock.profitToday = Number(rt.profitAmountToday) || 0 // 今日盈亏额 ¥
       }
     } catch (e) {
       // 单只拉取失败不打断其他
@@ -161,10 +182,166 @@ function handleStockClick(stock) {
   detailVisible.value = true
 }
 
-// 交易操作
-function handleTrade({ stock, type }) {
-  console.log('交易操作:', type, stock)
-  // TODO: 跳转到交易页面
+// 设置保存后：重新拉取列表（成本/持仓等已变）
+function handleSaved() {
+  loadStocks()
+}
+
+// ========== 长按操作菜单：取消关注 ==========
+const actionVisible = ref(false)      // 操作菜单弹层
+const actionStock = ref(null)         // 当前长按选中的股票
+const removingCode = ref('')          // 正在取消关注的 code（防重复点击）
+let pressTimer = null                 // 长按计时器
+let pressTriggered = false            // 长按是否已触发（用于抑制随后的 click）
+
+// 长按开始：500ms 后弹出操作菜单
+function onPressStart(stock) {
+  pressTriggered = false
+  clearTimeout(pressTimer)
+  pressTimer = setTimeout(() => {
+    pressTriggered = true
+    actionStock.value = stock
+    actionVisible.value = true
+  }, 500)
+}
+
+// 长按取消（手指移开/抬起，未到时长）
+function onPressEnd() {
+  clearTimeout(pressTimer)
+}
+
+// 卡片点击：若刚触发过长按则吞掉这次 click（避免长按后又打开详情）
+function onCardClick(stock) {
+  if (pressTriggered) {
+    pressTriggered = false
+    return
+  }
+  handleStockClick(stock)
+}
+
+function closeActionMenu() {
+  actionVisible.value = false
+  actionStock.value = null
+}
+
+// 取消关注：调后端 UnFollow，成功后刷新列表
+async function confirmUnfollow() {
+  const stock = actionStock.value
+  if (!stock || !stock.code || removingCode.value) return
+  removingCode.value = stock.code
+  try {
+    const res = await UnFollow(stock.code)
+    // 后端返回提示串（如"取消关注成功"）；无论文案都以重新拉取列表为准
+    await loadStocks()
+    closeActionMenu()
+  } catch (e) {
+    console.error('取消关注失败:', e)
+    alert('取消关注失败')
+  } finally {
+    removingCode.value = ''
+  }
+}
+
+// ========== 分组归类：把长按选中的股票加入/移出分组 ==========
+const groupPickerVisible = ref(false)   // 「设置分组」选择弹层
+const groupBusy = ref(false)            // 归类操作进行中
+
+// 打开分组选择（从长按菜单进入）
+function openGroupPicker() {
+  actionVisible.value = false
+  groupPickerVisible.value = true
+}
+
+function closeGroupPicker() {
+  groupPickerVisible.value = false
+}
+
+// 把股票加入指定分组（对齐桌面端 AddStockGroupInfo）
+async function addToGroup(groupId) {
+  const stock = actionStock.value
+  if (!stock || !stock.code || groupBusy.value) return
+  groupBusy.value = true
+  try {
+    let code = stock.code
+    // 对齐桌面端：美股代码前缀转换
+    if (code.startsWith('gb_')) code = 'us' + code.replace('gb_', '').toLowerCase()
+    await AddStockGroup(groupId, code)
+    closeGroupPicker()
+    closeActionMenu()
+    await loadGroups()
+  } catch (e) {
+    console.error('加入分组失败:', e)
+    alert('加入分组失败')
+  } finally {
+    groupBusy.value = false
+  }
+}
+
+// 把股票移出当前分组（对齐桌面端 delStockGroup，仅在非「全部」分组下可用）
+async function removeFromGroup() {
+  const stock = actionStock.value
+  if (!stock || !stock.code || groupBusy.value || !activeGroup.value) return
+  groupBusy.value = true
+  try {
+    await RemoveStockGroup(stock.code, stock.name || '', activeGroup.value)
+    closeActionMenu()
+    await loadStocks()
+  } catch (e) {
+    console.error('移出分组失败:', e)
+    alert('移出分组失败')
+  } finally {
+    groupBusy.value = false
+  }
+}
+
+// ========== 管理分组：新建 / 删除 ==========
+const groupMgrVisible = ref(false)      // 管理分组弹层
+const newGroupName = ref('')            // 新建分组名输入
+const groupMgrBusy = ref(false)
+
+function openGroupManager() {
+  groupMgrVisible.value = true
+  newGroupName.value = ''
+}
+
+function closeGroupManager() {
+  groupMgrVisible.value = false
+}
+
+// 新建分组（对齐桌面端 saveTabPane → AddGroup）
+async function createGroup() {
+  const name = newGroupName.value.trim()
+  if (!name || groupMgrBusy.value) return
+  groupMgrBusy.value = true
+  try {
+    // AddGroup 收的是对象 { name, sort }（对齐桌面端 addTabModel），传字符串会建成「未命名」
+    await AddGroup({ name, sort: 1 })
+    newGroupName.value = ''
+    await loadGroups()
+  } catch (e) {
+    console.error('新建分组失败:', e)
+    alert('新建分组失败')
+  } finally {
+    groupMgrBusy.value = false
+  }
+}
+
+// 删除分组（对齐桌面端 delTab → RemoveGroup）
+async function deleteGroup(group) {
+  if (groupMgrBusy.value) return
+  if (!confirm(`确定删除分组「${group.name}」吗？分组数据将不能恢复。`)) return
+  groupMgrBusy.value = true
+  try {
+    await RemoveGroup(Number(group.id))
+    // 若删的是当前选中分组，切回「全部」
+    if (activeGroup.value === group.id) activeGroup.value = 0
+    await loadGroups()
+  } catch (e) {
+    console.error('删除分组失败:', e)
+    alert('删除分组失败')
+  } finally {
+    groupMgrBusy.value = false
+  }
 }
 
 // ========== 添加自选：底部搜索面板 ==========
@@ -277,10 +454,11 @@ onBeforeUnmount(() => {
     <!-- 顶部导航（只保留标题） -->
     <PageHeader title="自选股票" />
 
-    <!-- 分组标签 + 添加 -->
+    <!-- 分组标签 + 管理分组 + 添加 -->
     <div class="stock-list-tabs">
       <MTabs v-model="activeGroup" :tabs="groups" />
-      <button class="add-stock-btn" @click="handleAddStock">➕</button>
+      <button class="tab-action-btn" title="管理分组" @click="openGroupManager">🗂</button>
+      <button class="tab-action-btn" title="添加自选" @click="handleAddStock">➕</button>
     </div>
 
     <!-- 股票列表 -->
@@ -290,12 +468,22 @@ onBeforeUnmount(() => {
         <VirtualList
           v-if="currentStocks.length"
           :items="currentStocks"
-          :item-height="120"
+          :item-height="128"
           class="stock-list"
         >
           <template #default="{ item }">
-            <div class="stock-item-wrapper">
-              <StockCard :stock="item" @click="handleStockClick(item)" />
+            <div
+              class="stock-item-wrapper"
+              @touchstart.passive="onPressStart(item)"
+              @touchend="onPressEnd"
+              @touchmove="onPressEnd"
+              @touchcancel="onPressEnd"
+              @mousedown="onPressStart(item)"
+              @mouseup="onPressEnd"
+              @mouseleave="onPressEnd"
+              @contextmenu.prevent
+            >
+              <StockCard :stock="item" @click="onCardClick(item)" />
             </div>
           </template>
         </VirtualList>
@@ -312,14 +500,13 @@ onBeforeUnmount(() => {
     <!-- 底部提示 -->
     <div v-if="currentStocks.length" class="stock-list-footer">
       <p>共 {{ currentStocks.length }} 只股票</p>
-      <p class="footer-tip">下拉刷新 · 已刷新 {{ refreshCount }} 次</p>
     </div>
 
     <!-- 股票详情抽屉 -->
     <StockDetailSheet
       v-model:show="detailVisible"
       :stock="selectedStock"
-      @trade="handleTrade"
+      @saved="handleSaved"
     />
 
     <!-- 添加自选：底部搜索面板 -->
@@ -367,6 +554,118 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </transition>
+
+    <!-- 长按操作菜单：取消关注 -->
+    <transition name="action-sheet">
+      <div v-if="actionVisible" class="action-mask" @click.self="closeActionMenu">
+        <div class="action-sheet">
+          <div class="action-sheet__title">
+            {{ actionStock?.name || '' }}
+            <span class="action-sheet__code">{{ actionStock?.code || '' }}</span>
+          </div>
+          <button
+            v-if="rawGroups.length"
+            class="action-sheet__item"
+            @click="openGroupPicker"
+          >
+            设置分组
+          </button>
+          <button
+            v-if="activeGroup"
+            class="action-sheet__item"
+            :disabled="groupBusy"
+            @click="removeFromGroup"
+          >
+            {{ groupBusy ? '处理中...' : '移出当前分组' }}
+          </button>
+          <button
+            class="action-sheet__item action-sheet__item--danger"
+            :disabled="!!removingCode"
+            @click="confirmUnfollow"
+          >
+            {{ removingCode ? '取消中...' : '取消关注' }}
+          </button>
+          <button class="action-sheet__item action-sheet__cancel" @click="closeActionMenu">
+            取消
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 设置分组：选择把当前股票加入哪个分组 -->
+    <transition name="action-sheet">
+      <div v-if="groupPickerVisible" class="action-mask" @click.self="closeGroupPicker">
+        <div class="action-sheet">
+          <div class="action-sheet__title">
+            加入分组
+            <span class="action-sheet__code">{{ actionStock?.name || '' }}</span>
+          </div>
+          <div v-if="!rawGroups.length" class="action-sheet__empty">
+            还没有分组，先在「管理分组」里新建
+          </div>
+          <button
+            v-for="g in rawGroups"
+            :key="g.id"
+            class="action-sheet__item"
+            :disabled="groupBusy"
+            @click="addToGroup(g.id)"
+          >
+            {{ g.name }}
+          </button>
+          <button class="action-sheet__item action-sheet__cancel" @click="closeGroupPicker">
+            取消
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 管理分组：新建 / 删除 -->
+    <transition name="action-sheet">
+      <div v-if="groupMgrVisible" class="action-mask" @click.self="closeGroupManager">
+        <div class="action-sheet">
+          <div class="action-sheet__title">管理分组</div>
+          <div class="group-mgr__create">
+            <input
+              v-model="newGroupName"
+              class="group-mgr__input"
+              type="text"
+              placeholder="输入新分组名称"
+              maxlength="20"
+              @keyup.enter="createGroup"
+            >
+            <button
+              class="group-mgr__add"
+              :disabled="!newGroupName.trim() || groupMgrBusy"
+              @click="createGroup"
+            >
+              新建
+            </button>
+          </div>
+          <div class="group-mgr__list">
+            <div v-if="!rawGroups.length" class="action-sheet__empty">
+              暂无分组
+            </div>
+            <div
+              v-for="g in rawGroups"
+              :key="g.id"
+              class="group-mgr__item"
+            >
+              <span class="group-mgr__name">{{ g.name }}</span>
+              <button
+                class="group-mgr__del"
+                :disabled="groupMgrBusy"
+                @click="deleteGroup(g)"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+          <button class="action-sheet__item action-sheet__cancel" @click="closeGroupManager">
+            关闭
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -394,7 +693,7 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.add-stock-btn {
+.tab-action-btn {
   flex-shrink: 0;
   width: var(--m-touch-min);
   height: var(--m-touch-min);
@@ -408,7 +707,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.add-stock-btn:active {
+.tab-action-btn:active {
   opacity: 0.6;
 }
 
@@ -423,7 +722,9 @@ onBeforeUnmount(() => {
 }
 
 .stock-item-wrapper {
+  height: 100%;
   padding: var(--m-space-xs) var(--m-space-md);
+  box-sizing: border-box;
 }
 
 .stock-list-footer {
@@ -437,10 +738,6 @@ onBeforeUnmount(() => {
 
 .stock-list-footer p {
   margin: var(--m-space-xs) 0;
-}
-
-.footer-tip {
-  font-size: var(--m-font-xs);
 }
 
 /* ===== 添加自选搜索面板 ===== */
@@ -584,5 +881,171 @@ onBeforeUnmount(() => {
 .search-sheet-enter-from .search-sheet,
 .search-sheet-leave-to .search-sheet {
   transform: translateY(100%);
+}
+
+/* ===== 长按操作菜单 ===== */
+.action-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: var(--m-z-modal, 1000);
+  display: flex;
+  align-items: flex-end;
+}
+
+.action-sheet {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
+  padding: var(--m-space-md);
+  padding-bottom: calc(var(--m-space-md) + var(--m-safe-bottom));
+  background: var(--m-bg-primary);
+}
+
+.action-sheet__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--m-space-sm);
+  padding: var(--m-space-sm) var(--m-space-md);
+  font-size: var(--m-font-md);
+  font-weight: var(--m-font-weight-bold);
+  color: var(--m-text-primary);
+}
+
+.action-sheet__code {
+  font-size: var(--m-font-xs);
+  font-weight: var(--m-font-weight-normal);
+  color: var(--m-text-tertiary);
+}
+
+.action-sheet__item {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: var(--m-radius-md, 12px);
+  background: var(--m-bg-card);
+  font-size: var(--m-font-md);
+  color: var(--m-text-primary);
+  cursor: pointer;
+}
+
+.action-sheet__item:active {
+  opacity: 0.7;
+}
+
+.action-sheet__item--danger {
+  color: #e54d42;
+  font-weight: var(--m-font-weight-medium);
+}
+
+.action-sheet__item--danger:disabled {
+  opacity: 0.5;
+}
+
+.action-sheet__cancel {
+  margin-top: var(--m-space-xs);
+  color: var(--m-text-secondary);
+}
+
+/* 操作菜单滑入动画 */
+.action-sheet-enter-active,
+.action-sheet-leave-active {
+  transition: opacity 0.2s var(--m-ease-out);
+}
+
+.action-sheet-enter-active .action-sheet,
+.action-sheet-leave-active .action-sheet {
+  transition: transform 0.2s var(--m-ease-out);
+}
+
+.action-sheet-enter-from,
+.action-sheet-leave-to {
+  opacity: 0;
+}
+
+.action-sheet-enter-from .action-sheet,
+.action-sheet-leave-to .action-sheet {
+  transform: translateY(100%);
+}
+
+/* ===== 分组选择 / 管理分组 ===== */
+.action-sheet__empty {
+  padding: var(--m-space-lg) var(--m-space-md);
+  text-align: center;
+  font-size: var(--m-font-sm);
+  color: var(--m-text-tertiary);
+}
+
+/* 新建分组输入行 */
+.group-mgr__create {
+  display: flex;
+  gap: var(--m-space-sm);
+  padding: var(--m-space-sm) 0 var(--m-space-md);
+}
+
+.group-mgr__input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--m-space-md);
+  background: var(--m-bg-primary);
+  border: 1px solid var(--m-divider-color);
+  border-radius: var(--m-radius-sm);
+  font-size: var(--m-font-md);
+  color: var(--m-text-primary);
+  outline: none;
+}
+
+.group-mgr__add {
+  flex-shrink: 0;
+  padding: 0 var(--m-space-lg);
+  background: var(--m-color-rise-light, rgba(208, 48, 80, 0.12));
+  color: var(--m-color-rise);
+  border: none;
+  border-radius: var(--m-radius-sm);
+  font-size: var(--m-font-sm);
+  font-weight: var(--m-font-weight-medium);
+  cursor: pointer;
+}
+
+.group-mgr__add:disabled {
+  opacity: 0.4;
+}
+
+/* 已有分组列表 */
+.group-mgr__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.group-mgr__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--m-space-md) var(--m-space-sm);
+  border-bottom: 1px solid var(--m-divider-color);
+}
+
+.group-mgr__name {
+  font-size: var(--m-font-md);
+  color: var(--m-text-primary);
+}
+
+.group-mgr__del {
+  flex-shrink: 0;
+  padding: var(--m-space-xs) var(--m-space-md);
+  background: transparent;
+  border: 1px solid var(--m-color-fall, #18a058);
+  color: var(--m-color-fall, #18a058);
+  border-radius: var(--m-radius-sm);
+  font-size: var(--m-font-sm);
+  cursor: pointer;
+}
+
+.group-mgr__del:disabled {
+  opacity: 0.4;
 }
 </style>

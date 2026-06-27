@@ -38,6 +38,32 @@ function formatBig(n) {
   if (n >= 10000) return `${(n / 10000).toFixed(2)}万`
   return String(n)
 }
+
+// 是否持仓（有成本 + 持仓量才算盈亏，对齐桌面端 costPrice>0 判断）
+const hasPosition = computed(() => {
+  return (Number(props.stock.costPrice) || 0) > 0 && (Number(props.stock.costVolume) || 0) > 0
+})
+
+// 盈亏方向：盈 rise(红) / 亏 fall(绿)，对齐桌面端 profitType
+const profitDir = computed(() => {
+  const amt = Number(props.stock.profitAmount) || 0
+  if (amt > 0) return 'rise'
+  if (amt < 0) return 'fall'
+  return 'flat'
+})
+
+// 总盈亏率（带符号）
+const profitRate = computed(() => {
+  const r = Number(props.stock.profit) || 0
+  return `${r > 0 ? '+' : ''}${r.toFixed(2)}%`
+})
+
+// 总盈亏额（带符号，金额取整数¥）
+const profitAmount = computed(() => {
+  const a = Number(props.stock.profitAmount) || 0
+  const sign = a > 0 ? '+' : ''
+  return `${sign}${a.toFixed(0)}`
+})
 </script>
 
 <template>
@@ -62,6 +88,13 @@ function formatBig(n) {
         <span class="meta-item">量 {{ formatBig(stock.volume) }}</span>
         <span class="meta-item">额 {{ formatBig(stock.turnover) }}</span>
         <span v-if="stock.time" class="meta-item meta-time">{{ stock.time }}</span>
+      </div>
+
+      <!-- 持仓盈亏（有成本+持仓才显示，对齐桌面端成本标签） -->
+      <div v-if="hasPosition" class="stock-profit" :class="`bg-${profitDir}-soft`">
+        <span class="profit-label">持仓</span>
+        <span class="profit-rate" :class="`m-${profitDir}`">{{ profitRate }}</span>
+        <span class="profit-amt" :class="`m-${profitDir}`">{{ profitAmount }}¥</span>
       </div>
     </div>
 
@@ -92,6 +125,9 @@ function formatBig(n) {
   border-left: 4px solid var(--m-divider-color);
   cursor: pointer;
   transition: all var(--m-duration-fast);
+  /* 填满虚拟列表固定行高，避免卡片下方露出灰底间隙 */
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .stock-card--rise {
@@ -225,5 +261,44 @@ function formatBig(n) {
 
 .bg-flat {
   background: var(--m-text-tertiary);
+}
+
+/* 持仓盈亏行 */
+.stock-profit {
+  display: flex;
+  align-items: center;
+  gap: var(--m-space-sm);
+  margin-top: 2px;
+  padding: 2px var(--m-space-sm);
+  border-radius: var(--m-radius-sm);
+  font-size: var(--m-font-xs);
+  font-variant-numeric: tabular-nums;
+  width: fit-content;
+}
+
+.profit-label {
+  color: var(--m-text-tertiary);
+  flex-shrink: 0;
+}
+
+.profit-rate {
+  font-weight: var(--m-font-weight-bold);
+}
+
+.profit-amt {
+  font-weight: var(--m-font-weight-medium);
+}
+
+/* 盈亏底色（浅，盈红亏绿） */
+.bg-rise-soft {
+  background: var(--m-color-rise-light, rgba(208, 48, 80, 0.1));
+}
+
+.bg-fall-soft {
+  background: var(--m-color-fall-light, rgba(24, 160, 88, 0.1));
+}
+
+.bg-flat-soft {
+  background: var(--m-bg-primary);
 }
 </style>

@@ -72,6 +72,8 @@ export default defineConfig({
           },
           workbox: {
               globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+              // markdown-vendor(md-editor-v3) 约 2.3MB，超过默认 2MiB 预缓存上限会导致 build 失败，放宽到 4MiB。
+              maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
               navigateFallback: null,
               runtimeCaching: [
                   {

@@ -31,6 +31,11 @@ const props = defineProps({
 
 const canvasRef = ref(null)
 
+function cssColor(name, fallback) {
+  if (typeof window === 'undefined') return fallback
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
+
 // 计算涨跌状态
 const trend = computed(() => {
   if (!props.data.length) return 'flat'
@@ -45,8 +50,8 @@ const trend = computed(() => {
 const lineColor = computed(() => {
   if (props.color) return props.color
   const colorMap = {
-    rise: '#18a058',
-    fall: '#d03050',
+    rise: cssColor('--m-color-rise', '#d03050'),
+    fall: cssColor('--m-color-fall', '#18a058'),
     flat: '#666'
   }
   return colorMap[trend.value]

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"go-stock/backend/db"
@@ -1057,9 +1058,9 @@ func (m MarketNewsApi) XUEQIUHotStock(size int, marketType string) *[]models.Hot
 
 	const maxRetries = 2
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		cookieHeader, cookieErr := FetchXueqiuCookiesViaChromedp("", 30*time.Second, "https://xueqiu.com/hq#hot")
+		cookieHeader, cookieErr := GetXueqiuCookieHeader("https://xueqiu.com/hq#hot")
 		if cookieErr != nil {
-			logger.SugaredLogger.Warnf("雪球 chromedp 获取 cookie 失败 (attempt %d): %v", attempt+1, cookieErr)
+			logger.SugaredLogger.Warnf("雪球获取 cookie 失败 (attempt %d): %v", attempt+1, cookieErr)
 		}
 
 		res := &models.XUEQIUHot{}
@@ -1071,15 +1072,26 @@ func (m MarketNewsApi) XUEQIUHotStock(size int, marketType string) *[]models.Hot
 		if cookieErr == nil && cookieHeader != "" {
 			request.SetHeader("Cookie", cookieHeader)
 		}
-		_, err := request.SetResult(res).Get(url)
+		resp, err := request.SetResult(res).Get(url)
 		if err != nil {
-			logger.SugaredLogger.Errorf("XUEQIUHotStock err (attempt %d):%s", attempt+1, err.Error())
+			statusCode := 0
+			bodyHead := ""
+			if resp != nil {
+				statusCode = resp.StatusCode()
+				bodyHead = string(resp.Body())
+			}
+			logger.SugaredLogger.Errorf("XUEQIUHotStock err (attempt %d): status=%d bodyHead=%.300s err=%s",
+				attempt+1, statusCode, bodyHead, err.Error())
 			if attempt < maxRetries-1 {
 				InvalidateXueqiuCookieCache()
 				time.Sleep(time.Second)
 				continue
 			}
 			return empty
+		}
+		if resp != nil {
+			logger.SugaredLogger.Debugf("XUEQIUHotStock DEBUG (attempt %d): status=%d cookieLen=%d items=%d bodyHead=%.300s",
+				attempt+1, resp.StatusCode(), len(cookieHeader), len(res.Data.Items), string(resp.Body()))
 		}
 		if res.ErrorCode != 0 {
 			logger.SugaredLogger.Errorf("XUEQIUHotStock API error (attempt %d): code=%d, desc=%s", attempt+1, res.ErrorCode, res.ErrorDescription)
@@ -1096,9 +1108,9 @@ func (m MarketNewsApi) XUEQIUHotStock(size int, marketType string) *[]models.Hot
 }
 
 func (m MarketNewsApi) HotEvent(size int) *[]models.HotEvent {
-	cookieHeader, cookieErr := FetchXueqiuCookiesViaChromedp("", 30*time.Second, "https://xueqiu.com/hq#hot")
+	cookieHeader, cookieErr := GetXueqiuCookieHeader("https://xueqiu.com/hq#hot")
 	if cookieErr != nil {
-		logger.SugaredLogger.Warnf("雪球 chromedp 获取 cookie 失败: %v", cookieErr)
+		logger.SugaredLogger.Warnf("雪球获取 cookie 失败: %v", cookieErr)
 	}
 
 	events := &[]models.HotEvent{}
@@ -1158,17 +1170,27 @@ func (m MarketNewsApi) InvestCalendar(yearMonth string) []any {
 		yearMonth = time.Now().Format("2006-01")
 	}
 
+	// 韭研公社 token 是 timestamp 相关签名，不是长期登录令牌；Cookie/SESSION 才来自设置页。
+	jiuyanCookie := "SESSION=NDZkNDU2ODYtODEwYi00ZGZkLWEyY2ItNjgxYzY4ZWMzZDEy"
+	if config := GetSettingConfig(); config != nil && config.Settings != nil {
+		if c := strings.TrimSpace(config.JiuyanCookie); c != "" {
+			jiuyanCookie = c
+		}
+	}
+
 	url := "https://app.jiuyangongshe.com/jystock-app/api/v1/timeline/list"
+	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
+	token := fmt.Sprintf("%x", md5.Sum([]byte("Uu0KfOB8iUP69d3c:"+timestamp)))
 	resp, err := SharedHTTPClient.SetTimeout(time.Duration(30)*time.Second).R().
 		SetHeader("Host", "app.jiuyangongshe.com").
 		SetHeader("Origin", "https://www.jiuyangongshe.com").
 		SetHeader("Referer", "https://www.jiuyangongshe.com/").
 		SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0").
 		SetHeader("Content-Type", "application/json").
-		SetHeader("token", "1cc6380a05c652b922b3d85124c85473").
+		SetHeader("token", token).
 		SetHeader("platform", "3").
-		SetHeader("Cookie", "SESSION=NDZkNDU2ODYtODEwYi00ZGZkLWEyY2ItNjgxYzY4ZWMzZDEy").
-		SetHeader("timestamp", strconv.FormatInt(time.Now().UnixMilli(), 10)).
+		SetHeader("Cookie", jiuyanCookie).
+		SetHeader("timestamp", timestamp).
 		SetBody(map[string]string{
 			"date":  yearMonth,
 			"grade": "0",
@@ -1180,9 +1202,17 @@ func (m MarketNewsApi) InvestCalendar(yearMonth string) []any {
 	}
 	//logger.SugaredLogger.Infof("InvestCalendar:%s", resp.Body())
 	respMap := map[string]any{}
-	err = json.Unmarshal(resp.Body(), &respMap)
-	return respMap["data"].([]any)
-
+	if err = json.Unmarshal(resp.Body(), &respMap); err != nil {
+		logger.SugaredLogger.Errorf("InvestCalendar unmarshal err:%s body:%s", err.Error(), resp.Body())
+		return []any{}
+	}
+	// 接口异常（如 token 失效）时不返回 data 字段，安全断言避免 panic → RPC 500。
+	data, ok := respMap["data"].([]any)
+	if !ok {
+		logger.SugaredLogger.Warnf("InvestCalendar 无 data 字段，接口可能异常：%s", resp.Body())
+		return []any{}
+	}
+	return data
 }
 
 func (m MarketNewsApi) ClsCalendar() []any {
@@ -1198,8 +1228,16 @@ func (m MarketNewsApi) ClsCalendar() []any {
 		return []any{}
 	}
 	respMap := map[string]any{}
-	err = json.Unmarshal(resp.Body(), &respMap)
-	return respMap["data"].([]any)
+	if err = json.Unmarshal(resp.Body(), &respMap); err != nil {
+		logger.SugaredLogger.Errorf("ClsCalendar unmarshal err:%s body:%s", err.Error(), resp.Body())
+		return []any{}
+	}
+	data, ok := respMap["data"].([]any)
+	if !ok {
+		logger.SugaredLogger.Warnf("ClsCalendar 无 data 字段，接口可能异常：%s", resp.Body())
+		return []any{}
+	}
+	return data
 }
 
 func (m MarketNewsApi) GetGDP() *models.GDPResp {

@@ -39,6 +39,8 @@ type Settings struct {
 	IwencaiApiKey          string `json:"iwencaiApiKey" gorm:"column:iwencai_api_key"`
 	EmApiKey               string `json:"emApiKey" gorm:"column:em_api_key"`
 	PromptPlazaApiBase     string `json:"promptPlazaApiBase" gorm:"column:prompt_plaza_api_base"`
+	JiuyanToken            string `json:"jiuyanToken" gorm:"column:jiuyan_token"`
+	JiuyanCookie           string `json:"jiuyanCookie" gorm:"column:jiuyan_cookie"`
 }
 
 func (receiver Settings) TableName() string {
@@ -133,6 +135,8 @@ func UpdateConfig(s *SettingConfig) string {
 			"iwencai_api_key":            s.IwencaiApiKey,
 			"em_api_key":                 s.EmApiKey,
 			"prompt_plaza_api_base":      s.PromptPlazaApiBase,
+			"jiuyan_token":               s.JiuyanToken,
+			"jiuyan_cookie":              s.JiuyanCookie,
 		})
 		if result.Error != nil {
 			logger.SugaredLogger.Errorf("更新配置失败: %v", result.Error)
