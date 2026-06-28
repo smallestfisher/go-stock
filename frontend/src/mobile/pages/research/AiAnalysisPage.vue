@@ -1,10 +1,11 @@
 <script setup>
-import { ref, nextTick, onBeforeMount, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onBeforeMount, onBeforeUnmount } from 'vue'
 // md-editor-v3 的轻量预览组件（仅 preview.css，不引入编辑器体积）。移动端首次引入。
 import 'md-editor-v3/lib/preview.css'
 import { MdPreview } from 'md-editor-v3'
 import {
   GetAiConfigs,
+  GetPromptTemplates,
   GetAIResponseResult,
   GetAIResponseResultList,
   SummaryStockNews,
@@ -34,6 +35,18 @@ const analysisStatus = ref('')
 const aiConfigs = ref([])
 const aiConfigId = ref(null)
 
+// 提示词模板：系统提示词 / 用户提示词（对齐桌面 market.vue:120-123）
+const sysPromptOptions = ref([])   // [{ID,name,content}]
+const userPromptOptions = ref([])  // [{ID,name,content}]，选中后 content 填入 question
+const sysPromptId = ref(null)
+
+// 工具调用 / 思考模式开关（对齐桌面 enableTools/thinkingMode，默认 true）
+const enableTools = ref(true)
+const thinkingMode = ref(true)
+
+// 用户提示词预设选择（选中即把 content 填入输入框，与桌面 question 下拉同义）
+const selectedUserPromptId = ref(null)
+
 // 历史
 const history = ref([])
 const historyLoading = ref(false)
@@ -53,6 +66,30 @@ async function loadAiConfigs() {
   } catch (e) {
     console.error('加载AI配置失败:', e)
   }
+}
+
+// 加载提示词模板，按 type 分系统/用户两组（对齐桌面 market.vue:120-123）
+async function loadPromptTemplates() {
+  try {
+    const res = await GetPromptTemplates('', '')
+    const list = Array.isArray(res) ? res : []
+    sysPromptOptions.value = list.filter(t => t.type === '模型系统Prompt')
+    userPromptOptions.value = list.filter(t => t.type === '模型用户Prompt')
+  } catch (e) {
+    console.error('加载提示词失败:', e)
+  }
+}
+
+// 选择用户提示词预设：把 content 填入 question 输入框（与桌面 question 下拉 value-field=content 同义）
+function applyUserPrompt(id) {
+  const tpl = userPromptOptions.value.find(t => t.ID === id)
+  if (tpl && tpl.content) question.value = tpl.content
+}
+
+// 清空问题输入与预设选择
+function clearQuestion() {
+  question.value = ''
+  selectedUserPromptId.value = null
 }
 
 // 读取最新一条总结（首次进入，不自动生成，省 token）
@@ -87,13 +124,28 @@ async function loadHistory() {
 // 触发生成（对齐桌面 reAiSummary）
 function startSummary() {
   if (loading.value) return
+  if (!aiConfigId.value) {
+    analysisStatus.value = '请先选择 AI 模型'
+    return
+  }
   aiSummary.value = ''
   loading.value = true
   analysisStatus.value = '正在连接AI服务...'
   // SummaryStockNews(question, aiConfigId, sysPromptId, enableTools, thinkingMode, eventName, stockCode)
-  // 系统提示词用 null（默认），工具/思考默认 true（移动端不暴露开关，精简）
-  SummaryStockNews(question.value, aiConfigId.value, null, true, true, 'summaryStockNews', '')
+  SummaryStockNews(question.value, aiConfigId.value, sysPromptId.value, enableTools.value, thinkingMode.value, 'summaryStockNews', '')
 }
+
+// 当前选中的模型名（生成中展示「正在用什么模型分析什么问题」）
+const activeModelName = computed(() => {
+  const cfg = aiConfigs.value.find(c => c.ID === aiConfigId.value)
+  return cfg ? cfg.name : ''
+})
+// 当前分析主题摘要（用于生成中/结果区告知用户在分析什么）
+const questionPreview = computed(() => {
+  const q = (question.value || '').trim()
+  if (q) return q
+  return '市场资讯综合分析'
+})
 
 // 中止生成
 function stopSummary() {
@@ -166,6 +218,7 @@ async function handleRefresh() {
 
 onBeforeMount(() => {
   loadAiConfigs()
+  loadPromptTemplates()
   loadLatest()
   loadHistory()
 })
@@ -192,17 +245,93 @@ onBeforeUnmount(() => {
         <button v-else class="op-btn op-btn--danger" type="button" @click="stopSummary">停止</button>
       </div>
 
+      <!-- 问题输入：决定「生成什么」的核心 -->
+      <div class="question-row">
+        <textarea
+          v-model="question"
+          class="question-input"
+          rows="2"
+          placeholder="输入要分析的问题，例如：总结和分析股票市场新闻中的投资机会"
+        />
+        <button v-if="question" class="clear-question" type="button" @click="clearQuestion">✕</button>
+      </div>
+
+      <!-- 用户提示词预设（选中填入输入框，与桌面 question 下拉同义） -->
+      <div v-if="userPromptOptions.length" class="preset-block">
+        <span class="preset-label">预设问题</span>
+        <div class="chip-scroll">
+          <button
+            v-for="t in userPromptOptions"
+            :key="t.ID"
+            type="button"
+            class="preset-chip"
+            :class="{ 'preset-chip--active': selectedUserPromptId === t.ID }"
+            @click="selectedUserPromptId = t.ID; applyUserPrompt(t.ID)"
+          >
+            {{ t.name }}
+          </button>
+        </div>
+      </div>
+
       <!-- 模型选择（横向 chip） -->
-      <div v-if="aiConfigs.length" class="model-chips">
+      <div v-if="aiConfigs.length" class="preset-block">
+        <span class="preset-label">模型</span>
+        <div class="chip-scroll">
+          <button
+            v-for="cfg in aiConfigs"
+            :key="cfg.ID"
+            type="button"
+            class="preset-chip"
+            :class="{ 'preset-chip--active': aiConfigId === cfg.ID }"
+            @click="aiConfigId = cfg.ID"
+          >
+            {{ cfg.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 系统提示词（横向 chip） -->
+      <div v-if="sysPromptOptions.length" class="preset-block">
+        <span class="preset-label">系统提示词</span>
+        <div class="chip-scroll">
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ 'preset-chip--active': sysPromptId === null }"
+            @click="sysPromptId = null"
+          >
+            默认
+          </button>
+          <button
+            v-for="t in sysPromptOptions"
+            :key="t.ID"
+            type="button"
+            class="preset-chip"
+            :class="{ 'preset-chip--active': sysPromptId === t.ID }"
+            @click="sysPromptId = t.ID"
+          >
+            {{ t.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 工具调用 / 思考模式开关（对齐桌面） -->
+      <div class="switch-row">
         <button
-          v-for="cfg in aiConfigs"
-          :key="cfg.ID"
           type="button"
-          class="model-chip"
-          :class="{ 'model-chip--active': aiConfigId === cfg.ID }"
-          @click="aiConfigId = cfg.ID"
+          class="toggle-btn"
+          :class="{ 'toggle-btn--on': enableTools }"
+          @click="enableTools = !enableTools"
         >
-          {{ cfg.name }}
+          工具调用{{ enableTools ? ' ✓' : '' }}
+        </button>
+        <button
+          type="button"
+          class="toggle-btn"
+          :class="{ 'toggle-btn--on': thinkingMode }"
+          @click="thinkingMode = !thinkingMode"
+        >
+          思考模式{{ thinkingMode ? ' ✓' : '' }}
         </button>
       </div>
     </div>
@@ -211,14 +340,23 @@ onBeforeUnmount(() => {
       <div class="container">
         <!-- 总结结果 -->
         <div class="result-card">
+          <!-- 生成中：告知用户在分析什么 -->
           <div v-if="loading && !aiSummary" class="result-loading">
             <MLoading :text="analysisStatus || 'AI 正在分析...'" vertical />
+            <p class="loading-topic">正在分析：<b>{{ questionPreview }}</b></p>
+            <p v-if="activeModelName" class="loading-model">模型：{{ activeModelName }}</p>
           </div>
           <template v-else>
-            <div v-if="aiSummary" ref="resultScrollRef" class="result-body">
-              <MdPreview :modelValue="aiSummary" theme="light" />
+            <div v-if="aiSummary" class="result-wrap">
+              <div class="result-topic">
+                <span class="result-topic-label">分析主题</span>
+                <span class="result-topic-text">{{ questionPreview }}</span>
+              </div>
+              <div ref="resultScrollRef" class="result-body">
+                <MdPreview :modelValue="aiSummary" theme="light" />
+              </div>
             </div>
-            <MEmpty v-else description="暂无 AI 总结，点击「生成总结」" />
+            <MEmpty v-else description="暂无 AI 总结，输入问题后点击「生成总结」" />
           </template>
         </div>
 
@@ -293,6 +431,9 @@ onBeforeUnmount(() => {
   padding: var(--m-space-md);
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
 }
 
 .op-row {
@@ -315,6 +456,7 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: var(--m-font-sm);
   color: #fff;
+  flex-shrink: 0;
 }
 
 .op-btn--primary {
@@ -329,19 +471,67 @@ onBeforeUnmount(() => {
   transform: scale(0.95);
 }
 
-.model-chips {
+/* 问题输入框 */
+.question-row {
+  position: relative;
+}
+
+.question-input {
+  width: 100%;
+  padding: var(--m-space-sm) var(--m-space-md);
+  border: 1px solid var(--m-border-color);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-bg-primary);
+  color: var(--m-text-primary);
+  font: inherit;
+  font-size: var(--m-font-sm);
+  line-height: var(--m-line-height-normal);
+  resize: vertical;
+  outline: none;
+}
+
+.question-input:focus {
+  border-color: var(--m-color-rise);
+}
+
+.clear-question {
+  position: absolute;
+  top: var(--m-space-xs);
+  right: var(--m-space-xs);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--m-radius-full);
+  background: var(--m-bg-card);
+  color: var(--m-text-tertiary);
+  font-size: var(--m-font-xs);
+  line-height: 1;
+}
+
+/* 预设块（标签 + 横向滚动 chip） */
+.preset-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-xs);
+}
+
+.preset-label {
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+}
+
+.chip-scroll {
   display: flex;
   gap: var(--m-space-xs);
-  margin-top: var(--m-space-sm);
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.model-chips::-webkit-scrollbar {
+.chip-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.model-chip {
+.preset-chip {
   flex-shrink: 0;
   padding: var(--m-space-xs) var(--m-space-md);
   border: 1px solid var(--m-border-color);
@@ -353,7 +543,29 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.model-chip--active {
+.preset-chip--active {
+  background: var(--m-color-rise-light);
+  border-color: var(--m-color-rise);
+  color: var(--m-color-rise);
+}
+
+/* 工具/思考开关 */
+.switch-row {
+  display: flex;
+  gap: var(--m-space-sm);
+}
+
+.toggle-btn {
+  padding: var(--m-space-xs) var(--m-space-md);
+  border: 1px solid var(--m-border-color);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-bg-primary);
+  font: inherit;
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+}
+
+.toggle-btn--on {
   background: var(--m-color-rise-light);
   border-color: var(--m-color-rise);
   color: var(--m-color-rise);
@@ -380,8 +592,54 @@ onBeforeUnmount(() => {
 
 .result-loading {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--m-space-xs);
   padding: var(--m-space-2xl) 0;
+}
+
+.loading-topic {
+  margin-top: var(--m-space-sm);
+  font-size: var(--m-font-sm);
+  color: var(--m-text-secondary);
+  text-align: center;
+}
+
+.loading-topic b {
+  color: var(--m-text-primary);
+}
+
+.loading-model {
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+}
+
+.result-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
+}
+
+/* 结果区顶部：告知分析的主题 */
+.result-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--m-space-sm);
+  background: var(--m-bg-primary);
+  border-radius: var(--m-radius-sm);
+}
+
+.result-topic-label {
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+}
+
+.result-topic-text {
+  font-size: var(--m-font-sm);
+  color: var(--m-text-primary);
+  font-weight: var(--m-font-weight-medium);
+  line-height: var(--m-line-height-normal);
 }
 
 .result-body {
