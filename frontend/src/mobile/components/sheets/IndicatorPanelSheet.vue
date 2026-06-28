@@ -84,6 +84,7 @@ const groups = [
       { code: 'CHOP', label: 'CHOP', sub: '副图' },
       { code: 'ELDERRAY', label: 'ElderRay', sub: '副图' },
       { code: 'PIVOT', label: 'Pivot', sub: '主图' },
+      { code: 'SIGNALRATIO', label: '信号比例', sub: '副图' },
     ],
   },
 ]

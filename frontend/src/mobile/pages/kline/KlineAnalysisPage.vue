@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import PageHeader from '../../components/widgets/PageHeader.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MultiPeriodKlineChart from '../../components/charts/MultiPeriodKlineChart.vue'
@@ -19,11 +19,16 @@ const searchKeyword = ref('')
 const searchResults = ref([])
 const stockList = ref([])
 
+// 最近浏览股票（对齐桌面端 kline-analysis.vue，localStorage 持久化）
+const recentStocks = ref([])
+
 // 当前周期
 const currentPeriod = ref('day')
 
 // 图表数据
 const fenshiData = ref([])
+const fenshiDate = ref('')
+const fenshiPreClose = ref(0)
 const klineData = ref([])
 const loading = ref(false)
 
@@ -109,12 +114,43 @@ function handleSelectStock(stock) {
   }
   searchKeyword.value = ''
   searchResults.value = []
+  addToRecent(stock.ts_code, stock.name)
+  loadData()
+}
+
+// 最近浏览：写入 localStorage（去重、置顶、最多 10 条）
+function addToRecent(code, name) {
+  if (!code) return
+  const list = recentStocks.value.filter(s => s.code !== code)
+  list.unshift({ code, name: name || '' })
+  if (list.length > 10) list.length = 10
+  recentStocks.value = list
+  try {
+    localStorage.setItem('kline-recent-stocks', JSON.stringify(list))
+  } catch { /* 忽略隐私模式/配额 */ }
+}
+
+function loadRecentStocks() {
+  try {
+    const raw = localStorage.getItem('kline-recent-stocks')
+    if (raw) recentStocks.value = JSON.parse(raw) || []
+  } catch { /* 忽略解析失败 */ }
+}
+
+// 点击最近浏览快速切换
+function selectRecent(stock) {
+  stockInfo.value = {
+    code: stock.code,
+    name: stock.name,
+  }
+  addToRecent(stock.code, stock.name)
   loadData()
 }
 
 // 加载数据（根据周期）
 async function loadData() {
   if (!stockInfo.value) return
+  refreshToken++            // 切换股票/周期：使在途的实时刷新响应失效
   loading.value = true
   try {
     if (isFenshi.value) {
@@ -124,6 +160,7 @@ async function loadData() {
     }
   } finally {
     loading.value = false
+    setupRefreshTimer()     // 按当前模式启停实时轮询
   }
 }
 
@@ -132,9 +169,26 @@ async function loadFenshi() {
   try {
     const result = await GetStockMinutePriceLineData(stockInfo.value.code, stockInfo.value.name)
     fenshiData.value = result?.priceData || []
+    fenshiDate.value = result?.date || ''
+    // 昨收价：分时接口不含昨收，取最近 2 根日 K 的前一根 close 作为基准
+    fenshiPreClose.value = await fetchPreClose()
   } catch (error) {
     console.error('加载分时数据失败:', error)
     fenshiData.value = []
+    fenshiPreClose.value = 0
+  }
+}
+
+// 取昨收价（最近 2 根日 K 的前一根收盘）
+async function fetchPreClose() {
+  try {
+    const result = await GetStockKLineWithFallback(stockInfo.value.code, stockInfo.value.name, '101', 2)
+    const list = result?.data || []
+    // 2 根时前一根是昨日；仅 1 根（新股）时无昨收，回退 0
+    if (list.length >= 2) return Number(list[list.length - 2].close) || 0
+    return 0
+  } catch {
+    return 0
   }
 }
 
@@ -151,6 +205,40 @@ async function loadKline() {
   }
 }
 
+// 实时刷新：对齐桌面端 StockLightweightKlineChart 的 realtimeIntervalMs 轮询。
+// 仅 K 线模式下定时拉取最新 K 线，静默更新（失败不打断看盘）。
+const REALTIME_INTERVAL_MS = 60 * 1000
+let refreshTimer = null
+// 请求令牌：切换股票/周期时自增，丢弃过期响应，避免覆盖到新股票
+let refreshToken = 0
+
+function clearRefreshTimer() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null }
+}
+
+// 按当前周期静默刷新最新 K 线（不切换 loading 态）
+async function refreshLatestKline() {
+  if (!stockInfo.value || isFenshi.value) return
+  const token = refreshToken
+  const klt = periodToKlt[currentPeriod.value] || '101'
+  try {
+    const result = await GetStockKLineWithFallback(stockInfo.value.code, stockInfo.value.name, klt, 500)
+    if (token !== refreshToken) return          // 已切换股票/周期，丢弃
+    const list = (result?.data) || []
+    if (list.length) klineData.value = list
+  } catch {
+    /* 静默 */
+  }
+}
+
+// 进入 K 线模式且已选股时启动轮询；否则清理
+function setupRefreshTimer() {
+  clearRefreshTimer()
+  if (stockInfo.value && !isFenshi.value) {
+    refreshTimer = setInterval(refreshLatestKline, REALTIME_INTERVAL_MS)
+  }
+}
+
 // 周期切换
 watch(currentPeriod, () => {
   if (stockInfo.value) loadData()
@@ -158,6 +246,10 @@ watch(currentPeriod, () => {
 
 // 初始化
 initStockList()
+loadRecentStocks()
+
+// 卸载时清理实时轮询
+onBeforeUnmount(clearRefreshTimer)
 </script>
 
 <template>
@@ -184,6 +276,17 @@ initStockList()
           <span class="search-name">{{ stock.name }}</span>
           <span class="search-code">{{ stock.ts_code }}</span>
         </div>
+      </div>
+
+      <!-- 最近浏览（无搜索词且未选中股票时展示） -->
+      <div v-if="!searchKeyword && !stockInfo && recentStocks.length" class="recent-area">
+        <span class="recent-label">最近</span>
+        <button
+          v-for="s in recentStocks.slice(0, 8)"
+          :key="s.code"
+          class="recent-chip"
+          @click="selectRecent(s)"
+        >{{ s.name || s.code }}</button>
       </div>
     </div>
 
@@ -221,6 +324,8 @@ initStockList()
         <FenshiChart
           v-if="isFenshi"
           :data="fenshiData"
+          :pre-close="fenshiPreClose"
+          :date="fenshiDate"
           :height="320"
         />
         <!-- K线图 + OHLC 信息条 -->
@@ -332,6 +437,36 @@ initStockList()
 .search-code {
   color: var(--m-text-tertiary);
   font-size: var(--m-font-xs);
+}
+
+/* 最近浏览 */
+.recent-area {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--m-space-xs);
+  margin-top: var(--m-space-sm);
+}
+
+.recent-label {
+  font-size: var(--m-font-xs);
+  color: var(--m-text-tertiary);
+  white-space: nowrap;
+}
+
+.recent-chip {
+  height: 26px;
+  padding: 0 var(--m-space-sm);
+  border: 1px solid var(--m-border-color);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-bg-primary);
+  color: var(--m-text-primary);
+  font-size: var(--m-font-xs);
+  white-space: nowrap;
+}
+
+.recent-chip:active {
+  transform: scale(0.95);
 }
 
 .stock-info-bar {

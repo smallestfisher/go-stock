@@ -9,7 +9,7 @@ import {
   stochRsiValues, cmoValues, trixValues, rocValues, coppockValues, smiValues, aoValues,
   cmfValues, adValues, forceIndexValues, chaikinOscValues,
   chopValues, massIndexValues, ulcerIndexValues, elderRayValues, satsValues,
-  emaLeadingNull, ttmSqueezeValues, aroonValues,
+  emaLeadingNull, ttmSqueezeValues, aroonValues, smaValues,
 } from '../../../components/kline/calc'
 
 const props = defineProps({
@@ -30,11 +30,17 @@ const props = defineProps({
   indicators: {
     type: Array,
     default: () => ['MA', 'VOL']
+  },
+  // OHLC 信息条显示的字段（窄屏精简用）。默认全集（兼容个股 K 线分析）。
+  // 可选项：open/close/high/low/changePercent/changeValue/volume/amount/amplitude/avgAmp5/avgAmp10/avgAmp20/turnoverRate/volumeRatio
+  fields: {
+    type: Array,
+    default: () => ['open', 'close', 'high', 'low', 'changePercent', 'changeValue', 'volume', 'amount', 'amplitude', 'avgAmp5', 'avgAmp10', 'avgAmp20', 'turnoverRate', 'volumeRatio']
   }
 })
 
 // 副图指标清单（顺序即从上到下排列）
-const SUB_INDICATORS = ['MACD', 'KDJ', 'RSI', 'CCI', 'WR', 'STOCHRSI', 'CMO', 'TRIX', 'ROC', 'COPPOCK', 'SMI', 'AO', 'OBV', 'MFI', 'CMF', 'AD', 'FI', 'CHAIKINOSC', 'ATR', 'TTM', 'AVGAMP', 'MASSINDEX', 'ULCER', 'SATS', 'ADX', 'AROON', 'CHOP', 'ELDERRAY']
+const SUB_INDICATORS = ['MACD', 'KDJ', 'RSI', 'CCI', 'WR', 'STOCHRSI', 'CMO', 'TRIX', 'ROC', 'COPPOCK', 'SMI', 'AO', 'OBV', 'MFI', 'CMF', 'AD', 'FI', 'CHAIKINOSC', 'ATR', 'TTM', 'AVGAMP', 'MASSINDEX', 'ULCER', 'SATS', 'ADX', 'AROON', 'CHOP', 'ELDERRAY', 'SIGNALRATIO']
 // 当前生效的副图
 const activeSubs = computed(() => SUB_INDICATORS.filter(c => props.indicators.includes(c)))
 
@@ -129,6 +135,32 @@ const activeBar = computed(() => {
   }
 })
 
+// ---- OHLC 信息条字段配置（受 fields prop 控制，窄屏可精简） ----
+// color: 'oc' = 开收同色(涨跌)，'chg' = 涨跌色，'rise' = 固定红，'fall' = 固定绿
+const FIELD_DEFS = [
+  { key: 'open', label: '开', color: 'oc' },
+  { key: 'close', label: '收', color: 'oc' },
+  { key: 'high', label: '高', color: 'rise' },
+  { key: 'low', label: '低', color: 'fall' },
+  { key: 'changePercent', label: '涨跌幅', color: 'chg' },
+  { key: 'changeValue', label: '涨跌额', color: 'chg' },
+  { key: 'volume', label: '成交量' },
+  { key: 'amount', label: '成交额' },
+  { key: 'amplitude', label: '振幅' },
+  { key: 'avgAmp5', label: '均幅5' },
+  { key: 'avgAmp10', label: '均幅10' },
+  { key: 'avgAmp20', label: '均幅20' },
+  { key: 'turnoverRate', label: '换手率' },
+  { key: 'volumeRatio', label: '量比', color: 'chg' },
+]
+const visibleFields = computed(() => FIELD_DEFS.filter(f => props.fields.includes(f.key)))
+function fieldStyle(f) {
+  if (!f.color) return null
+  if (f.color === 'oc') return { color: activeBar.value?.cOpenClose }
+  if (f.color === 'chg') return { color: activeBar.value?.cChg }
+  return null
+}
+
 // ---- 数据规范化 ----
 const norm = computed(() => {
   const arr = props.data || []
@@ -217,6 +249,202 @@ function avgAmpSeries(cl, hi, lo) {
     return null
   })
   return arr
+}
+
+// 信号比例副图（对齐桌面端 signalRatio）：逐根 K 线评估全部指标，
+// 输出 看多%/看空%/净% 三条曲线。预计算指标数组一次再逐根判定，O(N)。
+function buildSignalRatioSeries(gridIdx, c) {
+  const cl = closes.value, hi = highs.value, lo = lows.value, vl = vols.value
+  const n = cl.length
+  const bullish = new Array(n).fill(null)
+  const bearish = new Array(n).fill(null)
+  const net = new Array(n).fill(null)
+  if (n < 2) return []
+
+  // 预计算所有指标数组（只算一次）
+  const ma5 = smaValues(cl, 5), ma10 = smaValues(cl, 10), ma20 = smaValues(cl, 20), ma60 = smaValues(cl, 60)
+  const ema12 = emaFinite(cl, 12), ema21 = emaFinite(cl, 21)
+  const { upper: bollU, mid: bollM, lower: bollL } = bollingerBands(cl, 20, 2)
+  const vw = vwapValues(hi, lo, cl, vl, 20)
+  const dema21 = demaValues(cl, 21), tema21 = temaValues(cl, 21)
+  const kama10 = kamaValues(cl, 10, 2, 30), hull9 = hullMaValues(cl, 9)
+  const { upper: kU, lower: kL } = keltnerChannelValues(hi, lo, cl, 20, 10, 1.5)
+  const { direction: stDir } = supertrendValues(hi, lo, cl, 10, 3)
+  const { tenkan: ichTen, kijun: ichKij, spanA: ichSA, senkouB: ichSB } = ichimokuValues(hi, lo, cl)
+  const { direction: sarDir } = sarValues(hi, lo, cl, 0.02, 0.2)
+  const { upper: dcU, lower: dcL } = donchianChannelValues(hi, lo, 20)
+  const { jaw: agJ, teeth: agT, lips: agL } = alligatorValues(hi, lo, cl)
+  const { directions: zzDir } = zigzagValues(hi, lo, cl, 5)
+  const { direction: satsDir } = satsValues(hi, lo, cl, vl)
+  const { pp: pivPP, s1: pivS1, r1: pivR1 } = pivotPointsValues(hi, lo, cl)
+  const { vwap: vbM, upper: vbU, lower: vbL } = vwapBandsValues(hi, lo, cl, vl)
+  const { dif: macdDif, dea: macdDea, hist: macdHist } = macdBundle(cl)
+  const rsi14 = rsiBundle(cl, 14)
+  const { K: kdjK, D: kdjD, J: kdjJ } = kdjBundle(hi, lo, cl, 9)
+  const cci20 = cciValues(hi, lo, cl, 20), wr14 = williamsRValues(hi, lo, cl, 14)
+  const { k: stochK, d: stochD } = stochRsiValues(cl, 14, 14, 3, 3)
+  const { adx: adxVal, diP: adxP, diM: adxM } = adxValues(hi, lo, cl, 14)
+  const { up: arUp, down: arDown } = aroonValues(hi, lo, 25)
+  const cmo14 = cmoValues(cl, 14), trix15 = trixValues(cl, 15), trixSig = emaLeadingNull(trix15, 9)
+  const roc12 = rocValues(cl, 12), coppock = coppockValues(cl)
+  const { smi: smiD, signal: smiS } = smiValues(hi, lo, cl)
+  const ao534 = aoValues(hi, lo), obv = obvValues(cl, vl), mfi14 = mfiValues(hi, lo, cl, vl, 14)
+  const cmf20 = cmfValues(hi, lo, cl, vl, 20), adLine = adValues(hi, lo, cl, vl)
+  const fi13 = forceIndexValues(cl, vl, 13), co310 = chaikinOscValues(hi, lo, cl, vl, 3, 10)
+  const atr14 = atrValues(hi, lo, cl, 14), chop14 = chopValues(hi, lo, cl, 14)
+  const miVal = massIndexValues(hi, lo), uiVal = ulcerIndexValues(cl)
+  const { squeeze: ttmSq, momentum: ttmMo } = ttmSqueezeValues(hi, lo, cl)
+  const { bullPower: erBull, bearPower: erBear } = elderRayValues(hi, lo, cl, 13)
+
+  // ZigZag 方向缓存：取最近非零方向
+  const zzLastDir = new Array(n).fill(0)
+  let lastNonZero = 0
+  for (let i = 0; i < zzDir.length; i++) {
+    if (zzDir[i] === 1 || zzDir[i] === -1) lastNonZero = zzDir[i]
+    zzLastDir[i] = lastNonZero
+  }
+
+  const v = (arr, i) => (i >= 0 && i < arr.length && arr[i] != null && Number.isFinite(arr[i])) ? arr[i] : null
+  const vPrev = (arr, i) => v(arr, i - 1)
+
+  // 逐根评估（判定逻辑与桌面端严格一致）
+  for (let i = 0; i < n; i++) {
+    const cc = cl[i]
+    if (cc == null || !Number.isFinite(cc)) continue
+    let bull = 0, bear = 0, neut = 0, osci = 0, cnt = 0
+    // MA
+    { const a5=v(ma5,i),a10=v(ma10,i),a20=v(ma20,i),a60=v(ma60,i)
+      if(a5!=null&&a10!=null&&a20!=null&&a60!=null){cnt++;if(a5>a10&&a10>a20&&a20>a60)bull++;else if(a5<a10&&a10<a20&&a20<a60)bear++;else if((a5>a20&&a10<a60)||(a5<a20&&a10>a60))osci++;else neut++;} }
+    // EMA
+    { const e12=v(ema12,i),e21=v(ema21,i)
+      if(e12!=null&&e21!=null){cnt++;if(e12>e21)bull++;else if(e12<e21)bear++;else neut++;} }
+    // BOLL
+    { const bu=v(bollU,i),bm=v(bollM,i),bl=v(bollL,i)
+      if(bu!=null&&bm!=null&&bl!=null){cnt++;if(cc>bu)bull++;else if(cc<bl)bear++;else if(cc>bm)osci++;else neut++;} }
+    // VWAP
+    { const vwv=v(vw,i);if(vwv!=null){cnt++;if(cc>vwv)bull++;else if(cc<vwv)bear++;else neut++;} }
+    // DEMA
+    { const dv=v(dema21,i);if(dv!=null){cnt++;if(cc>dv)bull++;else if(cc<dv)bear++;else neut++;} }
+    // TEMA
+    { const tv2=v(tema21,i);if(tv2!=null){cnt++;if(cc>tv2)bull++;else if(cc<tv2)bear++;else neut++;} }
+    // KAMA
+    { const kv=v(kama10,i),kp=vPrev(kama10,i)
+      if(kv!=null&&kp!=null){cnt++;if(cc>kv&&kv>kp)bull++;else if(cc<kv&&kv<kp)bear++;else neut++;} }
+    // HullMA
+    { const hv=v(hull9,i),hp=vPrev(hull9,i)
+      if(hv!=null&&hp!=null){cnt++;if(hv>hp)bull++;else if(hv<hp)bear++;else neut++;} }
+    // Keltner
+    { const ku=v(kU,i),kl=v(kL,i)
+      if(ku!=null&&kl!=null){cnt++;if(cc>ku)bull++;else if(cc<kl)bear++;else osci++;} }
+    // SuperTrend
+    { const sd=v(stDir,i);if(sd!=null){cnt++;if(sd===1)bull++;else if(sd===-1)bear++;else neut++;} }
+    // Ichimoku
+    { const it=v(ichTen,i),ik=v(ichKij,i),isa=v(ichSA,i),isb=v(ichSB,i)
+      if(it!=null&&ik!=null&&isa!=null&&isb!=null){const ct=Math.max(isa,isb),cb=Math.min(isa,isb);cnt++;if(cc>ct&&it>ik)bull++;else if(cc<cb&&it<ik)bear++;else if(cc>=cb&&cc<=ct)osci++;else neut++;} }
+    // SAR
+    { const sd2=v(sarDir,i);if(sd2!=null){cnt++;if(sd2===1)bull++;else if(sd2===-1)bear++;else neut++;} }
+    // Donchian
+    { const du=v(dcU,i),dl=v(dcL,i)
+      if(du!=null&&dl!=null){cnt++;if(cc>=du)bull++;else if(cc<=dl)bear++;else osci++;} }
+    // Alligator
+    { const aj=v(agJ,i),at=v(agT,i),al=v(agL,i)
+      if(aj!=null&&at!=null&&al!=null){cnt++;if(al>at&&at>aj)bull++;else if(al<at&&at<aj)bear++;else osci++;} }
+    // ZigZag
+    { const zd=zzLastDir[i];if(zd!==0){cnt++;if(zd===-1)bull++;else if(zd===1)bear++;else neut++;} }
+    // SATS
+    { const sd3=v(satsDir,i);if(sd3!=null){cnt++;if(sd3===1)bull++;else if(sd3===-1)bear++;else neut++;} }
+    // Pivot
+    { const pp=v(pivPP,i),s1=v(pivS1,i),r1=v(pivR1,i)
+      if(pp!=null&&r1!=null&&s1!=null){cnt++;if(cc>r1)bull++;else if(cc<s1)bear++;else if(cc>pp)osci++;else neut++;} }
+    // VWAPBands
+    { const vu=v(vbU,i),vl2=v(vbL,i)
+      if(vu!=null&&vl2!=null){cnt++;if(cc>vu)bull++;else if(cc<vl2)bear++;else osci++;} }
+    // MACD
+    { const md=v(macdDif,i),me=v(macdDea,i),mh=v(macdHist,i)
+      if(md!=null&&me!=null&&mh!=null){cnt++;if(md>me&&mh>0)bull++;else if(md<me&&mh<0)bear++;else if((md>0&&mh<0)||(md<0&&mh>0))osci++;else neut++;} }
+    // RSI
+    { const rv=v(rsi14,i);if(rv!=null){cnt++;if(rv>70)osci++;else if(rv<30)osci++;else if(rv>50)bull++;else bear++;} }
+    // KDJ
+    { const kk=v(kdjK,i),kd=v(kdjD,i),kj=v(kdjJ,i)
+      if(kk!=null&&kd!=null&&kj!=null){cnt++;if(kj>kk&&kk>kd&&kk<80)bull++;else if(kj<kk&&kk<kd&&kk>20)bear++;else if(kk>80)bear++;else if(kk<20)bull++;else osci++;} }
+    // CCI
+    { const cv=v(cci20,i);if(cv!=null){cnt++;if(cv>100)bull++;else if(cv<-100)bear++;else osci++;} }
+    // W%R
+    { const wv=v(wr14,i);if(wv!=null){cnt++;if(wv<-80)bull++;else if(wv>-20)bear++;else osci++;} }
+    // StochRSI
+    { const sk=v(stochK,i),sd4=v(stochD,i)
+      if(sk!=null&&sd4!=null){cnt++;if(sk<20&&sd4<20&&sk>sd4)bull++;else if(sk>80&&sd4>80&&sk<sd4)bear++;else osci++;} }
+    // ADX
+    { const av=v(adxVal,i),ap=v(adxP,i),am=v(adxM,i)
+      if(av!=null&&ap!=null&&am!=null){cnt++;if(av>25&&ap>am)bull++;else if(av>25&&ap<am)bear++;else osci++;} }
+    // Aroon
+    { const au=v(arUp,i),ad2=v(arDown,i)
+      if(au!=null&&ad2!=null){cnt++;if(au>70&&ad2<30)bull++;else if(ad2>70&&au<30)bear++;else osci++;} }
+    // CMO
+    { const cv2=cmo14[i];if(cv2!=null&&Number.isFinite(cv2)){cnt++;if(cv2>50)bull++;else if(cv2<-50)bear++;else osci++;} }
+    // TRIX
+    { const tv3=v(trix15,i),ts=v(trixSig,i)
+      if(tv3!=null&&ts!=null){cnt++;if(tv3>ts)bull++;else if(tv3<ts)bear++;else neut++;} }
+    // ROC
+    { const rv2=v(roc12,i);if(rv2!=null){cnt++;if(rv2>0)bull++;else if(rv2<0)bear++;else neut++;} }
+    // Coppock
+    { const cv3=v(coppock,i),cp=vPrev(coppock,i)
+      if(cv3!=null&&cp!=null){cnt++;if(cv3>0&&cp<=0)bull++;else if(cv3<0)bear++;else neut++;} }
+    // SMI
+    { const sv=v(smiD,i),ss=v(smiS,i)
+      if(sv!=null&&ss!=null){cnt++;if(sv>ss&&sv>0)bull++;else if(sv<ss&&sv<0)bear++;else osci++;} }
+    // AO
+    { const av2=v(ao534,i),ap2=vPrev(ao534,i)
+      if(av2!=null&&ap2!=null){cnt++;if(av2>0&&av2>ap2)bull++;else if(av2<0&&av2<ap2)bear++;else if(av2>0&&av2<ap2)osci++;else neut++;} }
+    // OBV
+    { const ov=v(obv,i),op=vPrev(obv,i)
+      if(ov!=null&&op!=null){cnt++;if(ov>op)bull++;else if(ov<op)bear++;else neut++;} }
+    // MFI
+    { const mv=v(mfi14,i);if(mv!=null){cnt++;if(mv>80)osci++;else if(mv<20)osci++;else if(mv>50)bull++;else bear++;} }
+    // CMF
+    { const cv4=v(cmf20,i);if(cv4!=null){cnt++;if(cv4>0.05)bull++;else if(cv4<-0.05)bear++;else osci++;} }
+    // A/D
+    { const av3=v(adLine,i),ap3=vPrev(adLine,i)
+      if(av3!=null&&ap3!=null){cnt++;if(av3>ap3)bull++;else if(av3<ap3)bear++;else neut++;} }
+    // FI
+    { const fv=v(fi13,i);if(fv!=null){cnt++;if(fv>0)bull++;else if(fv<0)bear++;else neut++;} }
+    // ChaikinOsc
+    { const cv5=v(co310,i),cp2=vPrev(co310,i)
+      if(cv5!=null&&cp2!=null){cnt++;if(cv5>0&&cv5>cp2)bull++;else if(cv5<0&&cv5<cp2)bear++;else osci++;} }
+    // ATR
+    { const av4=v(atr14,i),ap4=vPrev(atr14,i)
+      if(av4!=null&&ap4!=null){cnt++;if(av4>ap4)osci++;else neut++;} }
+    // CHOP
+    { const cv6=v(chop14,i);if(cv6!=null){cnt++;if(cv6>61.8)osci++;else neut++;} }
+    // MassIndex
+    { const mv2=v(miVal,i),mp=vPrev(miVal,i)
+      if(mv2!=null&&mp!=null){cnt++;if(mp>27&&mv2<27)bull++;else neut++;} }
+    // UlcerIndex
+    { const uv=v(uiVal,i);if(uv!=null){cnt++;if(uv<5)bull++;else if(uv>15)bear++;else neut++;} }
+    // TTM
+    { const sq=v(ttmSq,i),mo=v(ttmMo,i)
+      if(sq!=null&&mo!=null){cnt++;if(!sq&&mo>0)bull++;else if(!sq&&mo<0)bear++;else if(sq)osci++;else neut++;} }
+    // ElderRay
+    { const bp=v(erBull,i),brp=v(erBear,i)
+      if(bp!=null&&brp!=null){cnt++;if(bp>0&&bp>brp)bull++;else if(brp<0&&brp<bp)bear++;else osci++;} }
+    // 汇总
+    if (cnt > 0) {
+      bullish[i] = +(bull / cnt * 100).toFixed(2)
+      bearish[i] = +(bear / cnt * 100).toFixed(2)
+      net[i] = +((bull - bear) / cnt * 100).toFixed(2)
+    }
+  }
+
+  const mkSubLine = (name, data, color) => ({
+    name, type: 'line', data, xAxisIndex: gridIdx, yAxisIndex: gridIdx,
+    showSymbol: false, lineStyle: { width: 1, color },
+  })
+  // 看多=涨红、看空=跌绿、净=蓝（对齐移动端涨红跌绿习惯）
+  return [
+    mkSubLine('看多%', bullish, c.rise),
+    mkSubLine('看空%', bearish, c.fall),
+    mkSubLine('净%', net, '#3b82f6'),
+  ]
 }
 
 // 构建某个副图指标的 series（返回数组）
@@ -311,6 +539,8 @@ function buildSubSeries(code, gridIdx, c) {
       const { bullPower, bearPower } = elderRayValues(hi, lo, cl, 13)
       return [mkLine('多头力', bullPower, '#ef4444'), mkLine('空头力', bearPower, '#10b981')]
     }
+    case 'SIGNALRATIO':
+      return buildSignalRatioSeries(gridIdx, c)
   }
   return []
 }
@@ -573,20 +803,12 @@ onBeforeUnmount(() => {
         <span class="ohlc-day">{{ activeBar.day }}<span v-if="!activeBar.isLatest" class="ohlc-tag">悬停</span><span v-else class="ohlc-tag">最新</span></span>
       </div>
       <div class="ohlc-grid">
-        <span class="kv"><i>开</i><b :style="{ color: activeBar.cOpenClose }">{{ activeBar.open }}</b></span>
-        <span class="kv"><i>收</i><b :style="{ color: activeBar.cOpenClose }">{{ activeBar.close }}</b></span>
-        <span class="kv"><i>高</i><b class="c-rise">{{ activeBar.high }}</b></span>
-        <span class="kv"><i>低</i><b class="c-fall">{{ activeBar.low }}</b></span>
-        <span class="kv"><i>涨跌幅</i><b :style="{ color: activeBar.cChg }">{{ activeBar.changePercent }}</b></span>
-        <span class="kv"><i>涨跌额</i><b :style="{ color: activeBar.cChg }">{{ activeBar.changeValue }}</b></span>
-        <span class="kv"><i>成交量</i><b>{{ activeBar.volume }}</b></span>
-        <span class="kv"><i>成交额</i><b>{{ activeBar.amount }}</b></span>
-        <span class="kv"><i>振幅</i><b>{{ activeBar.amplitude }}</b></span>
-        <span class="kv"><i>均幅5</i><b>{{ activeBar.avgAmp5 }}</b></span>
-        <span class="kv"><i>均幅10</i><b>{{ activeBar.avgAmp10 }}</b></span>
-        <span class="kv"><i>均幅20</i><b>{{ activeBar.avgAmp20 }}</b></span>
-        <span class="kv"><i>换手率</i><b>{{ activeBar.turnoverRate }}</b></span>
-        <span class="kv"><i>量比</i><b :style="{ color: activeBar.cChg }">{{ activeBar.volumeRatio }}</b></span>
+        <span v-for="f in visibleFields" :key="f.key" class="kv">
+          <i>{{ f.label }}</i>
+          <b :style="fieldStyle(f)" :class="{ 'c-rise': f.color === 'rise', 'c-fall': f.color === 'fall' }">
+            {{ activeBar[f.key] }}
+          </b>
+        </span>
       </div>
     </div>
 

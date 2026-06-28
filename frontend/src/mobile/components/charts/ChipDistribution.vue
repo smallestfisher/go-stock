@@ -104,7 +104,11 @@ function redraw() { nextTick(draw) }
 
 watch(() => props.data, () => { compute(); redraw() }, { deep: true })
 
-onMounted(() => { compute(); redraw() })
+onMounted(() => {
+  compute()
+  redraw()
+  window.addEventListener('resize', redraw)
+})
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', redraw)
