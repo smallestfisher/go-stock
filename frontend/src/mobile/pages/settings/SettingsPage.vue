@@ -138,17 +138,9 @@ onBeforeMount(loadConfig)
 
       <!-- 基本设置 -->
       <MCard v-else-if="activeTab === 'general'">
-        <div class="switch-item" @click="config.darkTheme = !config.darkTheme">
-          <span class="item-label">暗黑主题</span>
-          <span class="switch" :class="{ 'switch--on': config.darkTheme }" />
-        </div>
         <div class="switch-item" @click="config.enableNews = !config.enableNews">
           <span class="item-label">滚动快讯</span>
           <span class="switch" :class="{ 'switch--on': config.enableNews }" />
-        </div>
-        <div class="switch-item" @click="config.enableDanmu = !config.enableDanmu">
-          <span class="item-label">弹幕功能</span>
-          <span class="switch" :class="{ 'switch--on': config.enableDanmu }" />
         </div>
         <div class="switch-item" @click="config.enableFund = !config.enableFund">
           <span class="item-label">基金功能</span>
@@ -157,10 +149,6 @@ onBeforeMount(loadConfig)
         <div class="switch-item" @click="config.enableAgent = !config.enableAgent">
           <span class="item-label">AI智能体</span>
           <span class="switch" :class="{ 'switch--on': config.enableAgent }" />
-        </div>
-        <div class="switch-item" @click="config.updateBasicInfoOnStart = !config.updateBasicInfoOnStart">
-          <span class="item-label">启动时更新基础信息</span>
-          <span class="switch" :class="{ 'switch--on': config.updateBasicInfoOnStart }" />
         </div>
         <div class="input-item">
           <label class="item-label">数据刷新间隔(秒)</label>
