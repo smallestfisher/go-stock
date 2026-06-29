@@ -90,7 +90,12 @@ export default defineConfig({
       }),
   ],
   server: {
+      host: '0.0.0.0',
       port: 5173,
+      allowedHosts: [
+          '192.168.5.20',
+          'lanbeilvdou.dpdns.org',
+      ],
       proxy: {
           '/api': {
               target: 'http://localhost:18888',

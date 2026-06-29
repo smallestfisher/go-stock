@@ -9,6 +9,7 @@ import NewsCard from '../components/cards/NewsCard.vue'
 import HotTopicCard from '../components/cards/HotTopicCard.vue'
 import AlertCard from '../components/cards/AlertCard.vue'
 import IndustryCard from '../components/cards/IndustryCard.vue'
+import StockDetailSheet from '../components/sheets/StockDetailSheet.vue'
 import MCard from '../components/base/MCard.vue'
 
 // 导入API
@@ -19,8 +20,7 @@ import {
   ReFleshTelegraphList,
   HotTopic,
   GetStockChanges,
-  GetIndustryRank,
-  GetTodayMarketStatistic
+  GetIndustryRank
 } from '../../api/app'
 import { registerFeed, stopFeed } from '../../api/scheduler'
 import { EventsOn, EventsOff } from '../../api/runtime'
@@ -34,12 +34,13 @@ const newsData = ref([])
 const topicsData = ref([])
 const alertsData = ref([])
 const industriesData = ref([])
-const marketStatistic = ref(null)
 
-const refreshCount = ref(0)
-const loading = ref(true)
 const NEWS_SOURCES = ['财联社电报', '新浪财经', '外媒']
 const HOME_NEWS_LIMIT = 3
+
+// 个股详情抽屉
+const detailVisible = ref(false)
+const selectedStock = ref(null)
 
 function pick(item, keys, fallback = undefined) {
   for (const key of keys) {
@@ -320,16 +321,6 @@ async function loadIndustriesData() {
   }
 }
 
-// 加载市场统计
-async function loadMarketStatistic() {
-  try {
-    const result = await GetTodayMarketStatistic()
-    marketStatistic.value = result
-  } catch (error) {
-    console.error('加载市场统计失败:', error)
-  }
-}
-
 // 格式化领涨股展示
 function formatLeadingStock(item) {
   const name = pick(item, ['nzg_name', 'leadingStock'], '')
@@ -355,31 +346,23 @@ function mapChangeType(type) {
 
 // 加载所有数据
 async function loadAllData() {
-  loading.value = true
-  try {
-    await Promise.all([
-      loadStockData(),
-      loadNewsData(),
-      loadTopicsData(),
-      loadAlertsData(),
-      loadIndustriesData(),
-      loadMarketStatistic()
-    ])
-  } finally {
-    loading.value = false
-  }
+  await Promise.all([
+    loadStockData(),
+    loadNewsData(),
+    loadTopicsData(),
+    loadAlertsData(),
+    loadIndustriesData()
+  ])
 }
 
 // 下拉刷新（快讯用 ReFleshTelegraphList 真正抓取最新，其余读缓存）
 async function handleRefresh() {
-  refreshCount.value++
   await Promise.all([
     loadStockData(),
     refreshNewsData(),
     loadTopicsData(),
     loadAlertsData(),
-    loadIndustriesData(),
-    loadMarketStatistic()
+    loadIndustriesData()
   ])
 }
 
@@ -451,27 +434,30 @@ function navigateTo(path) {
 
 // 卡片事件处理
 function handleStockClick(stock) {
-  console.log('点击股票:', stock)
-  // TODO: 打开股票详情抽屉
+  // 打开个股详情抽屉（StockDetailSheet 内部按 code 拉分时/K线/盘口/资金）
+  selectedStock.value = stock
+  detailVisible.value = true
 }
 
 function handleNewsClick(news) {
-  console.log('点击新闻:', news)
-  // TODO: 打开新闻详情
+  // 电报无独立详情页：有链接则外开，否则进入市场页看完整快讯
+  const url = pick(news, ['url', 'URL'], '')
+  if (url) {
+    window.open(url, '_blank')
+  } else {
+    navigateTo('/mobile/market')
+  }
 }
 
 function handleTopicClick(topic) {
-  console.log('点击热点:', topic)
   navigateTo('/mobile/market')
 }
 
 function handleAlertClick(alert) {
-  console.log('点击异动:', alert)
   navigateTo('/mobile/research')
 }
 
 function handleIndustryClick(industry) {
-  console.log('点击行业:', industry)
   navigateTo('/mobile/market')
 }
 </script>
@@ -537,11 +523,13 @@ function handleIndustryClick(industry) {
 
       <!-- 底部提示 -->
       <div class="home-footer">
-        <p class="footer-text">下拉刷新数据 · 已刷新 {{ refreshCount }} 次</p>
-        <p class="footer-tip">💡 点击卡片查看详情</p>
+        <p class="footer-text">行情数据仅供参考，请下拉刷新</p>
       </div>
     </div>
   </MPullRefresh>
+
+    <!-- 个股详情抽屉 -->
+    <StockDetailSheet v-model:show="detailVisible" :stock="selectedStock" />
 </div>
 </template>
 
@@ -551,24 +539,6 @@ function handleIndustryClick(industry) {
   flex-direction: column;
   height: 100%;
   background: var(--m-bg-primary);
-}
-
-/* 顶部操作按钮（搜索/通知） */
-.action-btn {
-  width: var(--m-touch-min);
-  height: var(--m-touch-min);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  color: var(--m-text-primary);
-  cursor: pointer;
-}
-
-.action-btn:active {
-  opacity: 0.6;
 }
 
 .home-page {
@@ -619,9 +589,5 @@ function handleIndustryClick(industry) {
 .footer-text {
   font-size: var(--m-font-sm);
   margin-bottom: var(--m-space-xs);
-}
-
-.footer-tip {
-  font-size: var(--m-font-xs);
 }
 </style>

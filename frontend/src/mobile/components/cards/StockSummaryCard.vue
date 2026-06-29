@@ -79,57 +79,6 @@ function fmt(v) {
   return n ? n.toFixed(2) : '--'
 }
 
-// 量额格式化（万/亿）
-function big(n) {
-  n = Number(n) || 0
-  if (!n) return '--'
-  if (n >= 100000000) return `${(n / 100000000).toFixed(2)}亿`
-  if (n >= 10000) return `${(n / 10000).toFixed(2)}万`
-  return String(n)
-}
-
-function fmtDatePart(date) {
-  if (!date) return ''
-  const s = String(date).trim()
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(5, 10)
-  if (/^\d{8}$/.test(s)) return `${s.slice(4, 6)}-${s.slice(6, 8)}`
-  const d = new Date(s)
-  if (isNaN(d.getTime())) return ''
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${mm}-${dd}`
-}
-
-function fmtTimePart(t) {
-  if (!t) return ''
-  const s = String(t).trim()
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) {
-    return s
-  }
-  const d = new Date(s)
-  if (!isNaN(d.getTime())) {
-    const hh = String(d.getHours()).padStart(2, '0')
-    const mi = String(d.getMinutes()).padStart(2, '0')
-    const ss = String(d.getSeconds()).padStart(2, '0')
-    return `${hh}:${mi}:${ss}`
-  }
-  return s
-}
-
-// 行情时间：后端行情源返回的日期/时间，不是页面刷新时间。
-function fmtQuoteTime(stock) {
-  const time = fmtTimePart(stock?.time)
-  if (!time) return ''
-
-  const date = fmtDatePart(stock?.quoteDate || stock?.date)
-  if (date) return `行情 ${date} ${time}`
-
-  const dateFromTime = fmtDatePart(stock?.time)
-  if (dateFromTime) return `行情 ${dateFromTime} ${time}`
-
-  return `行情 ${time}`
-}
-
 function handleViewAll() {
   emit('viewAll')
 }
@@ -169,17 +118,6 @@ function handleStockClick(stock) {
           <div class="stock-name-row">
             <span class="stock-name">{{ stock.name }}</span>
             <span class="stock-code">{{ stock.code }}</span>
-            <span v-if="stock.time" class="stock-time">{{ fmtQuoteTime(stock) }}</span>
-          </div>
-          <div class="stock-sub">
-            <span>开 <b>{{ fmt(stock.open) }}</b></span>
-            <span>高 <b class="m-rise">{{ fmt(stock.high) }}</b></span>
-            <span>低 <b class="m-fall">{{ fmt(stock.low) }}</b></span>
-            <span>昨收 <b>{{ fmt(stock.preClose) }}</b></span>
-          </div>
-          <div class="stock-sub">
-            <span>量 {{ big(stock.volume) }}</span>
-            <span>额 {{ big(stock.turnover) }}</span>
           </div>
           <!-- 持仓盈亏（有成本+持仓才显示，对齐桌面端） -->
           <div v-if="hasPosition(stock)" class="stock-pnl">
@@ -279,45 +217,29 @@ function handleStockClick(stock) {
   display: flex;
   flex-direction: column;
   gap: var(--m-space-xs);
-}
-
-.stock-name {
-  font-size: var(--m-font-md);
-  font-weight: var(--m-font-weight-medium);
-  color: var(--m-text-primary);
-}
-
-.stock-code {
-  font-size: var(--m-font-xs);
-  color: var(--m-text-tertiary);
+  min-width: 0;
 }
 
 .stock-name-row {
   display: flex;
   align-items: baseline;
   gap: var(--m-space-sm);
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
-.stock-time {
-  font-size: var(--m-font-xs);
-  color: var(--m-text-quaternary, var(--m-text-tertiary));
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
+.stock-name {
+  font-size: var(--m-font-md);
+  font-weight: var(--m-font-weight-medium);
+  color: var(--m-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.stock-sub {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--m-space-xs) var(--m-space-md);
+.stock-code {
   font-size: var(--m-font-xs);
   color: var(--m-text-tertiary);
-}
-
-.stock-sub b {
-  font-weight: var(--m-font-weight-medium);
-  color: var(--m-text-secondary);
-  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 /* 持仓盈亏（精简：盈亏率% + 盈亏额¥） */

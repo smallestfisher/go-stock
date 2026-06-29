@@ -3,6 +3,7 @@
 // 导入移动端设计系统和全局工具类
 import './styles/mobile.css'
 import MobileDock from './components/base/MobileDock.vue'
+import MToastHost from './components/base/MToastHost.vue'
 </script>
 
 <template>
@@ -12,6 +13,8 @@ import MobileDock from './components/base/MobileDock.vue'
     </div>
     <!-- 底部 dock 栏：常驻所有页面（4主tab + 更多） -->
     <MobileDock />
+    <!-- 全局 toast 宿主 -->
+    <MToastHost />
   </div>
 </template>
 
