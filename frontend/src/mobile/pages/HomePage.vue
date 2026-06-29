@@ -23,6 +23,7 @@ import {
   GetIndustryRank
 } from '../../api/app'
 import { registerFeed, stopFeed } from '../../api/scheduler'
+import { anyOpen } from '../../api/marketClock'
 import { EventsOn, EventsOff } from '../../api/runtime'
 import { formatHeat } from '../composables/useFormat'
 
@@ -373,7 +374,8 @@ onBeforeMount(async () => {
   // 注册轮询任务（每10秒刷新一次）
   registerFeed('mobile-home-stocks', {
     fetch: loadStockData,
-    intervalMs: 10000
+    intervalMs: 10000,
+    activeWhen: () => anyOpen.value
   })
 
   registerFeed('mobile-home-news', {
