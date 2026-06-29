@@ -484,7 +484,7 @@ function handleIndustryClick(industry) {
       <!-- 市场快讯卡片 -->
       <MCard>
         <div class="news-header">
-          <h3 class="news-title">📰 市场快讯</h3>
+          <h3 class="news-title">市场快讯</h3>
           <button class="news-action" @click="navigateTo('/mobile/market')">
             更多 →
           </button>
@@ -523,7 +523,8 @@ function handleIndustryClick(industry) {
 
       <!-- 底部提示 -->
       <div class="home-footer">
-        <p class="footer-text">行情数据仅供参考，请下拉刷新</p>
+        <span class="footer-line" />
+        <p class="footer-text">行情数据仅供参考 · 下拉刷新</p>
       </div>
     </div>
   </MPullRefresh>
@@ -538,7 +539,9 @@ function handleIndustryClick(industry) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--m-bg-primary);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(208, 48, 80, 0.06) 0%, rgba(208, 48, 80, 0) 60%),
+    var(--m-bg-primary);
 }
 
 .home-page {
@@ -557,9 +560,21 @@ function handleIndustryClick(industry) {
 }
 
 .news-title {
+  display: flex;
+  align-items: center;
+  gap: var(--m-space-sm);
   font-size: var(--m-font-lg);
-  font-weight: var(--m-font-weight-medium);
+  font-weight: var(--m-font-weight-bold);
   color: var(--m-text-primary);
+  letter-spacing: 0.2px;
+}
+
+.news-title::before {
+  content: '';
+  width: 3px;
+  height: 15px;
+  border-radius: var(--m-radius-full);
+  background: var(--m-color-rise);
 }
 
 .news-action {
@@ -581,13 +596,23 @@ function handleIndustryClick(industry) {
 }
 
 .home-footer {
-  text-align: center;
-  padding: var(--m-space-xl) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--m-space-md);
+  padding: var(--m-space-xl) 0 var(--m-space-lg);
   color: var(--m-text-tertiary);
 }
 
+.footer-line {
+  width: 32px;
+  height: 2px;
+  border-radius: var(--m-radius-full);
+  background: var(--m-divider-color);
+}
+
 .footer-text {
-  font-size: var(--m-font-sm);
-  margin-bottom: var(--m-space-xs);
+  font-size: var(--m-font-xs);
+  letter-spacing: 0.3px;
 }
 </style>
