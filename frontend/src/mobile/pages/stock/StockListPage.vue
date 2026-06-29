@@ -514,11 +514,6 @@ onBeforeUnmount(() => {
       </div>
     </MPullRefresh>
 
-    <!-- 底部提示 -->
-    <div v-if="currentStocks.length" class="stock-list-footer">
-      <p>共 {{ currentStocks.length }} 只股票</p>
-    </div>
-
     <!-- 股票详情抽屉 -->
     <StockDetailSheet
       v-model:show="detailVisible"
@@ -743,19 +738,6 @@ onBeforeUnmount(() => {
   height: 100%;
   padding: var(--m-space-xs) var(--m-space-md);
   box-sizing: border-box;
-}
-
-.stock-list-footer {
-  text-align: center;
-  padding: var(--m-space-lg);
-  background: var(--m-bg-card);
-  border-top: 1px solid var(--m-divider-color);
-  color: var(--m-text-tertiary);
-  font-size: var(--m-font-sm);
-}
-
-.stock-list-footer p {
-  margin: var(--m-space-xs) 0;
 }
 
 /* ===== 添加自选搜索面板 ===== */
