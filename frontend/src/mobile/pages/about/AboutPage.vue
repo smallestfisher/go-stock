@@ -26,6 +26,10 @@ async function loadInfo() {
   }
 }
 
+function openUrl(url) {
+  window.open(url, '_blank')
+}
+
 onBeforeMount(loadInfo)
 </script>
 
@@ -58,13 +62,24 @@ onBeforeMount(loadInfo)
 
         <!-- 链接 -->
         <MCard>
+          <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock')">
+            <span class="link-icon">⭐</span>
+            <span class="link-label">GitHub 仓库</span>
+            <span class="link-arrow">↗</span>
+          </a>
+          <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock/issues')">
+            <span class="link-icon">🐛</span>
+            <span class="link-label">问题反馈 Issues</span>
+            <span class="link-arrow">↗</span>
+          </a>
+          <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock/releases')">
+            <span class="link-icon">🚀</span>
+            <span class="link-label">版本发布 Releases</span>
+            <span class="link-arrow">↗</span>
+          </a>
           <div class="info-item">
             <span class="info-label">开源协议</span>
             <span class="info-value">GPLv3</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">项目地址</span>
-            <span class="info-value">GitHub</span>
           </div>
         </MCard>
       </template>
@@ -136,6 +151,36 @@ onBeforeMount(loadInfo)
   line-height: var(--m-line-height-loose);
   max-height: 400px;
   overflow-y: auto;
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: var(--m-space-md);
+  padding: var(--m-space-lg) 0;
+  border-bottom: 1px solid var(--m-divider-color);
+  cursor: pointer;
+}
+
+.link-item:active {
+  opacity: 0.6;
+}
+
+.link-icon {
+  font-size: var(--m-font-lg);
+  width: 24px;
+  text-align: center;
+}
+
+.link-label {
+  flex: 1;
+  color: var(--m-text-primary);
+  font-size: var(--m-font-md);
+}
+
+.link-arrow {
+  color: var(--m-text-tertiary);
+  font-size: var(--m-font-md);
 }
 
 .info-item {

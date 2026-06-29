@@ -26,7 +26,7 @@ function handleViewMore() {
   <MCard>
     <!-- 头部 -->
     <div class="hot-topic-header">
-      <h3 class="header-title">🔥 实时热点</h3>
+      <h3 class="header-title">实时热点</h3>
       <button class="header-action" @click="handleViewMore">
         更多 →
       </button>
@@ -74,9 +74,21 @@ function handleViewMore() {
 }
 
 .header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--m-space-sm);
   font-size: var(--m-font-lg);
-  font-weight: var(--m-font-weight-medium);
+  font-weight: var(--m-font-weight-bold);
   color: var(--m-text-primary);
+  letter-spacing: 0.2px;
+}
+
+.header-title::before {
+  content: '';
+  width: 3px;
+  height: 15px;
+  border-radius: var(--m-radius-full);
+  background: var(--m-color-rise);
 }
 
 .header-action {

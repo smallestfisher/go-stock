@@ -10,6 +10,7 @@ import {
 } from '../../../api/app'
 import { EventsEmit } from '../../../api/runtime'
 import { promptPlazaURL, promptPlazaHeaders, parsePromptPlazaResponse } from '../../../api/promptPlaza'
+import { RECOMMENDED_PROMPTS } from '../../composables/recommendedPrompts'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
@@ -199,6 +200,45 @@ function fmtTime(s) {
 
 function isSystemType(type) {
   return type === '模型系统Prompt'
+}
+
+// ===== 导入推荐模板（内置 A股 长线/短线/选股/诊股 4 套）=====
+const importing = ref(false)
+
+async function importRecommended() {
+  if (importing.value) return
+  importing.value = true
+  try {
+    // 拉全量现有模板，按 name 去重，避免重复导入
+    const existing = new Set()
+    // 一次性多取，覆盖绝大多数情况（模板量通常很小）
+    const res = await GetPromptTemplateList({ page: 1, pageSize: 200, name: '', type: '', content: '' })
+    const rows = res && Array.isArray(res.list) ? res.list : []
+    rows.forEach(r => existing.add(r.name))
+
+    const toAdd = RECOMMENDED_PROMPTS.filter(t => !existing.has(t.name))
+    if (!toAdd.length) {
+      toast.info('推荐模板已全部导入')
+      return
+    }
+    let ok = 0
+    for (const t of toAdd) {
+      try {
+        await AddPromptTemplate({ ID: 0, name: t.name, type: t.type, content: t.content })
+        ok++
+      } catch (e) {
+        console.error('导入模板失败:', t.name, e)
+      }
+    }
+    toast.success(`已导入 ${ok} 套推荐模板`)
+    EventsEmit('promptTemplatesChanged')
+    fetchPage(1, false)
+  } catch (e) {
+    console.error('导入推荐模板失败:', e)
+    toast.error('导入失败')
+  } finally {
+    importing.value = false
+  }
 }
 
 onBeforeMount(() => {

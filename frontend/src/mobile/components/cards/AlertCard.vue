@@ -48,7 +48,7 @@ function formatTime(time) {
   <MCard>
     <!-- 头部 -->
     <div class="alert-header">
-      <h3 class="header-title">⚠️ 异动监控</h3>
+      <h3 class="header-title">异动监控</h3>
       <button class="header-action" @click="handleViewAll">
         查看全部 →
       </button>
@@ -100,9 +100,21 @@ function formatTime(time) {
 }
 
 .header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--m-space-sm);
   font-size: var(--m-font-lg);
-  font-weight: var(--m-font-weight-medium);
+  font-weight: var(--m-font-weight-bold);
   color: var(--m-text-primary);
+  letter-spacing: 0.2px;
+}
+
+.header-title::before {
+  content: '';
+  width: 3px;
+  height: 15px;
+  border-radius: var(--m-radius-full);
+  background: var(--m-color-rise);
 }
 
 .header-action {

@@ -236,7 +236,7 @@ async function confirmUnfollow() {
     closeActionMenu()
   } catch (e) {
     console.error('取消关注失败:', e)
-    alert('取消关注失败')
+    toast.error('取消关注失败')
   } finally {
     removingCode.value = ''
   }
@@ -271,7 +271,7 @@ async function addToGroup(groupId) {
     await loadGroups()
   } catch (e) {
     console.error('加入分组失败:', e)
-    alert('加入分组失败')
+    toast.error('加入分组失败')
   } finally {
     groupBusy.value = false
   }
@@ -288,7 +288,7 @@ async function removeFromGroup() {
     await loadStocks()
   } catch (e) {
     console.error('移出分组失败:', e)
-    alert('移出分组失败')
+    toast.error('移出分组失败')
   } finally {
     groupBusy.value = false
   }
@@ -298,14 +298,23 @@ async function removeFromGroup() {
 const groupMgrVisible = ref(false)      // 管理分组弹层
 const newGroupName = ref('')            // 新建分组名输入
 const groupMgrBusy = ref(false)
+const pendingDeleteGroupId = ref(null)  // 待二次确认删除的分组 id（再点一次才真正删除）
+let pendingDeleteTimer = null
+
+function clearPendingDelete() {
+  pendingDeleteGroupId.value = null
+  if (pendingDeleteTimer) { clearTimeout(pendingDeleteTimer); pendingDeleteTimer = null }
+}
 
 function openGroupManager() {
   groupMgrVisible.value = true
   newGroupName.value = ''
+  clearPendingDelete()
 }
 
 function closeGroupManager() {
   groupMgrVisible.value = false
+  clearPendingDelete()
 }
 
 // 新建分组（对齐桌面端 saveTabPane → AddGroup）
@@ -320,7 +329,7 @@ async function createGroup() {
     await loadGroups()
   } catch (e) {
     console.error('新建分组失败:', e)
-    alert('新建分组失败')
+    toast.error('新建分组失败')
   } finally {
     groupMgrBusy.value = false
   }
@@ -329,7 +338,15 @@ async function createGroup() {
 // 删除分组（对齐桌面端 delTab → RemoveGroup）
 async function deleteGroup(group) {
   if (groupMgrBusy.value) return
-  if (!confirm(`确定删除分组「${group.name}」吗？分组数据将不能恢复。`)) return
+  // 内联二次确认：首次点击进入待确认态，3 秒内再次点击才真正删除（替代原生 confirm）
+  if (pendingDeleteGroupId.value !== group.id) {
+    pendingDeleteGroupId.value = group.id
+    if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer)
+    pendingDeleteTimer = setTimeout(() => { pendingDeleteGroupId.value = null }, 3000)
+    return
+  }
+  if (pendingDeleteTimer) { clearTimeout(pendingDeleteTimer); pendingDeleteTimer = null }
+  pendingDeleteGroupId.value = null
   groupMgrBusy.value = true
   try {
     await RemoveGroup(Number(group.id))
@@ -338,7 +355,7 @@ async function deleteGroup(group) {
     await loadGroups()
   } catch (e) {
     console.error('删除分组失败:', e)
-    alert('删除分组失败')
+    toast.error('删除分组失败')
   } finally {
     groupMgrBusy.value = false
   }
@@ -419,11 +436,11 @@ async function selectAndFollow(stock) {
       await loadStocks()
       closeSearch()
     } else {
-      alert(res || '关注失败')
+      toast.error(res || '关注失败')
     }
   } catch (e) {
     console.error('关注失败:', e)
-    alert('关注失败')
+    toast.error('关注失败')
   } finally {
     addingCode.value = ''
   }
@@ -653,10 +670,11 @@ onBeforeUnmount(() => {
               <span class="group-mgr__name">{{ g.name }}</span>
               <button
                 class="group-mgr__del"
+                :class="{ 'group-mgr__del--confirm': pendingDeleteGroupId === g.id }"
                 :disabled="groupMgrBusy"
                 @click="deleteGroup(g)"
               >
-                删除
+                {{ pendingDeleteGroupId === g.id ? '确认删除?' : '删除' }}
               </button>
             </div>
           </div>
