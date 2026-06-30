@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { calcChipDistribution } from '../../../components/kline/chip'
+import { calcChipDistribution } from '../../composables/klineChip'
 
-// 筹码分布（复用桌面端 calcChipDistribution，纯前端基于 K 线计算）。
+// 筹码分布（纯前端基于 K 线计算）。
 // 输入 K 线数据，canvas 横向柱状图展示各价位持仓占比 + 均成本线 + 获利比例。
 const props = defineProps({
   data: { type: Array, default: () => [] },

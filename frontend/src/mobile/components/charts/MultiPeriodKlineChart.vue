@@ -10,7 +10,7 @@ import {
   cmfValues, adValues, forceIndexValues, chaikinOscValues,
   chopValues, massIndexValues, ulcerIndexValues, elderRayValues, satsValues,
   emaLeadingNull, ttmSqueezeValues, aroonValues, smaValues,
-} from '../../../components/kline/calc'
+} from '../../composables/klineCalc'
 
 const props = defineProps({
   // K线数据：[{ day, open, close, high, low, volume, amount, changePercent, ... }]

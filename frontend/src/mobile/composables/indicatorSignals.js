@@ -1,9 +1,7 @@
 // 43 项技术指标信号评估（移动端）。
 //
-// 与桌面端 StockLightweightKlineChart.vue 的 evaluateIndicatorSignals 逻辑严格对齐，
-// 但抽成纯函数：输入一组 K 线行（{ day, open, close, high, low, volume }），
-// 返回每个指标的看多/看空/震荡/中性判定。所有指标计算函数复用桌面端已模块化的
-// frontend/src/components/kline/calc.ts，避免重复实现。
+// 输入一组 K 线行（{ day, open, close, high, low, volume }），
+// 返回每个指标的看多/看空/震荡/中性判定。指标计算函数复用本地 klineCalc。
 import {
   smaValues, emaFinite, emaLeadingNull, bollingerBands, obvValues,
   macdBundle, kdjBundle, rsiBundle, atrValues, vwapValues, mfiValues, kamaValues,
@@ -14,7 +12,7 @@ import {
   coppockValues, smiValues, aoValues, cmfValues, adValues,
   forceIndexValues, chaikinOscValues, chopValues,
   massIndexValues, ulcerIndexValues, ttmSqueezeValues, elderRayValues,
-} from '../../components/kline/calc'
+} from './klineCalc'
 
 // 自包含的 OHLCV 提取：K 线已按时间正序，这里只做数值化与过滤，
 // 不依赖桌面端的图表时间解析链（toChartTime / sortKey 等）。

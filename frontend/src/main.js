@@ -1,8 +1,5 @@
 import {createApp} from 'vue'
 import {getToken} from './api/transport.js'
-import {useDevice} from './composables/useDevice'
-// 引入组件库的少量全局样式变量
-import 'tdesign-vue-next/es/style/index.css';
 
 // 彻底静音浏览器无害的 ResizeObserver 循环提示。
 // 该提示是 Chromium 的自我保护（回调里又改了尺寸形成循环，浏览器主动打断），
@@ -32,7 +29,7 @@ import 'tdesign-vue-next/es/style/index.css';
 })()
 
 // 启动闸门：探测 /api/health。
-//  - 200：服务端开放或令牌有效 → 挂载完整应用
+//  - 200：服务端开放或令牌有效 → 挂载移动端应用
 //  - 401：需要鉴权 → 挂载登录页，登录成功后重载进入应用
 async function bootstrap() {
   const token = getToken()
@@ -54,29 +51,17 @@ async function bootstrap() {
     return
   }
 
-  const { isMobile } = useDevice()
-  if (isMobile.value) {
-    const [{ default: MobileApp }, { default: mobileRouter }] = await Promise.all([
-      import('./mobile/MobileApp.vue'),
-      import('./mobile/router')
-    ])
-    const app = createConfiguredApp(MobileApp)
-    app.use(mobileRouter)
-    app.mount('#app')
-
-    if (mobileRouter.currentRoute.value.path === '/') {
-      mobileRouter.replace('/mobile')
-    }
-    return
-  }
-
-  const [{ default: DesktopApp }, { default: desktopRouter }] = await Promise.all([
-    import('./App.vue'),
-    import('./router/router')
+  const [{ default: MobileApp }, { default: mobileRouter }] = await Promise.all([
+    import('./mobile/MobileApp.vue'),
+    import('./mobile/router')
   ])
-  const app = createConfiguredApp(DesktopApp)
-  app.use(desktopRouter)
+  const app = createConfiguredApp(MobileApp)
+  app.use(mobileRouter)
   app.mount('#app')
+
+  if (mobileRouter.currentRoute.value.path === '/') {
+    mobileRouter.replace('/mobile')
+  }
 }
 
 function createConfiguredApp(rootComponent) {

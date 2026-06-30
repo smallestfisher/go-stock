@@ -1,3 +1,5 @@
+// 筹码分布计算（移动端，原 desktop/components/kline/chip.ts 迁入）。
+// 零依赖纯函数：输入 K 线行集合与分箱数，返回筹码分布/平均成本/获利比例。
 function parseFloatPct(s) {
   const v = parseFloat(String(s ?? '').replace(/%/g, '').trim())
   return Number.isFinite(v) ? v / 100 : 0

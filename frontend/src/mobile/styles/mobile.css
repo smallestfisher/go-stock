@@ -185,3 +185,8 @@ a {
   padding-left: var(--m-safe-left);
   padding-right: var(--m-safe-right);
 }
+
+/* md-editor-v3 预览区内边距调整（原 src/style.css 迁入）*/
+.md-editor-preview {
+  padding: 0 8px !important;
+}

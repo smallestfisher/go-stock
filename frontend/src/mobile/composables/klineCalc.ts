@@ -1,3 +1,5 @@
+// 技术指标计算库（移动端，原 desktop/components/kline/calc.ts 迁入）。
+// 零依赖纯函数：输入 OHLCV 数组，返回各指标序列。供 indicatorSignals.js 评估信号。
 export function smaValues(closes, period) {
   const out = []
   for (let i = 0; i < closes.length; i++) {
