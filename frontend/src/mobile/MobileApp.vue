@@ -46,12 +46,12 @@ body {
   height: 100%;
 }
 
-/* 内容区高度 = 视口 - 底部dock高度(约56px+安全区) */
+/* 内容区高度 = 视口 - 底部dock高度(dock约60px + 安全区)，避免内容被遮挡 */
 .mobile-main {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   /* 底部留出 dock 空间，避免内容被遮挡 */
-  padding-bottom: calc(56px + var(--m-safe-bottom));
+  padding-bottom: calc(60px + var(--m-safe-bottom));
 }
 </style>

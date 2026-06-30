@@ -260,6 +260,7 @@ onBeforeMount(() => {
         <span v-if="hasFilter" class="filter-trigger__text">已筛选</span>
         <span v-else class="filter-trigger__text">搜索模板</span>
       </button>
+      <MButton type="default" size="small" :loading="importing" @click="importRecommended">导入推荐</MButton>
       <MButton type="primary" size="small" @click="openCreate">新建模板</MButton>
     </div>
 
@@ -293,7 +294,10 @@ onBeforeMount(() => {
 
         <MLoading v-else-if="loading" text="加载中..." vertical class="page-loading" />
         <MEmpty v-else description="还没有提示词模板">
-          <MButton type="primary" @click="openCreate">新建模板</MButton>
+          <div class="empty-actions">
+            <MButton type="primary" @click="openCreate">新建模板</MButton>
+            <MButton type="default" :loading="importing" @click="importRecommended">导入推荐模板</MButton>
+          </div>
         </MEmpty>
       </div>
     </MPullRefresh>
@@ -562,6 +566,13 @@ onBeforeMount(() => {
 .card-actions {
   display: flex;
   gap: var(--m-space-xs);
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
+  margin-top: var(--m-space-md);
 }
 
 .act-btn {

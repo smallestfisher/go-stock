@@ -90,7 +90,8 @@ function buildOption() {
     },
     tooltip: {
       trigger: 'axis',
-      triggerOn: 'mousemove|click',
+      // 移动端用 click 触发：避免 touchmove 同时驱动十字光标与 dataZoom 平移，导致滑动卡顿/抢手势
+      triggerOn: 'click',
       axisPointer: { type: 'cross', lineStyle: { color: '#888', width: 1, opacity: 0.8 } },
       backgroundColor: 'rgba(255,255,255,0.96)',
       borderColor: gridColor,
@@ -301,6 +302,8 @@ onBeforeUnmount(() => {
 
 .kline-canvas {
   width: 100%;
+  /* 图表区触摸手势交给 echarts，避免单指横滑平移K线被外层 sheet 垂直滚动抢走 */
+  touch-action: none;
 }
 
 .chart-empty {

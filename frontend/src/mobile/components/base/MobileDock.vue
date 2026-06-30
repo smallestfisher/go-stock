@@ -79,8 +79,8 @@ function showMore() {
   display: flex;
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
-  /* 安全区底部留白 */
-  padding-bottom: var(--m-safe-bottom);
+  /* 安全区底部留白 + 固定兜底，避免压到 iPhone 底部 home indicator 小白条 */
+  padding-bottom: calc(var(--m-safe-bottom) + 6px);
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -90,13 +90,13 @@ function showMore() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: var(--m-space-xs) 0 var(--m-space-sm);
+  gap: 3px;
+  padding: var(--m-space-sm) 0 var(--m-space-xs);
   background: transparent;
   border: none;
   color: var(--m-text-tertiary);
   cursor: pointer;
-  min-height: var(--m-touch-min);
+  min-height: 52px;
   transition: color var(--m-duration-fast);
 }
 
@@ -105,12 +105,12 @@ function showMore() {
 }
 
 .dock-icon {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
 }
 
 .dock-label {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
 }
 

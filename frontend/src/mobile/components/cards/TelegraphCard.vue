@@ -24,6 +24,14 @@ const showContent = computed(() => !hasTitle.value || expanded.value)
 // 情绪：与桌面端一致——看涨=红(涨)，看跌=绿(跌)。
 const sentiment = computed(() => props.item.sentimentResult || '')
 
+// 仅当 url 是完整 http(s) 链接时才提供「查看原文」。
+// 后端各源 url 质量不一：财联社 shareurl 为完整链接；新浪未赋值为空；
+// 华尔街见闻存的是相对 uri（如 article/123），直接当 href 会打开无效页，故过滤掉。
+const validUrl = computed(() => {
+  const u = String(props.item.url || '').trim()
+  return /^https?:\/\//i.test(u) ? u : ''
+})
+
 function toggle() {
   if (hasTitle.value) expanded.value = !expanded.value
 }
@@ -57,7 +65,7 @@ function toggle() {
 
       <!-- 标签行 -->
       <div
-        v-if="(item.subjects && item.subjects.length) || (item.stocks && item.stocks.length) || sentiment || item.url"
+        v-if="(item.subjects && item.subjects.length) || (item.stocks && item.stocks.length) || sentiment || validUrl"
         class="tg-tags"
       >
         <span
@@ -76,9 +84,9 @@ function toggle() {
           :class="sentiment === '看涨' ? 'tg-tag--up' : sentiment === '看跌' ? 'tg-tag--down' : 'tg-tag--subject'"
         >{{ sentiment }}</span>
         <a
-          v-if="item.url"
+          v-if="validUrl"
           class="tg-tag tg-tag--link"
-          :href="item.url"
+          :href="validUrl"
           target="_blank"
           rel="noopener"
           @click.stop
