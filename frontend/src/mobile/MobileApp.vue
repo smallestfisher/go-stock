@@ -46,12 +46,18 @@ body {
   height: 100%;
 }
 
-/* 内容区高度 = 视口 - 底部dock高度(dock约60px + 安全区)，避免内容被遮挡 */
+/* 内容区：flex 占满 shell 剩余高度，自行滚动。
+   dock 是 position:fixed 脱离文档流，这里必须预留 dock 的完整高度，
+   否则页面底部内容会滑到 dock 下面被遮挡。
+   dock 现已去掉底部安全区留白(高度 = 1px边框 + 52px = 53px)，此处同步。
+   顶部安全区由 PageHeader 处理。 */
 .mobile-main {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  /* 底部留出 dock 空间，避免内容被遮挡 */
-  padding-bottom: calc(60px + var(--m-safe-bottom));
+  padding-bottom: 53px;
+  /* 背景与 dock 栏同色：dock 是 fixed 盖在底部 53px 上，若 dock 实际高度
+     与 53px 有 1~2px 出入，这里露出的是同色，避免出现一条异色细缝。 */
+  background: var(--m-bg-card);
 }
 </style>

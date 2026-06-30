@@ -28,6 +28,9 @@ const aiSummaryTime = ref('')
 const modelName = ref('')
 const question = ref('')
 const chatId = ref('')
+// 本次实际分析的题目：供结果区「分析主题」展示，与输入框解耦。
+// 这样分析完成后清空输入框，也不会让结果标题丢失。
+const analyzedTopic = ref('')
 const loading = ref(false)
 const analysisStatus = ref('')
 
@@ -98,7 +101,9 @@ async function loadLatest() {
     const result = await GetAIResponseResult(SCOPE)
     if (result && result.content) {
       aiSummary.value = result.content
-      question.value = result.question || ''
+      // 仅把上次题目存入 analyzedTopic 供结果区展示，不回填输入框；
+      // 输入框保持空白，进入即可输入新问题。需要再生成同一题可点「重新总结」。
+      analyzedTopic.value = result.question || ''
       modelName.value = result.modelName || ''
       aiSummaryTime.value = fmtTime(result.CreatedAt)
     }
@@ -128,11 +133,15 @@ function startSummary() {
     analysisStatus.value = '请先选择 AI 模型'
     return
   }
+  // 输入框为空时（如直接点「重新总结」）沿用上次题目，保证再生成不丢问题；
+  // 有新输入则以其为准，并记入 analyzedTopic 供结果区展示。
+  const q = question.value.trim() ? question.value : analyzedTopic.value
+  analyzedTopic.value = q.trim() || analyzedTopic.value
   aiSummary.value = ''
   loading.value = true
   analysisStatus.value = '正在连接AI服务...'
   // SummaryStockNews(question, aiConfigId, sysPromptId, enableTools, thinkingMode, eventName, stockCode)
-  SummaryStockNews(question.value, aiConfigId.value, sysPromptId.value, enableTools.value, thinkingMode.value, 'summaryStockNews', '')
+  SummaryStockNews(q, aiConfigId.value, sysPromptId.value, enableTools.value, thinkingMode.value, 'summaryStockNews', '')
 }
 
 // 当前选中的模型名（生成中展示「正在用什么模型分析什么问题」）
@@ -142,7 +151,9 @@ const activeModelName = computed(() => {
 })
 // 当前分析主题摘要（用于生成中/结果区告知用户在分析什么）
 const questionPreview = computed(() => {
-  const q = (question.value || '').trim()
+  // 读 analyzedTopic（本次实际分析的题目），与输入框解耦：
+  // 分析完成后清空输入框，结果标题仍保留。
+  const q = (analyzedTopic.value || '').trim()
   if (q) return q
   return '市场资讯综合分析'
 })
@@ -155,14 +166,19 @@ function stopSummary() {
 // 流式事件：对齐桌面 market.vue summaryStockNews handler
 EventsOn('summaryStockNews', async (msg) => {
   if (msg === 'DONE') {
-    await SaveAIResponseResult(SCOPE, SCOPE, aiSummary.value, chatId.value, question.value, aiConfigId.value)
+    await SaveAIResponseResult(SCOPE, SCOPE, aiSummary.value, chatId.value, analyzedTopic.value, aiConfigId.value)
     loading.value = false
     analysisStatus.value = '分析完成'
     setTimeout(() => { analysisStatus.value = '' }, 2000)
     loadHistory()
+    // 分析完成后清空输入框：本次题目已存入 analyzedTopic 供结果区展示，
+    // 输入框回归空白，可直接输入下一个问题，无需手动删除。
+    question.value = ''
+    selectedUserPromptId.value = null
   } else {
     if (msg.chatId) chatId.value = msg.chatId
-    if (msg.question) question.value = msg.question
+    // 后端回传实际分析题目，只更新结果区展示，不再回填输入框
+    if (msg.question) analyzedTopic.value = msg.question
     if (msg.content || msg.reasoning_content || msg.extraContent) {
       if (!aiSummary.value) analysisStatus.value = 'AI正在分析中...'
     }

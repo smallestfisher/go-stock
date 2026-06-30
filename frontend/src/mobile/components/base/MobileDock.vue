@@ -79,8 +79,10 @@ function showMore() {
   display: flex;
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
-  /* 安全区底部留白 + 固定兜底，避免压到 iPhone 底部 home indicator 小白条 */
-  padding-bottom: calc(var(--m-safe-bottom) + 6px);
+  /* 不留底部安全区：按需求去掉 dock 底部空白带。
+     注意：dock 图标/文字会落到 iPhone home indicator 小白条所在区域，
+     底部 tab 点按可能与系统上滑手势冲突（已确认取舍）。 */
+  padding-bottom: 0;
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
 }
 
