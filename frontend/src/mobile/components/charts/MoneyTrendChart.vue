@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, shallowRef } from 'vue'
+import MIcon from '../base/MIcon.vue'
 
 const props = defineProps({
   // 资金趋势数据：来自 GetStockMoneyTrendByDay
@@ -286,7 +287,7 @@ onBeforeUnmount(() => {
       :style="{ height: `${height}px` }"
     />
     <div v-if="!data.length" class="chart-empty">
-      <p>💰 暂无资金数据</p>
+      <p><MIcon name="money" :size="16" /> 暂无资金数据</p>
     </div>
   </div>
 </template>

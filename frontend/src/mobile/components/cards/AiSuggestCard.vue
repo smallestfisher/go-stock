@@ -1,6 +1,7 @@
 <script setup>
 import MCard from '../base/MCard.vue'
 import MButton from '../base/MButton.vue'
+import MIcon from '../base/MIcon.vue'
 
 defineProps({
   // AI建议数据
@@ -35,13 +36,13 @@ function handleStockClick(stock) {
   <MCard>
     <!-- 头部 -->
     <div class="ai-suggest-header">
-      <h3 class="header-title">🤖 AI 建议</h3>
+      <h3 class="header-title"><MIcon name="robot" :size="20" /> AI 建议</h3>
       <button
         class="header-refresh"
         :disabled="loading"
         @click="handleRefresh"
       >
-        🔄
+        <MIcon name="refresh" :size="18" />
       </button>
     </div>
 

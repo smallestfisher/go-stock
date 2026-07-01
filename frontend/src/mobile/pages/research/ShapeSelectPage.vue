@@ -7,6 +7,7 @@ import MLoading from '../../components/base/MLoading.vue'
 import MSheet from '../../components/base/MSheet.vue'
 import MButton from '../../components/base/MButton.vue'
 import StockDetailSheet from '../../components/sheets/StockDetailSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 
 // 对齐桌面端 allStockList.vue（研究中心→形态选股）：
@@ -281,7 +282,7 @@ onBeforeMount(() => {
           :class="{ 'filter-btn--active': activeFilterCount > 0 }"
           @click="openFilter"
         >
-          <span>🎯 形态筛选</span>
+          <span><MIcon name="target" :size="16" /> 形态筛选</span>
           <span v-if="activeFilterCount > 0" class="badge">{{ activeFilterCount }}</span>
         </button>
         <button v-if="activeFilterCount > 0" type="button" class="clear-link" @click="clearAll">清除</button>

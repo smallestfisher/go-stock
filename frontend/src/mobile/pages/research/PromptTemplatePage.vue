@@ -16,6 +16,7 @@ import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MButton from '../../components/base/MButton.vue'
 import MSheet from '../../components/base/MSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 
 // 对齐桌面端 promptTemplateList.vue：分页列表 + 搜索 + 新增/编辑 + 删除 + 分享到广场
@@ -256,7 +257,7 @@ onBeforeMount(() => {
         :class="{ 'filter-trigger--active': hasFilter }"
         @click="filterVisible = true"
       >
-        🔍
+        <MIcon name="search" :size="16" />
         <span v-if="hasFilter" class="filter-trigger__text">已筛选</span>
         <span v-else class="filter-trigger__text">搜索模板</span>
       </button>

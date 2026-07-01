@@ -7,6 +7,7 @@ import { EventsOn, EventsOff } from '../../../api/runtime'
 import PageHeader from '../../components/widgets/PageHeader.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MSheet from '../../components/base/MSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 
 // 对齐桌面端 agent-chat.vue 的 ChatWithAgent 流式对话。
@@ -27,9 +28,9 @@ const thinkingMode = ref(false)
 const agentMode = ref('')        // '' 自动 / react 快速 / plan_execute 规划
 
 const AGENT_MODES = [
-  { label: '🤖 自动', value: '' },
-  { label: '⚡ 快速', value: 'react' },
-  { label: '🧠 规划', value: 'plan_execute' },
+  { label: '自动', icon: 'robot', value: '' },
+  { label: '快速', icon: 'bolt', value: 'react' },
+  { label: '规划', icon: 'brain', value: 'plan_execute' },
 ]
 
 const settingsVisible = ref(false)
@@ -140,8 +141,8 @@ onBeforeUnmount(() => {
   <div class="agent-page">
     <PageHeader title="AI智能体">
       <template #actions>
-        <button type="button" class="header-act" @click="settingsVisible = true">⚙️</button>
-        <button type="button" class="header-act" @click="clearChat">🗑️</button>
+        <button type="button" class="header-act" @click="settingsVisible = true"><MIcon name="settings" :size="20" /></button>
+        <button type="button" class="header-act" @click="clearChat"><MIcon name="trash" :size="20" /></button>
       </template>
     </PageHeader>
 
@@ -168,7 +169,7 @@ onBeforeUnmount(() => {
             <!-- 助手消息：思考过程 + Markdown 正文 -->
             <template v-else>
               <details v-if="message.reasoning" class="reasoning">
-                <summary>💭 思考过程</summary>
+                <summary><MIcon name="thinking" :size="16" /> 思考过程</summary>
                 <div class="reasoning-body">{{ message.reasoning }}</div>
               </details>
               <MdPreview v-if="message.content" :modelValue="message.content" theme="light" />
@@ -228,7 +229,7 @@ onBeforeUnmount(() => {
               class="chip"
               :class="{ 'chip--active': agentMode === m.value }"
               @click="agentMode = m.value"
-            >{{ m.label }}</button>
+            ><MIcon :name="m.icon" :size="16" style="margin-right: 4px" />{{ m.label }}</button>
           </div>
         </div>
 

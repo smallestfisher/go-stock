@@ -7,6 +7,7 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MiniSparkline from '../../components/charts/MiniSparkline.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { formatMoney } from '../../composables/useFormat'
 
 // 对齐桌面端 market.vue「概念资金流向」(conceptFundFlowChart.vue)。
@@ -89,7 +90,7 @@ onBeforeUnmount(() => {
         <template v-else-if="all.length">
           <!-- 流入 TOP -->
           <section v-if="inflowList.length" class="block">
-            <div class="block-title block-title--rise">🔴 概念流入 TOP{{ inflowList.length }}</div>
+            <div class="block-title block-title--rise"><MIcon name="dot" :size="12" :filled="true" style="color: var(--m-color-rise)" /> 概念流入 TOP{{ inflowList.length }}</div>
             <div class="rank-list">
               <div v-for="(it, i) in inflowList" :key="it.code || i" class="rank-item">
                 <span class="rank-idx">{{ i + 1 }}</span>
@@ -108,7 +109,7 @@ onBeforeUnmount(() => {
 
           <!-- 流出 TOP -->
           <section v-if="outflowList.length" class="block">
-            <div class="block-title block-title--fall">🟢 概念流出 TOP{{ outflowList.length }}</div>
+            <div class="block-title block-title--fall"><MIcon name="dot" :size="12" :filled="true" style="color: var(--m-color-fall)" /> 概念流出 TOP{{ outflowList.length }}</div>
             <div class="rank-list">
               <div v-for="(it, i) in outflowList" :key="it.code || i" class="rank-item">
                 <span class="rank-idx">{{ i + 1 }}</span>

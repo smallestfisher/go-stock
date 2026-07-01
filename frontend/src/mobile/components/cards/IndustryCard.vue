@@ -1,5 +1,6 @@
 <script setup>
 import MCard from '../base/MCard.vue'
+import MIcon from '../base/MIcon.vue'
 import PercentTag from '../widgets/PercentTag.vue'
 
 defineProps({
@@ -31,9 +32,9 @@ function handleViewAll() {
   <MCard>
     <!-- 头部 -->
     <div class="industry-header">
-      <h3 class="header-title">📈 行业热度 TOP{{ maxShow }}</h3>
+      <h3 class="header-title"><MIcon name="trend-up" :size="20" /> 行业热度 TOP{{ maxShow }}</h3>
       <button class="header-action" @click="handleViewAll">
-        全部 →
+        全部 <MIcon name="arrow-right" :size="14" />
       </button>
     </div>
 

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import MCard from '../base/MCard.vue'
+import MIcon from '../base/MIcon.vue'
 
 const props = defineProps({
   // 股票数据
@@ -93,7 +94,7 @@ function handleStockClick(stock) {
     <!-- 头部 -->
     <div class="stock-summary-header">
       <div class="header-left">
-        <h3 class="header-title">📊 我的自选</h3>
+        <h3 class="header-title"><MIcon name="chart" :size="20" /> 我的自选</h3>
         <div class="header-stats">
           <span class="stat-item m-rise">{{ stats.rise }}涨</span>
           <span class="stat-item m-fall">{{ stats.fall }}跌</span>
@@ -101,7 +102,7 @@ function handleStockClick(stock) {
         </div>
       </div>
       <button class="header-action" @click="handleViewAll">
-        查看全部 {{ stats.total }} 只 →
+        查看全部 {{ stats.total }} 只 <MIcon name="arrow-right" :size="14" />
       </button>
     </div>
 
@@ -141,7 +142,7 @@ function handleStockClick(stock) {
     <div v-else class="stock-empty">
       <p>还没有添加自选股票</p>
       <button class="empty-action" @click="handleViewAll">
-        去添加 →
+        去添加 <MIcon name="arrow-right" :size="14" />
       </button>
     </div>
   </MCard>

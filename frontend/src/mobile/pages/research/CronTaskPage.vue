@@ -19,6 +19,7 @@ import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MButton from '../../components/base/MButton.vue'
 import MSheet from '../../components/base/MSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 
 // 对齐桌面端 cron-task-manager.vue：任务列表 + 搜索/筛选 + 启用切换 + 立即执行 + 新建/编辑/删除
@@ -364,7 +365,7 @@ onBeforeMount(() => {
         :class="{ 'filter-trigger--active': hasFilter }"
         @click="filterVisible = true"
       >
-        🔍 <span class="filter-text">{{ hasFilter ? '已筛选' : '搜索任务' }}</span>
+        <MIcon name="search" :size="16" /> <span class="filter-text">{{ hasFilter ? '已筛选' : '搜索任务' }}</span>
       </button>
       <MButton type="primary" size="small" @click="openCreate">新建任务</MButton>
     </div>
@@ -382,7 +383,7 @@ onBeforeMount(() => {
             </div>
 
             <div class="task-info">
-              <span class="task-cron">⏰ {{ task.cronExpr }}</span>
+              <span class="task-cron"><MIcon name="alarm" :size="16" /> {{ task.cronExpr }}</span>
               <span class="task-runs">运行 {{ task.runCount || 0 }} 次</span>
             </div>
             <div v-if="task.lastRunAt" class="task-last">

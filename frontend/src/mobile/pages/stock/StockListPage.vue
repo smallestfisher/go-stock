@@ -14,6 +14,7 @@ import MButton from '../../components/base/MButton.vue'
 import StockCard from '../../components/cards/StockCard.vue'
 import VirtualList from '../../components/widgets/VirtualList.vue'
 import StockDetailSheet from '../../components/sheets/StockDetailSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 字段容错映射（对齐 HomePage loadStockData，应对后端字段大小写不一致）
 function pick(item, keys, fallback) {
@@ -474,8 +475,8 @@ onBeforeUnmount(() => {
     <!-- 分组标签 + 管理分组 + 添加 -->
     <div class="stock-list-tabs">
       <MTabs v-model="activeGroup" :tabs="groups" />
-      <button class="tab-action-btn" title="管理分组" @click="openGroupManager">🗂</button>
-      <button class="tab-action-btn" title="添加自选" @click="handleAddStock">➕</button>
+      <button class="tab-action-btn" title="管理分组" @click="openGroupManager"><MIcon name="folder" :size="20" /></button>
+      <button class="tab-action-btn" title="添加自选" @click="handleAddStock"><MIcon name="plus" :size="20" /></button>
     </div>
 
     <!-- 股票列表 -->
@@ -527,7 +528,7 @@ onBeforeUnmount(() => {
         <div class="search-sheet">
           <div class="search-sheet__header">
             <span class="search-sheet__title">添加自选</span>
-            <button class="search-sheet__close" @click="closeSearch">✕</button>
+            <button class="search-sheet__close" @click="closeSearch"><MIcon name="close" :size="18" /></button>
           </div>
           <div class="search-sheet__input-wrap">
             <input

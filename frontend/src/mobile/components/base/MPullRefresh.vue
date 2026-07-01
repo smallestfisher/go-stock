@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import MIcon from './MIcon.vue'
 
 const props = defineProps({
   // 下拉刷新回调
@@ -140,7 +141,7 @@ onBeforeUnmount(() => {
           class="m-pull-refresh__arrow"
           :class="{ 'm-pull-refresh__arrow--up': state === 'loosing' }"
         >
-          ↓
+          <MIcon name="arrow-down" :size="20" />
         </div>
         <span class="m-pull-refresh__text">{{ statusText[state] }}</span>
       </div>

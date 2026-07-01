@@ -5,6 +5,7 @@ import { BrowserOpenURL } from '../../../api/runtime'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 StockNoticeList.vue：StockNotice(code)（空=全部最新公告）。
 // 顶部搜索选股（同个股研报范式）。公告类型按关键词着色（复用桌面 getTypeColor 语义）。
@@ -120,7 +121,7 @@ onBeforeMount(() => {
     <!-- 当前筛选标的 -->
     <div v-if="selected" class="selected-bar">
       <span class="selected-text">{{ selected.name }} <span class="selected-code">{{ selected.code }}</span></span>
-      <button class="clear-btn" type="button" @click="clearSelected">✕</button>
+      <button class="clear-btn" type="button" @click="clearSelected"><MIcon name="close" :size="14" /></button>
     </div>
 
     <MPullRefresh class="notice-refresh" :on-refresh="handleRefresh">

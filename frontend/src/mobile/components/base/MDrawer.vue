@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import MIcon from './MIcon.vue'
 
 const props = defineProps({
   show: {
@@ -13,13 +14,13 @@ const emit = defineEmits(['update:show'])
 
 const router = useRouter()
 
-// 「更多」抽屉：放次级功能（dock 已常驻首页/自选/市场/研究）
+// 「更多」抽屉：放次级功能（dock 已常驻首页/自选/市场/研究）。icon 为 MIcon 图标名
 const menuItems = [
-  { label: 'K线分析', icon: '📈', path: '/mobile/kline' },
-  { label: '基金中心', icon: '💰', path: '/mobile/fund' },
-  { label: 'AI智能体', icon: '🤖', path: '/mobile/agent' },
-  { label: '设置', icon: '⚙️', path: '/mobile/settings' },
-  { label: '关于', icon: 'ℹ️', path: '/mobile/about' },
+  { label: 'K线分析', icon: 'kline', path: '/mobile/kline' },
+  { label: '基金中心', icon: 'fund', path: '/mobile/fund' },
+  { label: 'AI智能体', icon: 'robot', path: '/mobile/agent' },
+  { label: '设置', icon: 'settings', path: '/mobile/settings' },
+  { label: '关于', icon: 'info', path: '/mobile/about' },
 ]
 
 function handleClose() {
@@ -40,7 +41,9 @@ function handleNavigate(path) {
           <!-- 头部 -->
           <div class="drawer-header">
             <h2 class="drawer-title">更多功能</h2>
-            <button class="drawer-close" @click="handleClose">✕</button>
+            <button class="drawer-close" @click="handleClose">
+              <MIcon name="close" :size="22" />
+            </button>
           </div>
 
           <!-- 菜单列表 -->
@@ -51,9 +54,9 @@ function handleNavigate(path) {
               class="menu-item"
               @click="handleNavigate(item.path)"
             >
-              <span class="menu-icon">{{ item.icon }}</span>
+              <MIcon class="menu-icon" :name="item.icon" :size="22" />
               <span class="menu-label">{{ item.label }}</span>
-              <span class="menu-arrow">→</span>
+              <MIcon class="menu-arrow" name="arrow-right" :size="18" />
             </div>
           </div>
         </div>
@@ -131,9 +134,11 @@ function handleNavigate(path) {
 }
 
 .menu-icon {
-  font-size: 24px;
+  /* 矢量图标：固定占位宽度让文字对齐，颜色随主色，图标本身尺寸由 size 属性定 */
   width: 32px;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  color: var(--m-color-rise);
 }
 
 .menu-label {

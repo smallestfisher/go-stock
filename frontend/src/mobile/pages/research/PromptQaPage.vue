@@ -7,6 +7,7 @@ import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MButton from '../../components/base/MButton.vue'
 import MSheet from '../../components/base/MSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 import { usePromptPlaza } from '../../composables/usePromptPlaza'
 
@@ -232,7 +233,7 @@ onBeforeMount(() => {
           placeholder="搜索问题..."
           @keyup.enter="applySearch"
         />
-        <MButton type="primary" size="small" @click="openAsk">❓ 提问</MButton>
+        <MButton type="primary" size="small" @click="openAsk"><MIcon name="question" :size="16" /> 提问</MButton>
       </div>
       <div class="filter-row">
         <div class="chip-scroll">
@@ -267,7 +268,7 @@ onBeforeMount(() => {
             </div>
             <div class="qa-card-foot">
               <span class="qa-author">{{ item.user?.nickname || item.user?.username || '匿名' }} · {{ timeAgo(item.createdAt) }}</span>
-              <span class="qa-answers">💬 {{ item.answersCount || 0 }} 回答</span>
+              <span class="qa-answers"><MIcon name="comment" :size="14" /> {{ item.answersCount || 0 }} 回答</span>
             </div>
           </div>
 
@@ -321,7 +322,7 @@ onBeforeMount(() => {
             type="button"
             class="del-question"
             @click="deleteQuestion"
-          >🗑️ 删除</button>
+          ><MIcon name="trash" :size="16" /> 删除</button>
         </div>
 
         <div class="detail-content">
@@ -349,14 +350,14 @@ onBeforeMount(() => {
               <div class="answer-head">
                 <span class="answer-user">{{ answer.user?.nickname || answer.user?.username }}</span>
                 <span class="answer-time">{{ timeAgo(answer.createdAt) }}</span>
-                <span v-if="answer.isAccepted" class="accepted-tag">✅ 已采纳</span>
+                <span v-if="answer.isAccepted" class="accepted-tag"><MIcon name="check-circle" :size="14" /> 已采纳</span>
               </div>
               <div class="answer-content">
                 <MdPreview :modelValue="answer.content" theme="light" />
               </div>
               <div class="answer-acts">
                 <button type="button" class="mini-btn" :class="{ 'mini-btn--on': answer.isLiked }" @click="likeAnswer(answer)">
-                  {{ answer.isLiked ? '❤️' : '🤍' }} {{ answer.likesCount || 0 }}
+                  <MIcon name="heart" :size="14" :filled="answer.isLiked" /> {{ answer.likesCount || 0 }}
                 </button>
                 <button
                   v-if="isQuestionOwner && !detailQuestion.isResolved"

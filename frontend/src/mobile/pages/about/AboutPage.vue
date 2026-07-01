@@ -3,6 +3,7 @@ import { ref, onBeforeMount } from 'vue'
 import PageHeader from '../../components/widgets/PageHeader.vue'
 import MCard from '../../components/base/MCard.vue'
 import MLoading from '../../components/base/MLoading.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { GetVersionInfo } from '../../../api/app'
 
 // 应用信息（后续接 GetVersionInfo 填充，对齐桌面端 about.vue）
@@ -46,7 +47,7 @@ onBeforeMount(loadInfo)
         <!-- 应用信息 -->
         <MCard>
           <img v-if="icon" :src="icon" class="app-logo" alt="logo">
-          <div v-else class="app-logo-emoji">📈</div>
+          <div v-else class="app-logo-emoji"><MIcon name="trend-up" :size="64" /></div>
           <h2 class="app-name">go-stock</h2>
           <p v-if="versionInfo?.version" class="app-version">
             版本 {{ versionInfo.version }}
@@ -63,19 +64,19 @@ onBeforeMount(loadInfo)
         <!-- 链接 -->
         <MCard>
           <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock')">
-            <span class="link-icon">⭐</span>
+            <span class="link-icon"><MIcon name="star" :size="20" /></span>
             <span class="link-label">GitHub 仓库</span>
-            <span class="link-arrow">↗</span>
+            <span class="link-arrow"><MIcon name="arrow-up-right" :size="16" /></span>
           </a>
           <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock/issues')">
-            <span class="link-icon">🐛</span>
+            <span class="link-icon"><MIcon name="bug" :size="20" /></span>
             <span class="link-label">问题反馈 Issues</span>
-            <span class="link-arrow">↗</span>
+            <span class="link-arrow"><MIcon name="arrow-up-right" :size="16" /></span>
           </a>
           <a class="link-item" @click="openUrl('https://github.com/ArvinLovegood/go-stock/releases')">
-            <span class="link-icon">🚀</span>
+            <span class="link-icon"><MIcon name="rocket" :size="20" /></span>
             <span class="link-label">版本发布 Releases</span>
-            <span class="link-arrow">↗</span>
+            <span class="link-arrow"><MIcon name="arrow-up-right" :size="16" /></span>
           </a>
           <div class="info-item">
             <span class="info-label">开源协议</span>

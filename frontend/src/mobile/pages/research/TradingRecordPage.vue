@@ -16,6 +16,7 @@ import MButton from '../../components/base/MButton.vue'
 import MSheet from '../../components/base/MSheet.vue'
 import { formatMoney } from '../../composables/useFormat'
 import { toast } from '../../composables/useToast'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 TradingRecordManager.vue：统计概览 + 记录列表(搜索/方向筛选/分页) + 新增/编辑/删除
 // 统计字段：totalBuyAmount/totalSellAmount/totalProfit/profitRate/holdingsAmount/currentValue/stockCount
@@ -343,7 +344,7 @@ onBeforeMount(() => {
                 <span class="record-name">{{ item.StockName }}</span>
                 <span class="record-code">{{ item.StockCode }}</span>
               </div>
-              <button type="button" class="del-btn" @click="removeRecord(item)">✕</button>
+              <button type="button" class="del-btn" @click="removeRecord(item)"><MIcon name="close" :size="16" /></button>
             </div>
 
             <div class="record-body" @click="openEdit(item)">

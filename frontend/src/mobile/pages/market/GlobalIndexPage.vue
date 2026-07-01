@@ -8,6 +8,7 @@ import MTabs from '../../components/base/MTabs.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import PercentTag from '../../components/widgets/PercentTag.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 market.vue「全球股指 → 全球指数」子页：
 // GlobalStockIndexes() 返回 { common, asia, america, europe, other } 五组，
@@ -127,7 +128,7 @@ onBeforeUnmount(() => {
                   loading="lazy"
                   @error="onImgError(item)"
                 />
-                <span v-else class="flag-fallback">🌐</span>
+                <span v-else class="flag-fallback"><MIcon name="globe" :size="14" /></span>
               </div>
 
               <div class="index-main">

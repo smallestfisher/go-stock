@@ -1,5 +1,6 @@
 <script setup>
 import MCard from '../base/MCard.vue'
+import MIcon from '../base/MIcon.vue'
 import PercentTag from '../widgets/PercentTag.vue'
 
 defineProps({
@@ -15,17 +16,17 @@ const emit = defineEmits(['alertClick', 'viewAll'])
 
 // 异动类型映射
 const alertTypeMap = {
-  rapid_rise: { label: '急速拉升', icon: '📈', color: 'var(--m-color-rise)' },
-  rapid_fall: { label: '急速下跌', icon: '📉', color: 'var(--m-color-fall)' },
-  volume_surge: { label: '放量异动', icon: '💥', color: 'var(--m-color-rise)' },
-  limit_up: { label: '涨停', icon: '🚀', color: 'var(--m-color-rise)' },
-  limit_down: { label: '跌停', icon: '⚠️', color: 'var(--m-color-fall)' },
-  break_high: { label: '突破新高', icon: '⬆️', color: 'var(--m-color-rise)' },
-  break_low: { label: '跌破新低', icon: '⬇️', color: 'var(--m-color-fall)' },
+  rapid_rise: { label: '急速拉升', icon: 'trend-up', color: 'var(--m-color-rise)' },
+  rapid_fall: { label: '急速下跌', icon: 'trend-down', color: 'var(--m-color-fall)' },
+  volume_surge: { label: '放量异动', icon: 'burst', color: 'var(--m-color-rise)' },
+  limit_up: { label: '涨停', icon: 'rocket', color: 'var(--m-color-rise)' },
+  limit_down: { label: '跌停', icon: 'warning', color: 'var(--m-color-fall)' },
+  break_high: { label: '突破新高', icon: 'arrow-up', color: 'var(--m-color-rise)' },
+  break_low: { label: '跌破新低', icon: 'arrow-down', color: 'var(--m-color-fall)' },
 }
 
 function getAlertType(type) {
-  return alertTypeMap[type] || { label: '异动', icon: '⚡', color: 'var(--m-text-secondary)' }
+  return alertTypeMap[type] || { label: '异动', icon: 'bolt', color: 'var(--m-text-secondary)' }
 }
 
 function handleAlertClick(alert) {
@@ -50,7 +51,7 @@ function formatTime(time) {
     <div class="alert-header">
       <h3 class="header-title">异动监控</h3>
       <button class="header-action" @click="handleViewAll">
-        查看全部 →
+        查看全部 <MIcon name="arrow-right" :size="14" />
       </button>
     </div>
 
@@ -63,7 +64,7 @@ function formatTime(time) {
         @click="handleAlertClick(alert)"
       >
         <div class="alert-icon" :style="{ color: getAlertType(alert.type).color }">
-          {{ getAlertType(alert.type).icon }}
+          <MIcon :name="getAlertType(alert.type).icon" :size="22" />
         </div>
         <div class="alert-info">
           <div class="alert-stock">

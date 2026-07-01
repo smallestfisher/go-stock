@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import MIcon from '../base/MIcon.vue'
 
 defineProps({
   title: {
@@ -31,8 +32,8 @@ function handleMenu() {
 
 <template>
   <div class="page-header">
-    <button v-if="showBack" class="header-btn" @click="handleBack">←</button>
-    <button v-else-if="showMenu" class="header-btn" @click="handleMenu">☰</button>
+    <button v-if="showBack" class="header-btn" @click="handleBack"><MIcon name="arrow-left" :size="24" /></button>
+    <button v-else-if="showMenu" class="header-btn" @click="handleMenu"><MIcon name="menu" :size="24" /></button>
     <div v-else class="header-placeholder" />
 
     <h1 class="header-title">{{ title }}</h1>

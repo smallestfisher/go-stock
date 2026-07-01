@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import MSheet from '../base/MSheet.vue'
+import MIcon from '../base/MIcon.vue'
 import MTabs from '../base/MTabs.vue'
 import MButton from '../base/MButton.vue'
 
@@ -102,7 +103,7 @@ function handleClose() {
               class="indicator-checkbox"
               :class="{ 'indicator-checkbox--active': indicators.includes(option.value) }"
             >
-              <span v-if="indicators.includes(option.value)">✓</span>
+              <span v-if="indicators.includes(option.value)"><MIcon name="check" :size="16" /></span>
             </div>
           </div>
         </div>

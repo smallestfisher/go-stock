@@ -5,6 +5,7 @@ import { BrowserOpenURL } from '../../../api/runtime'
 import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 IndustryResearchReportList.vue：IndustryResearchReport(code)（空=最近7天全部行业研报）。
 // 顶部搜索选股（同个股研报范式）。结构与 StockReportPage 一致，仅 API/字段不同。
@@ -107,7 +108,7 @@ onBeforeMount(() => {
     <!-- 当前筛选标的 -->
     <div v-if="selected" class="selected-bar">
       <span class="selected-text">{{ selected.name }} <span class="selected-code">{{ selected.code }}</span></span>
-      <button class="clear-btn" type="button" @click="clearSelected">✕</button>
+      <button class="clear-btn" type="button" @click="clearSelected"><MIcon name="close" :size="14" /></button>
     </div>
 
     <MPullRefresh class="report-refresh" :on-refresh="handleRefresh">

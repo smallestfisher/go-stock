@@ -55,9 +55,8 @@ body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding-bottom: 53px;
-  /* 背景与 dock 栏同色：dock 是 fixed 盖在底部 53px 上，若 dock 实际高度
-     与 53px 有 1~2px 出入，这里露出的是同色，避免出现一条异色细缝。 */
-  background: var(--m-bg-card);
+  /* dock 是 fixed 脱离文档流，这里预留其完整高度避免遮挡底部内容。
+     dock 总高 = 1px边框 + 52px内容 + 底部安全区(env)，此处同步。 */
+  padding-bottom: calc(53px + var(--m-safe-bottom));
 }
 </style>

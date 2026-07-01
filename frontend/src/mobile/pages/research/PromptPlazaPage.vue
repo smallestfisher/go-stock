@@ -9,6 +9,7 @@ import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MButton from '../../components/base/MButton.vue'
 import MSheet from '../../components/base/MSheet.vue'
+import MIcon from '../../components/base/MIcon.vue'
 import { toast } from '../../composables/useToast'
 import { usePromptPlaza } from '../../composables/usePromptPlaza'
 
@@ -35,12 +36,12 @@ const {
 const PAGE_SIZE = 12
 
 const SORT_OPTIONS = [
-  { label: '🕐 最新', value: 'latest' },
-  { label: '🔥 热度', value: 'hot' },
-  { label: '❤️ 点赞', value: 'likes' },
-  { label: '⭐ 收藏', value: 'favorites' },
-  { label: '⬇️ 下载', value: 'downloads' },
-  { label: '💬 评论', value: 'comments' },
+  { icon: 'clock', label: '最新', value: 'latest' },
+  { icon: 'fire', label: '热度', value: 'hot' },
+  { icon: 'heart', label: '点赞', value: 'likes' },
+  { icon: 'star', label: '收藏', value: 'favorites' },
+  { icon: 'arrow-down', label: '下载', value: 'downloads' },
+  { icon: 'comment', label: '评论', value: 'comments' },
 ]
 
 const categories = ref([])
@@ -382,10 +383,10 @@ const rankingList = ref([])
 const rankingLoading = ref(false)
 
 const RANK_TYPES = [
-  { label: '🔥 热度', value: 'hot' },
-  { label: '❤️ 点赞', value: 'likes' },
-  { label: '⬇️ 下载', value: 'downloads' },
-  { label: '⭐ 收藏', value: 'favorites' },
+  { icon: 'fire', label: '热度', value: 'hot' },
+  { icon: 'heart', label: '点赞', value: 'likes' },
+  { icon: 'arrow-down', label: '下载', value: 'downloads' },
+  { icon: 'star', label: '收藏', value: 'favorites' },
 ]
 const RANK_RANGES = [
   { label: '全部', value: 'all' },
@@ -442,10 +443,10 @@ onBeforeMount(() => {
           placeholder="搜索提示词..."
           @keyup.enter="applySearch"
         />
-        <button type="button" class="icon-btn" @click="openRanking">🏆</button>
+        <button type="button" class="icon-btn" @click="openRanking"><MIcon name="trophy" :size="20" /></button>
       </div>
       <div class="account-row">
-        <MButton type="primary" size="small" @click="openCreate">✏️ 发布</MButton>
+        <MButton type="primary" size="small" @click="openCreate"><MIcon name="edit" :size="16" /> 发布</MButton>
         <template v-if="isLoggedIn">
           <span class="user-tag">{{ displayName() }}</span>
           <button type="button" class="link-btn" @click="handleLogout">退出</button>
@@ -461,7 +462,7 @@ onBeforeMount(() => {
           class="chip"
           :class="{ 'chip--active': activeSort === opt.value }"
           @click="selectSort(opt.value)"
-        >{{ opt.label }}</button>
+        ><MIcon :name="opt.icon" :size="14" /> {{ opt.label }}</button>
       </div>
       <!-- 分类 chip 横滚 -->
       <div v-if="categories.length" class="chip-scroll">
@@ -498,15 +499,15 @@ onBeforeMount(() => {
               <span class="card-author">{{ item.user?.nickname || item.user?.username || '匿名' }} · {{ timeAgo(item.createdAt) }}</span>
             </div>
             <div class="card-stats">
-              <span class="stat">👁️ {{ item.viewsCount || 0 }}</span>
+              <span class="stat"><MIcon name="eye" :size="14" /> {{ item.viewsCount || 0 }}</span>
               <button type="button" class="stat stat-btn" :class="{ 'stat--on': item.isLiked }" @click.stop="toggleLike(item)">
-                {{ item.isLiked ? '❤️' : '🤍' }} {{ item.likesCount || 0 }}
+                <MIcon name="heart" :size="14" :filled="item.isLiked" /> {{ item.likesCount || 0 }}
               </button>
               <button type="button" class="stat stat-btn" :class="{ 'stat--warn': item.isFavorited }" @click.stop="toggleFavorite(item)">
-                {{ item.isFavorited ? '⭐' : '☆' }} {{ item.favoritesCount || 0 }}
+                <MIcon name="star" :size="14" :filled="item.isFavorited" /> {{ item.favoritesCount || 0 }}
               </button>
-              <span class="stat">💬 {{ item.commentsCount || 0 }}</span>
-              <span class="stat">⬇️ {{ item.downloadsCount || 0 }}</span>
+              <span class="stat"><MIcon name="comment" :size="14" /> {{ item.commentsCount || 0 }}</span>
+              <span class="stat"><MIcon name="arrow-down" :size="14" /> {{ item.downloadsCount || 0 }}</span>
             </div>
           </div>
 
@@ -540,16 +541,16 @@ onBeforeMount(() => {
         <!-- 操作区 -->
         <div class="detail-actions">
           <button type="button" class="act-chip" :class="{ 'act-chip--on': detail.isLiked }" @click="toggleLike(detail)">
-            {{ detail.isLiked ? '❤️ 已赞' : '🤍 点赞' }} {{ detail.likesCount || 0 }}
+            <MIcon name="heart" :size="16" :filled="detail.isLiked" /> {{ detail.isLiked ? '已赞' : '点赞' }} {{ detail.likesCount || 0 }}
           </button>
           <button type="button" class="act-chip" :class="{ 'act-chip--warn': detail.isFavorited }" @click="toggleFavorite(detail)">
-            {{ detail.isFavorited ? '⭐ 已收藏' : '☆ 收藏' }} {{ detail.favoritesCount || 0 }}
+            <MIcon name="star" :size="16" :filled="detail.isFavorited" /> {{ detail.isFavorited ? '已收藏' : '收藏' }} {{ detail.favoritesCount || 0 }}
           </button>
-          <button type="button" class="act-chip" @click="downloadPrompt(detail)">⬇️ 下载 {{ detail.downloadsCount || 0 }}</button>
-          <button type="button" class="act-chip" @click="copyContent(detail.content)">📋 复制</button>
-          <button type="button" class="act-chip" @click="addToTemplate(detail)">➕ 加到模板</button>
-          <button v-if="isOwner" type="button" class="act-chip" @click="openEdit(detail)">✏️ 编辑</button>
-          <button v-if="isOwner" type="button" class="act-chip act-chip--danger" @click="deletePrompt(detail)">🗑️ 删除</button>
+          <button type="button" class="act-chip" @click="downloadPrompt(detail)"><MIcon name="arrow-down" :size="16" /> 下载 {{ detail.downloadsCount || 0 }}</button>
+          <button type="button" class="act-chip" @click="copyContent(detail.content)"><MIcon name="clipboard" :size="16" /> 复制</button>
+          <button type="button" class="act-chip" @click="addToTemplate(detail)"><MIcon name="plus" :size="16" /> 加到模板</button>
+          <button v-if="isOwner" type="button" class="act-chip" @click="openEdit(detail)"><MIcon name="edit" :size="16" /> 编辑</button>
+          <button v-if="isOwner" type="button" class="act-chip act-chip--danger" @click="deletePrompt(detail)"><MIcon name="trash" :size="16" /> 删除</button>
         </div>
 
         <!-- 内容 -->
@@ -669,7 +670,7 @@ onBeforeMount(() => {
     </MSheet>
 
     <!-- 排行榜抽屉 -->
-    <MSheet v-model:show="rankingVisible" title="🏆 排行榜">
+    <MSheet v-model:show="rankingVisible" title="排行榜">
       <div class="rank-filters">
         <div class="chip-scroll">
           <button
@@ -679,7 +680,7 @@ onBeforeMount(() => {
             class="chip"
             :class="{ 'chip--active': rankingType === opt.value }"
             @click="loadRanking(opt.value, rankingRange)"
-          >{{ opt.label }}</button>
+          ><MIcon :name="opt.icon" :size="14" /> {{ opt.label }}</button>
         </div>
         <div class="chip-scroll">
           <button
@@ -699,10 +700,10 @@ onBeforeMount(() => {
           <div class="rank-body">
             <div class="rank-title">{{ item.title }}</div>
             <div class="rank-stats">
-              <span>❤️ {{ item.likesCount || 0 }}</span>
-              <span>⬇️ {{ item.downloadsCount || 0 }}</span>
-              <span>⭐ {{ item.favoritesCount || 0 }}</span>
-              <span v-if="item.hotScore" class="rank-hot">🔥 {{ item.hotScore }}</span>
+              <span><MIcon name="heart" :size="14" :filled="true" /> {{ item.likesCount || 0 }}</span>
+              <span><MIcon name="arrow-down" :size="14" /> {{ item.downloadsCount || 0 }}</span>
+              <span><MIcon name="star" :size="14" :filled="true" /> {{ item.favoritesCount || 0 }}</span>
+              <span v-if="item.hotScore" class="rank-hot"><MIcon name="fire" :size="14" /> {{ item.hotScore }}</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 <script setup>
 // 全局 Toast 渲染宿主，挂在 MobileApp 根部。订阅 useToast 的全局队列。
 import { toasts } from '../../composables/useToast'
+import MIcon from './MIcon.vue'
 </script>
 
 <template>
@@ -14,8 +15,8 @@ import { toasts } from '../../composables/useToast'
           :class="`m-toast--${t.type}`"
         >
           <span class="m-toast__icon">
-            <template v-if="t.type === 'success'">✓</template>
-            <template v-else-if="t.type === 'error'">✕</template>
+            <template v-if="t.type === 'success'"><MIcon name="check" :size="12" /></template>
+            <template v-else-if="t.type === 'error'"><MIcon name="close" :size="12" /></template>
             <template v-else-if="t.type === 'warning'">!</template>
             <template v-else>i</template>
           </span>

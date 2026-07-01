@@ -2,13 +2,14 @@
 import { ref, computed, defineAsyncComponent } from 'vue'
 import PageHeader from '../../components/widgets/PageHeader.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 研究中心功能分组（严格对齐桌面端 researchIndex.vue 的 mobileGroups）
 // 每个分组下若干功能 Tab，value 对应下方 componentMap
 const groups = [
   {
     category: 'AI分析',
-    icon: '📈',
+    icon: 'trend-up',
     tabs: [
       { label: 'AI分析报告', value: 'ai' },
       { label: '股票推荐记录', value: 'recommend' },
@@ -18,7 +19,7 @@ const groups = [
   },
   {
     category: '提示词',
-    icon: '💬',
+    icon: 'comment',
     tabs: [
       { label: '提示词模板', value: 'template' },
       { label: '提示词广场', value: 'plaza' },
@@ -27,7 +28,7 @@ const groups = [
   },
   {
     category: '选股',
-    icon: '🔍',
+    icon: 'search',
     tabs: [
       { label: '形态选股', value: 'shape' },
       { label: '指标选股', value: 'indicator' },
@@ -35,7 +36,7 @@ const groups = [
   },
   {
     category: '系统',
-    icon: '⚙️',
+    icon: 'settings',
     tabs: [
       { label: '定时任务', value: 'cron' },
       { label: '交易日志', value: 'trade' },
@@ -105,7 +106,7 @@ function selectTab(value) {
           :class="{ 'group-tile--active': activeGroup === g.category }"
           @click="selectGroup(g.category)"
         >
-          <span class="group-tile__icon">{{ g.icon }}</span>
+          <span class="group-tile__icon"><MIcon :name="g.icon" :size="18" /></span>
           <span class="group-tile__name">{{ g.category }}</span>
         </button>
       </div>

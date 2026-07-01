@@ -11,6 +11,7 @@ import AlertCard from '../components/cards/AlertCard.vue'
 import IndustryCard from '../components/cards/IndustryCard.vue'
 import StockDetailSheet from '../components/sheets/StockDetailSheet.vue'
 import MCard from '../components/base/MCard.vue'
+import MIcon from '../components/base/MIcon.vue'
 
 // 导入API
 import {
@@ -488,7 +489,7 @@ function handleIndustryClick(industry) {
         <div class="news-header">
           <h3 class="news-title">市场快讯</h3>
           <button class="news-action" @click="navigateTo('/mobile/market')">
-            更多 →
+            更多 <MIcon name="arrow-right" :size="14" />
           </button>
         </div>
         <div class="news-list">

@@ -1,5 +1,6 @@
 <script setup>
 import MSheet from '../base/MSheet.vue'
+import MIcon from '../base/MIcon.vue'
 
 // 指标开关面板（对齐桌面端侧边栏 5 类分组，完整覆盖桌面端 43 项指标）。
 //   主图叠加：绘制在 K 线主图（价格域）
@@ -16,7 +17,7 @@ const emit = defineEmits(['update:show', 'update:indicators'])
 // sub: main=主图叠加, sub=独立副图
 const groups = [
   {
-    name: '趋势', icon: '📈', color: 'rise',
+    name: '趋势', icon: 'trend-up', color: 'rise',
     items: [
       { code: 'MA', label: 'MA', sub: '主图' },
       { code: 'EMA', label: 'EMA', sub: '主图' },
@@ -34,7 +35,7 @@ const groups = [
     ],
   },
   {
-    name: '动量', icon: '💫', color: 'momentum',
+    name: '动量', icon: 'sparkle', color: 'momentum',
     items: [
       { code: 'MACD', label: 'MACD', sub: '副图' },
       { code: 'KDJ', label: 'KDJ', sub: '副图' },
@@ -51,7 +52,7 @@ const groups = [
     ],
   },
   {
-    name: '量价', icon: '📊', color: 'vol',
+    name: '量价', icon: 'chart', color: 'vol',
     items: [
       { code: 'VOL', label: '成交量', sub: '副图' },
       { code: 'OBV', label: 'OBV', sub: '副图' },
@@ -65,7 +66,7 @@ const groups = [
     ],
   },
   {
-    name: '波动', icon: '🎢', color: 'wave',
+    name: '波动', icon: 'volatility', color: 'wave',
     items: [
       { code: 'ATR', label: 'ATR', sub: '副图' },
       { code: 'KELTNER', label: 'Kelt', sub: '主图' },
@@ -78,7 +79,7 @@ const groups = [
     ],
   },
   {
-    name: '强度', icon: '📏', color: 'strength',
+    name: '强度', icon: 'ruler', color: 'strength',
     items: [
       { code: 'ADX', label: 'ADX/DMI', sub: '副图' },
       { code: 'CHOP', label: 'CHOP', sub: '副图' },
@@ -113,7 +114,7 @@ function close() { emit('update:show', false) }
     <div class="ind-panel">
       <div v-for="g in groups" :key="g.name" class="ind-group">
         <div class="ind-group__head" :class="`ind-group__head--${g.color}`">
-          <span class="ind-group__icon">{{ g.icon }}</span>
+          <span class="ind-group__icon"><MIcon :name="g.icon" :size="14" /></span>
           <span class="ind-group__name">{{ g.name }}</span>
         </div>
         <div class="ind-group__items">

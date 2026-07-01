@@ -11,6 +11,7 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import PercentTag from '../../components/widgets/PercentTag.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 aiRecommendStocksList.vue：GetAiRecommendStocksList 分页列表。
 // 移动端精简：一次取 30 条滚动浏览，预警开关 + 删除保留，K 线详情不做。
@@ -130,7 +131,7 @@ const hasData = computed(() => list.value.length > 0)
                 >
                   {{ profit(it).text }}
                 </span>
-                <button class="del-btn" type="button" @click="removeItem(it)">✕</button>
+                <button class="del-btn" type="button" @click="removeItem(it)"><MIcon name="close" :size="16" /></button>
               </div>
 
               <!-- 模型 / 板块 / 评级 / 时间 -->
@@ -160,7 +161,7 @@ const hasData = computed(() => list.value.length > 0)
               <p v-if="it.recommendReason" class="reason">{{ it.recommendReason }}</p>
 
               <!-- 风险提示 -->
-              <p v-if="it.riskRemarks" class="risk">⚠ {{ it.riskRemarks }}</p>
+              <p v-if="it.riskRemarks" class="risk"><MIcon name="warning" :size="14" /> {{ it.riskRemarks }}</p>
 
               <!-- 预警开关 -->
               <div class="row-alert">

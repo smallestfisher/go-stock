@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, defineAsyncComponent } from 'vue'
 import PageHeader from '../../components/widgets/PageHeader.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 市场行情分组导航：严格对齐桌面端 market.vue 的 marketMobileGroups
 // 两级（分类格子 → 功能 chip），与 ResearchPage 同范式，统一移动端导航风格。
@@ -8,7 +9,7 @@ import PageHeader from '../../components/widgets/PageHeader.vue'
 const groups = [
   {
     category: '行情',
-    icon: '📰',
+    icon: 'news',
     tabs: [
       { label: '市场快讯', value: 'news' },
       { label: '当前热门', value: 'hot-stock' },
@@ -16,7 +17,7 @@ const groups = [
   },
   {
     category: '指数',
-    icon: '🌐',
+    icon: 'globe',
     tabs: [
       { label: '全球股指', value: 'global' },
       { label: '重大指数', value: 'major' },
@@ -24,7 +25,7 @@ const groups = [
   },
   {
     category: '资金',
-    icon: '💰',
+    icon: 'money',
     tabs: [
       { label: '行业排名', value: 'industry' },
       { label: '个股资金', value: 'stock-flow' },
@@ -34,7 +35,7 @@ const groups = [
   },
   {
     category: '研报',
-    icon: '📊',
+    icon: 'chart',
     tabs: [
       { label: '龙虎榜', value: 'dragon-tiger' },
       { label: '个股研报', value: 'stock-report' },
@@ -101,7 +102,7 @@ function selectTab(value) {
           :class="{ 'group-tile--active': activeGroup === g.category }"
           @click="selectGroup(g.category)"
         >
-          <span class="group-tile__icon">{{ g.icon }}</span>
+          <span class="group-tile__icon"><MIcon :name="g.icon" :size="18" /></span>
           <span class="group-tile__name">{{ g.category }}</span>
         </button>
       </div>

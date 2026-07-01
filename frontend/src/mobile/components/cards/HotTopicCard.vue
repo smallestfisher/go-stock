@@ -1,5 +1,6 @@
 <script setup>
 import MCard from '../base/MCard.vue'
+import MIcon from '../base/MIcon.vue'
 import PercentTag from '../widgets/PercentTag.vue'
 
 defineProps({
@@ -28,7 +29,7 @@ function handleViewMore() {
     <div class="hot-topic-header">
       <h3 class="header-title">实时热点</h3>
       <button class="header-action" @click="handleViewMore">
-        更多 →
+        更多 <MIcon name="arrow-right" :size="14" />
       </button>
     </div>
 
@@ -46,7 +47,7 @@ function handleViewMore() {
         <div class="topic-info">
           <div class="topic-title">{{ topic.title }}</div>
           <div class="topic-meta">
-            <span class="topic-heat">🔥 {{ topic.heat }}</span>
+            <span class="topic-heat"><MIcon name="fire" :size="14" /> {{ topic.heat }}</span>
             <span v-if="topic.stocks" class="topic-stocks">
               {{ topic.stocks }} 只相关
             </span>

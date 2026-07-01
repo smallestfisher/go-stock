@@ -19,6 +19,96 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// buildMarketDataMessages 预抓市场基础数据(近期重大事件/会议、投资者互动、热门选股策略、
+// 近24小时资讯)，组装成 user/assistant 消息对垫入上下文。
+// 工具变体与非工具变体共用：确保「开启工具」时模型一开口就已有真实数据可依，
+// 不会在实际调用工具拿到数据之前先凭记忆编造(此前工具变体不喂任何数据，是幻觉根因)。
+// 工具仍可在此基础上进一步查询更细的数据。
+func buildMarketDataMessages() []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, 8)
+	wg := &sync.WaitGroup{}
+	// 同 NewChatStream：用 pairCh 收集各 goroutine 产出的消息对，wg.Wait 后串行 append，
+	// 消除并发 append 同一 slice 的数据竞争。
+	pairCh := make(chan []map[string]interface{}, 3)
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		md := strings.Builder{}
+		res := NewMarketNewsApi().ClsCalendar()
+		for _, a := range res {
+			bytes, err := json.Marshal(a)
+			if err != nil {
+				continue
+			}
+			date := gjson.Get(string(bytes), "calendar_day")
+			md.WriteString("\n### 事件/会议日期：" + date.String())
+			list := gjson.Get(string(bytes), "items")
+			list.ForEach(func(key, value gjson.Result) bool {
+				md.WriteString("\n- " + gjson.Get(value.String(), "title").String())
+				return true
+			})
+		}
+		pairCh <- []map[string]interface{}{
+			{"role": "user", "content": "近期重大事件/会议"},
+			{"role": "assistant", "reasoning_content": "使用工具查询", "content": "近期重大事件/会议如下：\n" + md.String()},
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		datas := NewMarketNewsApi().InteractiveAnswer(1, 100, "")
+		content := util.MarkdownTableWithTitle("当前最新投资者互动数据", datas.Results)
+		pairCh <- []map[string]interface{}{
+			{"role": "user", "content": "投资者互动数据"},
+			{"role": "assistant", "content": content},
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		res := NewSearchStockApi("").HotStrategy()
+		bytes, _ := json.Marshal(res)
+		strategy := &models.HotStrategy{}
+		json.Unmarshal(bytes, strategy)
+		for _, data := range strategy.Data {
+			data.Chg = mathutil.RoundToFloat(100*data.Chg, 2)
+		}
+		markdownTable := util.MarkdownTableWithTitle("当前热门选股策略", strategy.Data)
+		pairCh <- []map[string]interface{}{
+			{"role": "user", "content": "当前热门选股策略"},
+			{"role": "assistant", "content": markdownTable},
+		}
+	}()
+
+	go func() {
+		wg.Wait()
+		close(pairCh)
+	}()
+
+	for pairs := range pairCh {
+		out = append(out, pairs...)
+	}
+
+	// 资讯条数过多会单独占满 context；限制在合理范围（原先 200–1000 极易撑爆上下文）
+	news := NewMarketNewsApi().GetNews24HoursList("", random.RandInt(20, 40))
+	messageText := strings.Builder{}
+	for _, telegraph := range *news {
+		messageText.WriteString("## " + telegraph.Time + ":" + "\n")
+		messageText.WriteString("### " + telegraph.Content + "\n")
+	}
+	out = append(out, map[string]interface{}{
+		"role":    "user",
+		"content": "市场资讯",
+	})
+	out = append(out, map[string]interface{}{
+		"role":    "assistant",
+		"content": messageText.String(),
+	})
+
+	return out
+}
+
 func (o *OpenAi) NewSummaryStockNewsStreamWithTools(userQuestion string, sysPromptId *int, tools []Tool, thinking bool, history []map[string]interface{}) <-chan map[string]any {
 	ch := make(chan map[string]any, 512)
 	defer func() {
@@ -73,6 +163,10 @@ func (o *OpenAi) NewSummaryStockNewsStreamWithTools(userQuestion string, sysProm
 			"content":           "当前本地时间是:" + time.Now().Format("2006-01-02 15:04:05"),
 		})
 
+		// 先垫入预抓的市场基础数据，避免模型在实际调用工具前先凭记忆编造(幻觉根因)。
+		// 工具仍可在此基础上进一步查询更细数据。
+		msg = append(msg, buildMarketDataMessages()...)
+
 		if userQuestion == "" {
 			userQuestion = "请根据当前时间，总结和分析股票市场新闻中的投资机会"
 		}
@@ -125,86 +219,8 @@ func (o *OpenAi) NewSummaryStockNewsStream(userQuestion string, sysPromptId *int
 			"role":    "assistant",
 			"content": "当前本地时间是:" + time.Now().Format("2006-01-02 15:04:05"),
 		})
-		wg := &sync.WaitGroup{}
-		// 同 NewChatStream：用 pairCh 收集各 goroutine 产出的消息对，wg.Wait 后串行 append，
-		// 消除并发 append 同一 slice 的数据竞争。
-		pairCh := make(chan []map[string]interface{}, 3)
-		wg.Add(3)
-
-		go func() {
-			defer wg.Done()
-			md := strings.Builder{}
-			res := NewMarketNewsApi().ClsCalendar()
-			for _, a := range res {
-				bytes, err := json.Marshal(a)
-				if err != nil {
-					continue
-				}
-				date := gjson.Get(string(bytes), "calendar_day")
-				md.WriteString("\n### 事件/会议日期：" + date.String())
-				list := gjson.Get(string(bytes), "items")
-				list.ForEach(func(key, value gjson.Result) bool {
-					md.WriteString("\n- " + gjson.Get(value.String(), "title").String())
-					return true
-				})
-			}
-			pairCh <- []map[string]interface{}{
-				{"role": "user", "content": "近期重大事件/会议"},
-				{"role": "assistant", "reasoning_content": "使用工具查询", "content": "近期重大事件/会议如下：\n" + md.String()},
-			}
-		}()
-
-		go func() {
-			defer wg.Done()
-			datas := NewMarketNewsApi().InteractiveAnswer(1, 100, "")
-			content := util.MarkdownTableWithTitle("当前最新投资者互动数据", datas.Results)
-			pairCh <- []map[string]interface{}{
-				{"role": "user", "content": "投资者互动数据"},
-				{"role": "assistant", "content": content},
-			}
-		}()
-
-		go func() {
-			defer wg.Done()
-			res := NewSearchStockApi("").HotStrategy()
-			bytes, _ := json.Marshal(res)
-			strategy := &models.HotStrategy{}
-			json.Unmarshal(bytes, strategy)
-			for _, data := range strategy.Data {
-				data.Chg = mathutil.RoundToFloat(100*data.Chg, 2)
-			}
-			markdownTable := util.MarkdownTableWithTitle("当前热门选股策略", strategy.Data)
-			pairCh <- []map[string]interface{}{
-				{"role": "user", "content": "当前热门选股策略"},
-				{"role": "assistant", "content": markdownTable},
-			}
-		}()
-
-		go func() {
-			wg.Wait()
-			close(pairCh)
-		}()
-
-		for pairs := range pairCh {
-			msg = append(msg, pairs...)
-		}
-
-		// 资讯条数过多会单独占满 context；限制在合理范围（原先 200–1000 极易撑爆上下文）
-		news := NewMarketNewsApi().GetNews24HoursList("", random.RandInt(20, 40))
-		messageText := strings.Builder{}
-		for _, telegraph := range *news {
-			messageText.WriteString("## " + telegraph.Time + ":" + "\n")
-			messageText.WriteString("### " + telegraph.Content + "\n")
-		}
-
-		msg = append(msg, map[string]interface{}{
-			"role":    "user",
-			"content": "市场资讯",
-		})
-		msg = append(msg, map[string]interface{}{
-			"role":    "assistant",
-			"content": messageText.String(),
-		})
+		// 预抓市场基础数据(事件日历/投资者互动/热门策略/24h资讯)，与工具变体共用同一实现。
+		msg = append(msg, buildMarketDataMessages()...)
 
 		//for _, m := range TrimAiAssistantHistoryForAPI(history) {
 		//	msg = append(msg, m)

@@ -18,12 +18,18 @@ import MPullRefresh from '../../components/base/MPullRefresh.vue'
 import MSheet from '../../components/base/MSheet.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 market.vue 的「AI市场资讯总结」(getAiSummary/reAiSummary/summaryStockNews 事件流)
 // + researchReport.vue 的历史列表。移动端精简：仅模型选择，提示词/工具/思考用默认。
 const SCOPE = '市场资讯'
 
 const aiSummary = ref('')
+// 思考过程(reasoning_content)单独存放，与最终答案(aiSummary)分离。
+// 之前二者拼进同一字符串，导致「调工具前的推测性思考」混在答案里，读着像一上来就胡编。
+const aiReasoning = ref('')
+// 思考区默认折叠：思考是过程不是结论，避免喧宾夺主。
+const reasoningOpen = ref(false)
 const aiSummaryTime = ref('')
 const modelName = ref('')
 const question = ref('')
@@ -138,6 +144,7 @@ function startSummary() {
   const q = question.value.trim() ? question.value : analyzedTopic.value
   analyzedTopic.value = q.trim() || analyzedTopic.value
   aiSummary.value = ''
+  aiReasoning.value = ''
   loading.value = true
   analysisStatus.value = '正在连接AI服务...'
   // SummaryStockNews(question, aiConfigId, sysPromptId, enableTools, thinkingMode, eventName, stockCode)
@@ -183,7 +190,8 @@ EventsOn('summaryStockNews', async (msg) => {
       if (!aiSummary.value) analysisStatus.value = 'AI正在分析中...'
     }
     if (msg.content) aiSummary.value += msg.content
-    if (msg.reasoning_content) aiSummary.value += msg.reasoning_content
+    // 思考过程单独累加到 aiReasoning，不再混进最终答案
+    if (msg.reasoning_content) aiReasoning.value += msg.reasoning_content
     if (msg.extraContent) aiSummary.value += msg.extraContent
     if (msg.model) modelName.value = msg.model
     if (msg.time) aiSummaryTime.value = msg.time
@@ -356,21 +364,42 @@ onBeforeUnmount(() => {
       <div class="container">
         <!-- 总结结果 -->
         <div class="result-card">
-          <!-- 生成中：告知用户在分析什么 -->
-          <div v-if="loading && !aiSummary" class="result-loading">
+          <!-- 生成中且尚无任何输出（连思考都还没来）：纯 loading -->
+          <div v-if="loading && !aiSummary && !aiReasoning" class="result-loading">
             <MLoading :text="analysisStatus || 'AI 正在分析...'" vertical />
             <p class="loading-topic">正在分析：<b>{{ questionPreview }}</b></p>
             <p v-if="activeModelName" class="loading-model">模型：{{ activeModelName }}</p>
           </div>
           <template v-else>
-            <div v-if="aiSummary" class="result-wrap">
+            <div v-if="aiSummary || aiReasoning" class="result-wrap">
               <div class="result-topic">
                 <span class="result-topic-label">分析主题</span>
                 <span class="result-topic-text">{{ questionPreview }}</span>
               </div>
-              <div ref="resultScrollRef" class="result-body">
+
+              <!-- 思考过程：与最终答案分离，默认折叠。思考是推测性的、且发生在
+                   调用工具拿到数据之前，混入正文会被误读为「没查数据就瞎编」。 -->
+              <div v-if="aiReasoning" class="reasoning-block">
+                <button type="button" class="reasoning-toggle" @click="reasoningOpen = !reasoningOpen">
+                  <span class="reasoning-title">
+                    <MIcon name="brain" :size="16" />
+                    思考过程{{ loading && !aiSummary ? '（进行中…）' : '' }}
+                  </span>
+                  <span class="reasoning-caret">
+                    {{ reasoningOpen ? '收起' : '展开' }}
+                    <MIcon name="arrow-down" :size="14" :class="{ 'reasoning-caret-icon--open': reasoningOpen }" class="reasoning-caret-icon" />
+                  </span>
+                </button>
+                <div v-if="reasoningOpen" class="reasoning-body">
+                  <MdPreview :modelValue="aiReasoning" theme="light" />
+                </div>
+              </div>
+
+              <!-- 最终答案：只有真正的 content 才显示在这里 -->
+              <div v-if="aiSummary" ref="resultScrollRef" class="result-body">
                 <MdPreview :modelValue="aiSummary" theme="light" />
               </div>
+              <p v-else-if="loading" class="answer-pending">思考中，正在整理分析结论…</p>
             </div>
             <MEmpty v-else description="暂无 AI 总结，输入问题后点击「生成总结」" />
           </template>
@@ -663,6 +692,67 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   font-size: var(--m-font-sm);
   line-height: var(--m-line-height-loose);
+}
+
+/* 思考过程块：与最终答案视觉分区，弱化(灰底/小字)，默认折叠 */
+.reasoning-block {
+  border: 1px solid var(--m-divider-color);
+  border-radius: var(--m-radius-sm);
+  background: var(--m-bg-primary);
+  overflow: hidden;
+}
+
+.reasoning-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--m-space-sm);
+  padding: var(--m-space-sm) var(--m-space-md);
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: var(--m-font-xs);
+  color: var(--m-text-secondary);
+}
+
+.reasoning-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--m-space-xs);
+}
+
+.reasoning-caret {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--m-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* 展开箭头：折叠时朝下，展开时旋转 180° 朝上 */
+.reasoning-caret-icon {
+  transition: transform var(--m-duration-fast);
+}
+
+.reasoning-caret-icon--open {
+  transform: rotate(180deg);
+}
+
+.reasoning-body {
+  max-height: 30vh;
+  overflow-y: auto;
+  padding: 0 var(--m-space-md) var(--m-space-sm);
+  font-size: var(--m-font-xs);
+  line-height: var(--m-line-height-normal);
+  color: var(--m-text-secondary);
+  border-top: 1px solid var(--m-divider-color);
+}
+
+.answer-pending {
+  padding: var(--m-space-sm) 0;
+  font-size: var(--m-font-sm);
+  color: var(--m-text-tertiary);
 }
 
 .meta-bar {

@@ -8,6 +8,7 @@ import MTabs from '../../components/base/MTabs.vue'
 import MEmpty from '../../components/base/MEmpty.vue'
 import MLoading from '../../components/base/MLoading.vue'
 import HotStockCard from '../../components/cards/HotStockCard.vue'
+import MIcon from '../../components/base/MIcon.vue'
 
 // 对齐桌面端 market.vue「当前热门」的 7 个子分类。
 // 全球/沪深/港股/美股 → HotStock(marketType)（雪球热榜）
@@ -185,8 +186,8 @@ function bigNumber(n) {
                   <span v-for="(s, i) in item.stock_list" :key="i" class="topic-stock-tag">{{ s.name }}</span>
                 </div>
                 <div class="topic-meta">
-                  <span v-if="item.postNumber != null">💬 {{ bigNumber(item.postNumber) }}</span>
-                  <span v-if="item.clickNumber != null">👁 {{ bigNumber(item.clickNumber) }}</span>
+                  <span v-if="item.postNumber != null"><MIcon name="comment" :size="14" /> {{ bigNumber(item.postNumber) }}</span>
+                  <span v-if="item.clickNumber != null"><MIcon name="eye" :size="14" /> {{ bigNumber(item.clickNumber) }}</span>
                 </div>
               </div>
             </a>

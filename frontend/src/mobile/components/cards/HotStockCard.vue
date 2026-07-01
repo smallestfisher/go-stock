@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import MIcon from '../base/MIcon.vue'
 import PercentTag from '../widgets/PercentTag.vue'
 import PriceTag from '../widgets/PriceTag.vue'
 
@@ -58,7 +59,7 @@ function deltaClass(n) {
 
     <!-- 热度 + 变化 -->
     <div class="hot-heat">
-      <span class="hot-heat__value">🔥 {{ heatText }}</span>
+      <span class="hot-heat__value"><MIcon name="fire" :size="14" /> {{ heatText }}</span>
       <div class="hot-heat__delta">
         <span class="hot-delta" :class="deltaClass(item.increment)">
           热{{ signed(item.increment) }}
