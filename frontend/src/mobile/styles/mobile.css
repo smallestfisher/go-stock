@@ -15,10 +15,7 @@
 html,
 body {
   width: 100%;
-  /* 见 MobileApp.vue：iOS 独立 PWA 下 height:100% 会少报物理屏高导致底部白带，
-     统一用 dvh 打底、vh 兜底，避免与 MobileApp 的声明因层叠顺序打架。 */
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: var(--m-font-md);

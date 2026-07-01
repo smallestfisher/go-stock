@@ -78,22 +78,14 @@ function showMore() {
   left: 0;
   right: 0;
   z-index: var(--m-z-fixed);
-  /* 根因修复：black-translucent + viewport-fit=cover 下，高度链是 height:100%，
-     视口底不含 home indicator 安全区，dock 的 bottom:0 锚到视口底而非屏幕物理底，
-     二者之间那条 ~34px 安全区会露出 body 的浅灰背景(看着像"空白带/不是纯白")。
-     这里让 fixed 容器自身铺 dock 同色背景、并向下吃掉安全区，
-     把那条带子变成 dock 白色背景的自然延伸，而非露底色的空带。 */
-  background: var(--m-bg-card);
-  padding-bottom: var(--m-safe-bottom);
 }
 
 .dock-bar {
   display: flex;
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
-  /* dock 可点内容保持在安全区之上：安全区由外层 .mobile-dock 的
-     padding-bottom 让出，这里不再额外留白，避免图标落入手势区。 */
-  padding-bottom: 0;
+  /* 安全区底部留白：吃掉 iPhone home indicator 那段，dock 内容抬到手势区之上。 */
+  padding-bottom: var(--m-safe-bottom);
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
 }
 

@@ -28,12 +28,7 @@ import MToastHost from './components/base/MToastHost.vue'
 
 html, body, #app {
   width: 100%;
-  /* iOS 独立 PWA(black-translucent + viewport-fit=cover)下，height:100% 会少报
-     home indicator 那段物理高度，导致布局视口短于屏幕，fixed dock 的 bottom:0
-     锚在视口底而非物理屏底，下方露出 manifest 的 background_color(#fff) 成大白带。
-     dvh/vh 在独立模式下映射到完整物理屏高，故用 dvh 打底、vh 兜底老设备。 */
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -51,17 +46,13 @@ body {
   height: 100%;
 }
 
-/* 内容区：flex 占满 shell 剩余高度，自行滚动。
-   dock 是 position:fixed 脱离文档流，这里必须预留 dock 的完整高度，
-   否则页面底部内容会滑到 dock 下面被遮挡。
-   dock 现已去掉底部安全区留白(高度 = 1px边框 + 52px = 53px)，此处同步。
+/* 内容区高度 = 视口 - 底部dock高度(约56px+安全区)，避免内容被遮挡。
    顶部安全区由 PageHeader 处理。 */
 .mobile-main {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  /* dock 是 fixed 脱离文档流，这里预留其完整高度避免遮挡底部内容。
-     dock 总高 = 1px边框 + 52px内容 + 底部安全区(env)，此处同步。 */
-  padding-bottom: calc(53px + var(--m-safe-bottom));
+  /* 底部留出 dock 空间，避免内容被遮挡 */
+  padding-bottom: calc(56px + var(--m-safe-bottom));
 }
 </style>
