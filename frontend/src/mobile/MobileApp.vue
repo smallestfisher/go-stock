@@ -28,7 +28,12 @@ import MToastHost from './components/base/MToastHost.vue'
 
 html, body, #app {
   width: 100%;
-  height: 100%;
+  /* iOS 独立 PWA(black-translucent + viewport-fit=cover)下，height:100% 会少报
+     home indicator 那段物理高度，导致布局视口短于屏幕，fixed dock 的 bottom:0
+     锚在视口底而非物理屏底，下方露出 manifest 的 background_color(#fff) 成大白带。
+     dvh/vh 在独立模式下映射到完整物理屏高，故用 dvh 打底、vh 兜底老设备。 */
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
