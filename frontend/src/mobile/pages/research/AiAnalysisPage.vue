@@ -53,6 +53,10 @@ const sysPromptId = ref(null)
 const enableTools = ref(true)
 const thinkingMode = ref(true)
 
+// 参数区折叠：模型/系统提示词/工具/思考属低频配置，默认收起，
+// 把首屏让给「输入 + 结果」。收起时用一行摘要告知当前选择。
+const paramsOpen = ref(false)
+
 // 用户提示词预设选择（选中即把 content 填入输入框，与桌面 question 下拉同义）
 const selectedUserPromptId = ref(null)
 
@@ -165,6 +169,23 @@ const questionPreview = computed(() => {
   return '市场资讯综合分析'
 })
 
+// 当前选中的系统提示词名（摘要展示用）
+const activeSysPromptName = computed(() => {
+  if (sysPromptId.value === null) return '默认'
+  const t = sysPromptOptions.value.find(t => t.ID === sysPromptId.value)
+  return t ? t.name : '默认'
+})
+
+// 参数摘要：折叠时一行展示当前配置，想改再展开
+const paramsSummary = computed(() => {
+  const parts = []
+  if (activeModelName.value) parts.push(activeModelName.value)
+  parts.push(activeSysPromptName.value)
+  parts.push(`工具${enableTools.value ? '✓' : '✗'}`)
+  parts.push(`思考${thinkingMode.value ? '✓' : '✗'}`)
+  return parts.join(' · ')
+})
+
 // 中止生成
 function stopSummary() {
   AbortSummaryStockNews()
@@ -254,109 +275,125 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page">
-    <!-- AI 总结操作区 -->
+    <!-- AI 总结操作区：仅保留「输入 + 生成」为常驻，参数收进折叠面板，首屏让给结果 -->
     <div class="op-bar">
-      <div class="op-row">
-        <h3 class="op-title">🤖 AI 市场资讯总结</h3>
+      <!-- 输入行：问题输入 + 生成/停止按钮同排，是「生成什么」的核心 -->
+      <div class="input-row">
+        <div class="question-wrap">
+          <textarea
+            v-model="question"
+            class="question-input"
+            rows="1"
+            placeholder="输入要分析的问题，如：总结市场新闻中的投资机会"
+          />
+          <button v-if="question" class="clear-question" type="button" @click="clearQuestion">✕</button>
+        </div>
         <button
           v-if="!loading"
-          class="op-btn op-btn--primary"
+          class="gen-btn"
           type="button"
           @click="startSummary"
         >
-          {{ aiSummary ? '重新总结' : '生成总结' }}
+          {{ aiSummary ? '重新' : '生成' }}
         </button>
-        <button v-else class="op-btn op-btn--danger" type="button" @click="stopSummary">停止</button>
+        <button v-else class="gen-btn gen-btn--stop" type="button" @click="stopSummary">停止</button>
       </div>
 
-      <!-- 问题输入：决定「生成什么」的核心 -->
-      <div class="question-row">
-        <textarea
-          v-model="question"
-          class="question-input"
-          rows="2"
-          placeholder="输入要分析的问题，例如：总结和分析股票市场新闻中的投资机会"
-        />
-        <button v-if="question" class="clear-question" type="button" @click="clearQuestion">✕</button>
-      </div>
-
-      <!-- 用户提示词预设（选中填入输入框，与桌面 question 下拉同义） -->
-      <div v-if="userPromptOptions.length" class="preset-block">
-        <span class="preset-label">预设问题</span>
-        <div class="chip-scroll">
-          <button
-            v-for="t in userPromptOptions"
-            :key="t.ID"
-            type="button"
-            class="preset-chip"
-            :class="{ 'preset-chip--active': selectedUserPromptId === t.ID }"
-            @click="selectedUserPromptId = t.ID; applyUserPrompt(t.ID)"
-          >
-            {{ t.name }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 模型选择（横向 chip） -->
-      <div v-if="aiConfigs.length" class="preset-block">
-        <span class="preset-label">模型</span>
-        <div class="chip-scroll">
-          <button
-            v-for="cfg in aiConfigs"
-            :key="cfg.ID"
-            type="button"
-            class="preset-chip"
-            :class="{ 'preset-chip--active': aiConfigId === cfg.ID }"
-            @click="aiConfigId = cfg.ID"
-          >
-            {{ cfg.name }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 系统提示词（横向 chip） -->
-      <div v-if="sysPromptOptions.length" class="preset-block">
-        <span class="preset-label">系统提示词</span>
-        <div class="chip-scroll">
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ 'preset-chip--active': sysPromptId === null }"
-            @click="sysPromptId = null"
-          >
-            默认
-          </button>
-          <button
-            v-for="t in sysPromptOptions"
-            :key="t.ID"
-            type="button"
-            class="preset-chip"
-            :class="{ 'preset-chip--active': sysPromptId === t.ID }"
-            @click="sysPromptId = t.ID"
-          >
-            {{ t.name }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 工具调用 / 思考模式开关（对齐桌面） -->
-      <div class="switch-row">
-        <button
-          type="button"
-          class="toggle-btn"
-          :class="{ 'toggle-btn--on': enableTools }"
-          @click="enableTools = !enableTools"
-        >
-          工具调用{{ enableTools ? ' ✓' : '' }}
+      <!-- 参数区：低频配置折叠收起。收起时一行摘要告知当前选择，想改再展开 -->
+      <div class="params">
+        <button type="button" class="params-toggle" @click="paramsOpen = !paramsOpen">
+          <span class="params-summary">
+            <MIcon name="settings" :size="14" />
+            <span class="params-summary-text">{{ paramsSummary }}</span>
+          </span>
+          <MIcon
+            name="arrow-down"
+            :size="14"
+            class="params-caret"
+            :class="{ 'params-caret--open': paramsOpen }"
+          />
         </button>
-        <button
-          type="button"
-          class="toggle-btn"
-          :class="{ 'toggle-btn--on': thinkingMode }"
-          @click="thinkingMode = !thinkingMode"
-        >
-          思考模式{{ thinkingMode ? ' ✓' : '' }}
-        </button>
+
+        <div v-if="paramsOpen" class="params-body">
+          <!-- 用户提示词预设（选中填入输入框，与桌面 question 下拉同义） -->
+          <div v-if="userPromptOptions.length" class="preset-block">
+            <span class="preset-label">预设问题</span>
+            <div class="chip-scroll">
+              <button
+                v-for="t in userPromptOptions"
+                :key="t.ID"
+                type="button"
+                class="preset-chip"
+                :class="{ 'preset-chip--active': selectedUserPromptId === t.ID }"
+                @click="selectedUserPromptId = t.ID; applyUserPrompt(t.ID)"
+              >
+                {{ t.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 模型选择（横向 chip） -->
+          <div v-if="aiConfigs.length" class="preset-block">
+            <span class="preset-label">模型</span>
+            <div class="chip-scroll">
+              <button
+                v-for="cfg in aiConfigs"
+                :key="cfg.ID"
+                type="button"
+                class="preset-chip"
+                :class="{ 'preset-chip--active': aiConfigId === cfg.ID }"
+                @click="aiConfigId = cfg.ID"
+              >
+                {{ cfg.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 系统提示词（横向 chip） -->
+          <div v-if="sysPromptOptions.length" class="preset-block">
+            <span class="preset-label">系统提示词</span>
+            <div class="chip-scroll">
+              <button
+                type="button"
+                class="preset-chip"
+                :class="{ 'preset-chip--active': sysPromptId === null }"
+                @click="sysPromptId = null"
+              >
+                默认
+              </button>
+              <button
+                v-for="t in sysPromptOptions"
+                :key="t.ID"
+                type="button"
+                class="preset-chip"
+                :class="{ 'preset-chip--active': sysPromptId === t.ID }"
+                @click="sysPromptId = t.ID"
+              >
+                {{ t.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 工具调用 / 思考模式开关（对齐桌面） -->
+          <div class="switch-row">
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': enableTools }"
+              @click="enableTools = !enableTools"
+            >
+              工具调用{{ enableTools ? ' ✓' : '' }}
+            </button>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': thinkingMode }"
+              @click="thinkingMode = !thinkingMode"
+            >
+              思考模式{{ thinkingMode ? ' ✓' : '' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -471,7 +508,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* 操作区 */
+/* 操作区：紧凑，仅输入行常驻 + 参数折叠条 */
 .op-bar {
   padding: var(--m-space-md);
   background: var(--m-bg-card);
@@ -481,49 +518,22 @@ onBeforeUnmount(() => {
   gap: var(--m-space-sm);
 }
 
-.op-row {
+/* 输入行：输入框 + 生成按钮同排 */
+.input-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--m-space-md);
+  align-items: flex-end;
+  gap: var(--m-space-sm);
 }
 
-.op-title {
-  font-size: var(--m-font-lg);
-  font-weight: var(--m-font-weight-medium);
-  color: var(--m-text-primary);
-}
-
-.op-btn {
-  padding: var(--m-space-xs) var(--m-space-lg);
-  border: none;
-  border-radius: var(--m-radius-sm);
-  font: inherit;
-  font-size: var(--m-font-sm);
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.op-btn--primary {
-  background: var(--m-color-rise);
-}
-
-.op-btn--danger {
-  background: var(--m-color-fall);
-}
-
-.op-btn:active {
-  transform: scale(0.95);
-}
-
-/* 问题输入框 */
-.question-row {
+.question-wrap {
   position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .question-input {
   width: 100%;
-  padding: var(--m-space-sm) var(--m-space-md);
+  padding: var(--m-space-sm) calc(var(--m-space-lg) + 6px) var(--m-space-sm) var(--m-space-md);
   border: 1px solid var(--m-border-color);
   border-radius: var(--m-radius-sm);
   background: var(--m-bg-primary);
@@ -531,8 +541,12 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: var(--m-font-sm);
   line-height: var(--m-line-height-normal);
-  resize: vertical;
+  resize: none;
   outline: none;
+  /* 单行起步，聚焦输入时随内容增高（最多约 4 行），不再默认占两行 */
+  min-height: calc(1em * var(--m-line-height-normal) + var(--m-space-sm) * 2);
+  max-height: calc(1em * var(--m-line-height-normal) * 4 + var(--m-space-sm) * 2);
+  overflow-y: auto;
 }
 
 .question-input:focus {
@@ -543,14 +557,84 @@ onBeforeUnmount(() => {
   position: absolute;
   top: var(--m-space-xs);
   right: var(--m-space-xs);
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: none;
   border-radius: var(--m-radius-full);
   background: var(--m-bg-card);
   color: var(--m-text-tertiary);
   font-size: var(--m-font-xs);
   line-height: 1;
+}
+
+.gen-btn {
+  flex-shrink: 0;
+  padding: var(--m-space-sm) var(--m-space-lg);
+  border: none;
+  border-radius: var(--m-radius-sm);
+  font: inherit;
+  font-size: var(--m-font-sm);
+  font-weight: var(--m-font-weight-medium);
+  color: #fff;
+  background: var(--m-color-rise);
+}
+
+.gen-btn--stop {
+  background: var(--m-color-fall);
+}
+
+.gen-btn:active {
+  transform: scale(0.95);
+}
+
+/* 参数折叠区 */
+.params {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
+}
+
+.params-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--m-space-sm);
+  padding: var(--m-space-xs) var(--m-space-sm);
+  background: var(--m-bg-primary);
+  border: 1px solid var(--m-divider-color);
+  border-radius: var(--m-radius-sm);
+  font: inherit;
+  color: var(--m-text-secondary);
+}
+
+.params-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--m-space-xs);
+  min-width: 0;
+  font-size: var(--m-font-xs);
+}
+
+.params-summary-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.params-caret {
+  flex-shrink: 0;
+  color: var(--m-text-tertiary);
+  transition: transform var(--m-duration-fast);
+}
+
+.params-caret--open {
+  transform: rotate(180deg);
+}
+
+.params-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-sm);
 }
 
 /* 预设块（标签 + 横向滚动 chip） */

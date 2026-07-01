@@ -95,24 +95,24 @@ function selectTab(value) {
     <!-- 顶部导航 -->
     <PageHeader title="研究中心" />
 
-    <!-- 分组导航：分类格子 -->
+    <!-- 分组导航：紧凑单行分段栏（横向可滚动），把首屏高度让给内容 -->
     <div class="research-nav">
       <div class="research-groups">
         <button
           v-for="g in groups"
           :key="g.category"
           type="button"
-          class="group-tile"
-          :class="{ 'group-tile--active': activeGroup === g.category }"
+          class="group-seg"
+          :class="{ 'group-seg--active': activeGroup === g.category }"
           @click="selectGroup(g.category)"
         >
-          <span class="group-tile__icon"><MIcon :name="g.icon" :size="18" /></span>
-          <span class="group-tile__name">{{ g.category }}</span>
+          <MIcon class="group-seg__icon" :name="g.icon" :size="16" />
+          <span class="group-seg__name">{{ g.category }}</span>
         </button>
       </div>
 
-      <!-- 当前分类下的功能 chip -->
-      <div class="research-tabs">
+      <!-- 当前分类下的功能 chip：仅当有 2 个及以上功能才显示，避免冗余单 chip 行 -->
+      <div v-if="currentTabs.length > 1" class="research-tabs">
         <button
           v-for="tab in currentTabs"
           :key="tab.value"
@@ -146,44 +146,49 @@ function selectTab(value) {
 .research-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--m-space-md);
-  padding: var(--m-space-md);
+  gap: var(--m-space-sm);
+  padding: var(--m-space-sm) var(--m-space-md);
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
 }
 
+/* 分类分段栏：单行、横向可滚动，替代原先占一整行的 4 大方格 */
 .research-groups {
-  display: grid;
-  gap: var(--m-space-sm);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.group-tile {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: var(--m-space-sm) var(--m-space-xs);
-  background: var(--m-bg-card);
-  border: 1px solid var(--m-divider-color);
-  border-radius: var(--m-radius-md);
-  color: var(--m-text-primary);
-  font: inherit;
+  gap: var(--m-space-xs);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.group-tile--active {
+.research-groups::-webkit-scrollbar {
+  display: none;
+}
+
+.group-seg {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--m-space-xs);
+  padding: var(--m-space-xs) var(--m-space-md);
+  background: var(--m-bg-primary);
+  border: 1px solid var(--m-divider-color);
+  border-radius: var(--m-radius-full);
+  color: var(--m-text-secondary);
+  font: inherit;
+  font-size: var(--m-font-sm);
+  white-space: nowrap;
+}
+
+.group-seg--active {
   background: var(--m-color-rise-light);
   border-color: var(--m-color-rise);
   color: var(--m-color-rise);
-}
-
-.group-tile__icon {
-  font-size: 18px;
-}
-
-.group-tile__name {
-  font-size: var(--m-font-xs);
   font-weight: var(--m-font-weight-medium);
+}
+
+.group-seg__icon {
+  flex-shrink: 0;
 }
 
 .research-tabs {
