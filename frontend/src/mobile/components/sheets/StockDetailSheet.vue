@@ -8,6 +8,7 @@ import PercentTag from '../widgets/PercentTag.vue'
 import FenshiChart from '../charts/FenshiChart.vue'
 import FullKlineChart from '../charts/FullKlineChart.vue'
 import MoneyTrendChart from '../charts/MoneyTrendChart.vue'
+import { toast } from '../../composables/useToast'
 import {
   Greet,
   GetStockMinutePriceLineData,
@@ -319,9 +320,10 @@ async function saveSetting() {
     })
     settingVisible.value = false
     emit('saved', s)
+    toast.success('保存成功')
   } catch (e) {
     console.error('保存设置失败:', e)
-    alert('保存失败')
+    toast.error('保存失败')
   } finally {
     saving.value = false
   }
