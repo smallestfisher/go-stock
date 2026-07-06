@@ -218,6 +218,36 @@ func InitCronTasks(core *server.Core) {
 			log.SugaredLogger.Info("已自动创建市场统计保存定时任务")
 		}
 	}
+	if !cronApi.ExistsByTaskType("bk_fund_flow_save") {
+		task := &models.CronTask{
+			Name:        "板块资金保存",
+			CronExpr:    "0 */1 * * * *",
+			TaskType:    "bk_fund_flow_save",
+			Enable:      true,
+			Status:      "active",
+			Description: "每分钟自动抓取并保存东方财富板块资金流向，交易时间外自动跳过",
+		}
+		if err := cronApi.Create(task); err != nil {
+			log.SugaredLogger.Errorf("自动创建板块资金保存任务失败：%v", err)
+		} else {
+			log.SugaredLogger.Info("已自动创建板块资金保存定时任务")
+		}
+	}
+	if !cronApi.ExistsByTaskType("concept_fund_flow_save") {
+		task := &models.CronTask{
+			Name:        "概念资金保存",
+			CronExpr:    "0 */1 * * * *",
+			TaskType:    "concept_fund_flow_save",
+			Enable:      true,
+			Status:      "active",
+			Description: "每分钟自动抓取并保存东方财富概念资金流向，交易时间外自动跳过",
+		}
+		if err := cronApi.Create(task); err != nil {
+			log.SugaredLogger.Errorf("自动创建概念资金保存任务失败：%v", err)
+		} else {
+			log.SugaredLogger.Info("已自动创建概念资金保存定时任务")
+		}
+	}
 	tasks := cronApi.GetAll()
 	for _, t := range tasks {
 		taskCopy := t

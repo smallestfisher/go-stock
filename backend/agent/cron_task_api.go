@@ -217,6 +217,10 @@ func (a *CronTaskApi) executeTaskByType(ctx context.Context, task *models.CronTa
 		return a.executeStockMonitor(ctx, task)
 	case "stock_change_save":
 		return a.executeStockChangeSave(ctx, task)
+	case "bk_fund_flow_save":
+		return a.executeBKFundFlowSave(ctx, task)
+	case "concept_fund_flow_save":
+		return a.executeConceptFundFlowSave(ctx, task)
 	case "custom":
 		return a.executeCustomTask(ctx, task)
 	default:
@@ -395,6 +399,31 @@ func (a *CronTaskApi) executeMarketStatisticSave(ctx context.Context, task *mode
 		return nil
 	}
 	return data.NewMarketStatisticApi().FetchAndSave()
+}
+
+func (a *CronTaskApi) executeBKFundFlowSave(ctx context.Context, task *models.CronTask) error {
+	logger.SugaredLogger.Infof("执行板块资金保存任务：%s", task.Name)
+	if !isTradingTime() {
+		logger.SugaredLogger.Info("当前不在A股交易时间，跳过板块资金保存")
+		return nil
+	}
+	api := data.NewBKFundFlowApi()
+	_, err := api.FetchAndSave()
+	// 顺带清理3天前的旧快照，避免库表无限膨胀
+	api.CleanOldData(3)
+	return err
+}
+
+func (a *CronTaskApi) executeConceptFundFlowSave(ctx context.Context, task *models.CronTask) error {
+	logger.SugaredLogger.Infof("执行概念资金保存任务：%s", task.Name)
+	if !isTradingTime() {
+		logger.SugaredLogger.Info("当前不在A股交易时间，跳过概念资金保存")
+		return nil
+	}
+	api := data.NewConceptFundFlowApi()
+	_, err := api.FetchAndSave()
+	api.CleanOldData(3)
+	return err
 }
 
 func (a *CronTaskApi) executeStockChangeSave(ctx context.Context, task *models.CronTask) error {
