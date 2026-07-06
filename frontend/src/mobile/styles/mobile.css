@@ -169,23 +169,6 @@ a {
   animation: skeleton-loading 1.5s ease-in-out infinite;
 }
 
-/* ==================== 安全区适配 ==================== */
-
-.m-safe-top {
-  padding-top: var(--m-safe-top);
-}
-
-.m-safe-bottom {
-  padding-bottom: var(--m-safe-bottom);
-}
-
-.m-safe-area {
-  padding-top: var(--m-safe-top);
-  padding-bottom: var(--m-safe-bottom);
-  padding-left: var(--m-safe-left);
-  padding-right: var(--m-safe-right);
-}
-
 /* md-editor-v3 预览区内边距调整（原 src/style.css 迁入）*/
 .md-editor-preview {
   padding: 0 8px !important;

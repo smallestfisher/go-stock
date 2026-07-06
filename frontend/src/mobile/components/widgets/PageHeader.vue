@@ -49,15 +49,13 @@ function handleMenu() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 顶部安全区内边距：viewport-fit=cover 下避开状态栏/刘海，
-     不靠整体上移布局，仅本栏向下让出安全区 */
-  padding: var(--m-safe-top) var(--m-space-md) var(--m-space-md);
+  padding: var(--m-space-md);
   background: var(--m-bg-card);
   border-bottom: 1px solid var(--m-divider-color);
   position: sticky;
   top: 0;
   z-index: var(--m-z-sticky);
-  min-height: calc(56px + var(--m-safe-top));
+  min-height: 56px;
 }
 
 .header-btn {

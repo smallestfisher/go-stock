@@ -405,7 +405,6 @@ onBeforeUnmount(() => {
   gap: var(--m-space-sm);
   align-items: flex-end;
   padding: var(--m-space-sm) var(--m-space-md);
-  padding-bottom: calc(var(--m-space-sm) + var(--m-safe-bottom));
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
 }

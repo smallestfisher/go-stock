@@ -53,6 +53,6 @@ body {
   min-height: 0;
   overflow: hidden;
   /* 底部留出 dock 空间，避免内容被遮挡 */
-  padding-bottom: calc(56px + var(--m-safe-bottom));
+  padding-bottom: 56px;
 }
 </style>

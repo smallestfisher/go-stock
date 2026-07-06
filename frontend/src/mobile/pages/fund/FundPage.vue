@@ -633,7 +633,7 @@ onBeforeUnmount(() => {
 .fund-refresh { flex: 1; min-height: 0; }
 .fund-content {
   padding: var(--m-space-md);
-  padding-bottom: calc(var(--m-space-2xl) + var(--m-safe-bottom));
+  padding-bottom: var(--m-space-2xl);
 }
 
 /* 关注卡片 */

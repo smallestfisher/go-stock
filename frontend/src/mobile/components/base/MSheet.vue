@@ -151,7 +151,6 @@ watch(() => props.show, (newVal) => {
 .m-sheet__footer {
   flex-shrink: 0;
   padding: var(--m-space-lg);
-  padding-bottom: calc(var(--m-space-lg) + var(--m-safe-bottom));
   border-top: 1px solid var(--m-divider-color);
   background: var(--m-bg-card);
 }

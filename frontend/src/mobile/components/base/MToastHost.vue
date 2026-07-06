@@ -30,7 +30,7 @@ import MIcon from './MIcon.vue'
 <style scoped>
 .m-toast-host {
   position: fixed;
-  top: calc(var(--m-safe-top) + 12%);
+  top: 12%;
   left: 0;
   right: 0;
   z-index: var(--m-z-toast);

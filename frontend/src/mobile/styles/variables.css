@@ -81,14 +81,8 @@
   /* 顶部固定栏高度 */
   --m-header-height: 56px;
 
-  /* 安全区 */
-  --m-safe-top: env(safe-area-inset-top);
-  --m-safe-bottom: env(safe-area-inset-bottom);
-  --m-safe-left: env(safe-area-inset-left);
-  --m-safe-right: env(safe-area-inset-right);
-
   /* 内容区域高度 */
-  --m-content-height: calc(100dvh - var(--m-header-height) - var(--m-safe-top));
+  --m-content-height: calc(100dvh - var(--m-header-height));
 
   /* Z-index层级 */
   --m-z-base: 1;

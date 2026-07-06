@@ -318,7 +318,6 @@ onBeforeMount(loadConfig)
 .save-bar {
   flex-shrink: 0;
   padding: var(--m-space-md);
-  padding-bottom: calc(var(--m-space-md) + var(--m-safe-bottom));
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
 }

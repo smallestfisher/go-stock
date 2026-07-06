@@ -84,8 +84,6 @@ function showMore() {
   display: flex;
   background: var(--m-bg-card);
   border-top: 1px solid var(--m-divider-color);
-  /* 安全区底部留白：吃掉 iPhone home indicator 那段，dock 内容抬到手势区之上。 */
-  padding-bottom: var(--m-safe-bottom);
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
 }
 

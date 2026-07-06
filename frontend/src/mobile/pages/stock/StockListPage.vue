@@ -900,7 +900,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--m-space-sm);
   padding: var(--m-space-md);
-  padding-bottom: calc(var(--m-space-md) + var(--m-safe-bottom));
   background: var(--m-bg-primary);
 }
 
